@@ -1,0 +1,1571 @@
+{
+  "records": [
+    {
+      "event": "25 Free",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Ella Kate Davis",
+      "time_seconds": 16.01,
+      "time_display": "16.01",
+      "date": "2024-11-09"
+    },
+    {
+      "event": "25 Free",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "James Goodwillie",
+      "time_seconds": 16.13,
+      "time_display": "16.13",
+      "date": "2025-02-08"
+    },
+    {
+      "event": "50 Free",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Ella Kate Davis",
+      "time_seconds": 34.82,
+      "time_display": "34.82",
+      "date": "2025-02-09"
+    },
+    {
+      "event": "50 Free",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 32.22,
+      "time_display": "32.22",
+      "date": "2023-02-12"
+    },
+    {
+      "event": "50 Free",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 27.39,
+      "time_display": "27.39",
+      "date": "2022-04-15"
+    },
+    {
+      "event": "50 Free",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 28.71,
+      "time_display": "28.71",
+      "date": "2020-01-05"
+    },
+    {
+      "event": "50 Free",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 24.91,
+      "time_display": "24.91",
+      "date": "2024-04-03"
+    },
+    {
+      "event": "50 Free",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Preston Jordan",
+      "time_seconds": 24.68,
+      "time_display": "24.68",
+      "date": "2024-12-07"
+    },
+    {
+      "event": "50 Free",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 24.28,
+      "time_display": "24.28",
+      "date": "2025-03-15"
+    },
+    {
+      "event": "50 Free",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Mason Hill",
+      "time_seconds": 22.73,
+      "time_display": "22.73",
+      "date": "2023-12-02"
+    },
+    {
+      "event": "50 Free",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Margaret Ivie",
+      "time_seconds": 24.31,
+      "time_display": "24.31",
+      "date": "2020-03-07"
+    },
+    {
+      "event": "50 Free",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Nathaniel Eliason",
+      "time_seconds": 20.93,
+      "time_display": "20.93",
+      "date": "2024-03-02"
+    },
+    {
+      "event": "100 Free",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Ella Kate Davis",
+      "time_seconds": 78.18,
+      "time_display": "1:18.18",
+      "date": "2025-01-19"
+    },
+    {
+      "event": "100 Free",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 73.56,
+      "time_display": "1:13.56",
+      "date": "2023-02-11"
+    },
+    {
+      "event": "100 Free",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 58.75,
+      "time_display": "58.75",
+      "date": "2022-04-15"
+    },
+    {
+      "event": "100 Free",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 63.89,
+      "time_display": "1:03.89",
+      "date": "2019-12-08"
+    },
+    {
+      "event": "100 Free",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 54.34,
+      "time_display": "54.34",
+      "date": "2024-03-10"
+    },
+    {
+      "event": "100 Free",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 54.36,
+      "time_display": "54.36",
+      "date": "2021-12-11"
+    },
+    {
+      "event": "100 Free",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 51.81,
+      "time_display": "51.81",
+      "date": "2025-03-16"
+    },
+    {
+      "event": "100 Free",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Mason Hill",
+      "time_seconds": 49.38,
+      "time_display": "49.38",
+      "date": "2023-12-03"
+    },
+    {
+      "event": "100 Free",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Margaret Ivie",
+      "time_seconds": 53.44,
+      "time_display": "53.44",
+      "date": "2021-02-24"
+    },
+    {
+      "event": "100 Free",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 45.57,
+      "time_display": "45.57",
+      "date": "2025-03-03"
+    },
+    {
+      "event": "200 Free",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Ella Kate Davis",
+      "time_seconds": 184.82,
+      "time_display": "3:04.82",
+      "date": "2024-09-28"
+    },
+    {
+      "event": "200 Free",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 166.90,
+      "time_display": "2:46.90",
+      "date": "2023-02-11"
+    },
+    {
+      "event": "200 Free",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 132.73,
+      "time_display": "2:12.73",
+      "date": "2022-03-11"
+    },
+    {
+      "event": "200 Free",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 140.76,
+      "time_display": "2:20.76",
+      "date": "2019-10-19"
+    },
+    {
+      "event": "200 Free",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 118.38,
+      "time_display": "1:58.38",
+      "date": "2024-03-08"
+    },
+    {
+      "event": "200 Free",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 119.20,
+      "time_display": "1:59.20",
+      "date": "2021-12-10"
+    },
+    {
+      "event": "200 Free",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 114.79,
+      "time_display": "1:54.79",
+      "date": "2025-03-14"
+    },
+    {
+      "event": "200 Free",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 107.76,
+      "time_display": "1:47.76",
+      "date": "2023-03-10"
+    },
+    {
+      "event": "200 Free",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 115.41,
+      "time_display": "1:55.41",
+      "date": "2021-12-18"
+    },
+    {
+      "event": "200 Free",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 100.20,
+      "time_display": "1:40.20",
+      "date": "2024-12-06"
+    },
+    {
+      "event": "500 Free",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Ava Tricoli",
+      "time_seconds": 466.39,
+      "time_display": "7:46.39",
+      "date": "2023-02-19"
+    },
+    {
+      "event": "500 Free",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 432.08,
+      "time_display": "7:12.08",
+      "date": "2023-02-19"
+    },
+    {
+      "event": "500 Free",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 357.48,
+      "time_display": "5:57.48",
+      "date": "2022-04-13"
+    },
+    {
+      "event": "500 Free",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Michael Sabo",
+      "time_seconds": 372.47,
+      "time_display": "6:12.47",
+      "date": "2020-03-12"
+    },
+    {
+      "event": "500 Free",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 340.49,
+      "time_display": "5:40.49",
+      "date": "2023-11-12"
+    },
+    {
+      "event": "500 Free",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 326.22,
+      "time_display": "5:26.22",
+      "date": "2021-12-12"
+    },
+    {
+      "event": "500 Free",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 313.64,
+      "time_display": "5:13.64",
+      "date": "2020-01-11"
+    },
+    {
+      "event": "500 Free",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 291.11,
+      "time_display": "4:51.11",
+      "date": "2023-03-11"
+    },
+    {
+      "event": "500 Free",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Jordyn Dillard",
+      "time_seconds": 309.34,
+      "time_display": "5:09.34",
+      "date": "2022-03-05"
+    },
+    {
+      "event": "500 Free",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Nathaniel Eliason",
+      "time_seconds": 278.99,
+      "time_display": "4:38.99",
+      "date": "2024-03-02"
+    },
+    {
+      "event": "1000 Free",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 729.66,
+      "time_display": "12:09.66",
+      "date": "2022-10-07"
+    },
+    {
+      "event": "1000 Free",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Mason Hill",
+      "time_seconds": 699.44,
+      "time_display": "11:39.44",
+      "date": "2021-11-05"
+    },
+    {
+      "event": "1000 Free",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 654.99,
+      "time_display": "10:54.99",
+      "date": "2019-12-06"
+    },
+    {
+      "event": "1000 Free",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 612.15,
+      "time_display": "10:12.15",
+      "date": "2023-03-09"
+    },
+    {
+      "event": "1000 Free",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Cere Duplissey",
+      "time_seconds": 649.98,
+      "time_display": "10:49.98",
+      "date": "2022-03-06"
+    },
+    {
+      "event": "1000 Free",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Colin Eliason",
+      "time_seconds": 596.27,
+      "time_display": "9:56.27",
+      "date": "2025-03-09"
+    },
+    {
+      "event": "1650 Free",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Katelyn Willard",
+      "time_seconds": 1228.75,
+      "time_display": "20:28.75",
+      "date": "2021-11-05"
+    },
+    {
+      "event": "1650 Free",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 1151.85,
+      "time_display": "19:11.85",
+      "date": "2021-11-05"
+    },
+    {
+      "event": "1650 Free",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Jenna Stevens",
+      "time_seconds": 1163.53,
+      "time_display": "19:23.53",
+      "date": "2022-12-01"
+    },
+    {
+      "event": "1650 Free",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Dylan Croxton",
+      "time_seconds": 1049.98,
+      "time_display": "17:29.98",
+      "date": "2023-03-12"
+    },
+    {
+      "event": "1650 Free",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Cere Duplissey",
+      "time_seconds": 1079.35,
+      "time_display": "17:59.35",
+      "date": "2021-12-10"
+    },
+    {
+      "event": "1650 Free",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Nathaniel Eliason",
+      "time_seconds": 987.95,
+      "time_display": "16:27.95",
+      "date": "2021-12-10"
+    },
+    {
+      "event": "25 Back",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Megan Workman",
+      "time_seconds": 18.98,
+      "time_display": "18.98",
+      "date": "2024-01-21"
+    },
+    {
+      "event": "25 Back",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 18.83,
+      "time_display": "18.83",
+      "date": "2023-01-07"
+    },
+    {
+      "event": "50 Back",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Molly Sabo",
+      "time_seconds": 41.28,
+      "time_display": "41.28",
+      "date": "2021-02-07"
+    },
+    {
+      "event": "50 Back",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 40.24,
+      "time_display": "40.24",
+      "date": "2023-01-22"
+    },
+    {
+      "event": "50 Back",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 31.60,
+      "time_display": "31.60",
+      "date": "2022-04-13"
+    },
+    {
+      "event": "50 Back",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 32.57,
+      "time_display": "32.57",
+      "date": "2020-01-04"
+    },
+    {
+      "event": "50 Back",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 28.63,
+      "time_display": "28.63",
+      "date": "2023-12-10"
+    },
+    {
+      "event": "50 Back",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 29.19,
+      "time_display": "29.19",
+      "date": "2021-10-16"
+    },
+    {
+      "event": "50 Back",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 27.26,
+      "time_display": "27.26",
+      "date": "2025-03-14"
+    },
+    {
+      "event": "50 Back",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Michael Sabo",
+      "time_seconds": 25.56,
+      "time_display": "25.56",
+      "date": "2024-04-03"
+    },
+    {
+      "event": "50 Back",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Margaret Ivie",
+      "time_seconds": 27.23,
+      "time_display": "27.23",
+      "date": "2020-03-08"
+    },
+    {
+      "event": "50 Back",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 24.01,
+      "time_display": "24.01",
+      "date": "2024-12-08"
+    },
+    {
+      "event": "100 Back",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Molly Sabo",
+      "time_seconds": 92.74,
+      "time_display": "1:32.74",
+      "date": "2020-11-14"
+    },
+    {
+      "event": "100 Back",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 93.98,
+      "time_display": "1:33.98",
+      "date": "2022-11-13"
+    },
+    {
+      "event": "100 Back",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 68.91,
+      "time_display": "1:08.91",
+      "date": "2022-04-15"
+    },
+    {
+      "event": "100 Back",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 70.20,
+      "time_display": "1:10.20",
+      "date": "2020-01-05"
+    },
+    {
+      "event": "100 Back",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 61.28,
+      "time_display": "1:01.28",
+      "date": "2023-12-09"
+    },
+    {
+      "event": "100 Back",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 61.80,
+      "time_display": "1:01.80",
+      "date": "2021-12-10"
+    },
+    {
+      "event": "100 Back",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 58.40,
+      "time_display": "58.40",
+      "date": "2025-03-15"
+    },
+    {
+      "event": "100 Back",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Michael Sabo",
+      "time_seconds": 52.88,
+      "time_display": "52.88",
+      "date": "2024-03-09"
+    },
+    {
+      "event": "100 Back",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 57.63,
+      "time_display": "57.63",
+      "date": "2022-02-11"
+    },
+    {
+      "event": "100 Back",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 50.38,
+      "time_display": "50.38",
+      "date": "2025-03-08"
+    },
+    {
+      "event": "200 Back",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Arianna Hanville",
+      "time_seconds": 205.03,
+      "time_display": "3:25.03",
+      "date": "2023-10-28"
+    },
+    {
+      "event": "200 Back",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Teague Quella",
+      "time_seconds": 320.01,
+      "time_display": "5:20.01",
+      "date": "2022-10-09"
+    },
+    {
+      "event": "200 Back",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Molly Sabo",
+      "time_seconds": 179.35,
+      "time_display": "2:59.35",
+      "date": "2021-10-17"
+    },
+    {
+      "event": "200 Back",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 155.92,
+      "time_display": "2:35.92",
+      "date": "2019-12-08"
+    },
+    {
+      "event": "200 Back",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Molly Sabo",
+      "time_seconds": 137.19,
+      "time_display": "2:17.19",
+      "date": "2025-03-14"
+    },
+    {
+      "event": "200 Back",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 133.97,
+      "time_display": "2:13.97",
+      "date": "2021-12-12"
+    },
+    {
+      "event": "200 Back",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 126.27,
+      "time_display": "2:06.27",
+      "date": "2019-12-08"
+    },
+    {
+      "event": "200 Back",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Michael Sabo",
+      "time_seconds": 115.80,
+      "time_display": "1:55.80",
+      "date": "2024-03-10"
+    },
+    {
+      "event": "200 Back",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 123.75,
+      "time_display": "2:03.75",
+      "date": "2020-03-08"
+    },
+    {
+      "event": "200 Back",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 111.72,
+      "time_display": "1:51.72",
+      "date": "2025-03-09"
+    },
+    {
+      "event": "25 Breast",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Ella Kate Davis",
+      "time_seconds": 21.44,
+      "time_display": "21.44",
+      "date": "2024-11-09"
+    },
+    {
+      "event": "25 Breast",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 20.57,
+      "time_display": "20.57",
+      "date": "2023-02-12"
+    },
+    {
+      "event": "50 Breast",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Ella Kate Davis",
+      "time_seconds": 47.71,
+      "time_display": "47.71",
+      "date": "2025-02-09"
+    },
+    {
+      "event": "50 Breast",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 45.41,
+      "time_display": "45.41",
+      "date": "2023-02-12"
+    },
+    {
+      "event": "50 Breast",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 36.55,
+      "time_display": "36.55",
+      "date": "2022-04-15"
+    },
+    {
+      "event": "50 Breast",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 37.82,
+      "time_display": "37.82",
+      "date": "2019-12-08"
+    },
+    {
+      "event": "50 Breast",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 32.77,
+      "time_display": "32.77",
+      "date": "2024-03-10"
+    },
+    {
+      "event": "50 Breast",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Preston Jordan",
+      "time_seconds": 32.64,
+      "time_display": "32.64",
+      "date": "2024-12-07"
+    },
+    {
+      "event": "50 Breast",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 31.37,
+      "time_display": "31.37",
+      "date": "2025-03-15"
+    },
+    {
+      "event": "50 Breast",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 27.87,
+      "time_display": "27.87",
+      "date": "2023-03-10"
+    },
+    {
+      "event": "50 Breast",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 31.76,
+      "time_display": "31.76",
+      "date": "2022-02-11"
+    },
+    {
+      "event": "50 Breast",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 26.35,
+      "time_display": "26.35",
+      "date": "2025-03-08"
+    },
+    {
+      "event": "100 Breast",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Charleston Brooks",
+      "time_seconds": 117.39,
+      "time_display": "1:57.39",
+      "date": "2023-02-11"
+    },
+    {
+      "event": "100 Breast",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 100.82,
+      "time_display": "1:40.82",
+      "date": "2023-02-11"
+    },
+    {
+      "event": "100 Breast",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 80.47,
+      "time_display": "1:20.47",
+      "date": "2022-04-15"
+    },
+    {
+      "event": "100 Breast",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 83.01,
+      "time_display": "1:23.01",
+      "date": "2019-12-08"
+    },
+    {
+      "event": "100 Breast",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 71.47,
+      "time_display": "1:11.47",
+      "date": "2024-03-10"
+    },
+    {
+      "event": "100 Breast",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Preston Jordan",
+      "time_seconds": 72.20,
+      "time_display": "1:12.20",
+      "date": "2024-12-07"
+    },
+    {
+      "event": "100 Breast",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 68.43,
+      "time_display": "1:08.43",
+      "date": "2025-03-15"
+    },
+    {
+      "event": "100 Breast",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 60.17,
+      "time_display": "1:00.17",
+      "date": "2023-03-10"
+    },
+    {
+      "event": "100 Breast",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 68.51,
+      "time_display": "1:08.51",
+      "date": "2022-02-24"
+    },
+    {
+      "event": "100 Breast",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 57.26,
+      "time_display": "57.26",
+      "date": "2025-03-08"
+    },
+    {
+      "event": "200 Breast",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Charleston Brooks",
+      "time_seconds": 267.09,
+      "time_display": "4:27.09",
+      "date": "2023-02-11"
+    },
+    {
+      "event": "200 Breast",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 217.80,
+      "time_display": "3:37.80",
+      "date": "2023-02-19"
+    },
+    {
+      "event": "200 Breast",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 175.04,
+      "time_display": "2:55.04",
+      "date": "2022-03-11"
+    },
+    {
+      "event": "200 Breast",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 180.96,
+      "time_display": "3:00.96",
+      "date": "2020-02-23"
+    },
+    {
+      "event": "200 Breast",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 154.92,
+      "time_display": "2:34.92",
+      "date": "2024-03-10"
+    },
+    {
+      "event": "200 Breast",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Preston Jordan",
+      "time_seconds": 161.18,
+      "time_display": "2:41.18",
+      "date": "2024-12-07"
+    },
+    {
+      "event": "200 Breast",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 149.36,
+      "time_display": "2:29.36",
+      "date": "2025-03-15"
+    },
+    {
+      "event": "200 Breast",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 132.46,
+      "time_display": "2:12.46",
+      "date": "2023-03-10"
+    },
+    {
+      "event": "200 Breast",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 148.90,
+      "time_display": "2:28.90",
+      "date": "2022-02-24"
+    },
+    {
+      "event": "200 Breast",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 125.53,
+      "time_display": "2:05.53",
+      "date": "2025-03-08"
+    },
+    {
+      "event": "25 Fly",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Ella Kate Davis",
+      "time_seconds": 17.45,
+      "time_display": "17.45",
+      "date": "2024-11-09"
+    },
+    {
+      "event": "25 Fly",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 17.65,
+      "time_display": "17.65",
+      "date": "2023-02-12"
+    },
+    {
+      "event": "50 Fly",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Ella Kate Davis",
+      "time_seconds": 40.77,
+      "time_display": "40.77",
+      "date": "2025-01-19"
+    },
+    {
+      "event": "50 Fly",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 38.40,
+      "time_display": "38.40",
+      "date": "2023-02-12"
+    },
+    {
+      "event": "50 Fly",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 30.90,
+      "time_display": "30.90",
+      "date": "2022-04-15"
+    },
+    {
+      "event": "50 Fly",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 32.58,
+      "time_display": "32.58",
+      "date": "2020-01-05"
+    },
+    {
+      "event": "50 Fly",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 27.20,
+      "time_display": "27.20",
+      "date": "2024-03-10"
+    },
+    {
+      "event": "50 Fly",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 28.50,
+      "time_display": "28.50",
+      "date": "2021-12-10"
+    },
+    {
+      "event": "50 Fly",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 26.52,
+      "time_display": "26.52",
+      "date": "2025-03-15"
+    },
+    {
+      "event": "50 Fly",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Michael Sabo",
+      "time_seconds": 25.04,
+      "time_display": "25.04",
+      "date": "2024-03-09"
+    },
+    {
+      "event": "50 Fly",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 26.57,
+      "time_display": "26.57",
+      "date": "2022-02-24"
+    },
+    {
+      "event": "50 Fly",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 23.04,
+      "time_display": "23.04",
+      "date": "2025-03-08"
+    },
+    {
+      "event": "100 Fly",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Ella Kate Davis",
+      "time_seconds": 96.32,
+      "time_display": "1:36.32",
+      "date": "2025-01-19"
+    },
+    {
+      "event": "100 Fly",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 90.38,
+      "time_display": "1:30.38",
+      "date": "2023-02-11"
+    },
+    {
+      "event": "100 Fly",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 70.50,
+      "time_display": "1:10.50",
+      "date": "2022-04-15"
+    },
+    {
+      "event": "100 Fly",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 73.93,
+      "time_display": "1:13.93",
+      "date": "2020-01-05"
+    },
+    {
+      "event": "100 Fly",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 61.14,
+      "time_display": "1:01.14",
+      "date": "2024-03-10"
+    },
+    {
+      "event": "100 Fly",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 63.39,
+      "time_display": "1:03.39",
+      "date": "2021-12-10"
+    },
+    {
+      "event": "100 Fly",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 59.13,
+      "time_display": "59.13",
+      "date": "2025-03-15"
+    },
+    {
+      "event": "100 Fly",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Michael Sabo",
+      "time_seconds": 54.04,
+      "time_display": "54.04",
+      "date": "2024-03-09"
+    },
+    {
+      "event": "100 Fly",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 58.30,
+      "time_display": "58.30",
+      "date": "2022-02-24"
+    },
+    {
+      "event": "100 Fly",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 51.57,
+      "time_display": "51.57",
+      "date": "2025-03-08"
+    },
+    {
+      "event": "200 Fly",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 160.35,
+      "time_display": "2:40.35",
+      "date": "2022-03-11"
+    },
+    {
+      "event": "200 Fly",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 167.89,
+      "time_display": "2:47.89",
+      "date": "2020-01-05"
+    },
+    {
+      "event": "200 Fly",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 135.04,
+      "time_display": "2:15.04",
+      "date": "2024-03-10"
+    },
+    {
+      "event": "200 Fly",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 143.06,
+      "time_display": "2:23.06",
+      "date": "2021-12-10"
+    },
+    {
+      "event": "200 Fly",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 129.87,
+      "time_display": "2:09.87",
+      "date": "2025-03-15"
+    },
+    {
+      "event": "200 Fly",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Michael Sabo",
+      "time_seconds": 116.36,
+      "time_display": "1:56.36",
+      "date": "2024-03-09"
+    },
+    {
+      "event": "200 Fly",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 127.71,
+      "time_display": "2:07.71",
+      "date": "2022-02-24"
+    },
+    {
+      "event": "200 Fly",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 114.47,
+      "time_display": "1:54.47",
+      "date": "2024-12-06"
+    },
+    {
+      "event": "100 IM",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Ella Kate Davis",
+      "time_seconds": 85.55,
+      "time_display": "1:25.55",
+      "date": "2025-01-19"
+    },
+    {
+      "event": "100 IM",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 80.16,
+      "time_display": "1:20.16",
+      "date": "2023-02-12"
+    },
+    {
+      "event": "100 IM",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 66.90,
+      "time_display": "1:06.90",
+      "date": "2022-04-15"
+    },
+    {
+      "event": "100 IM",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 70.17,
+      "time_display": "1:10.17",
+      "date": "2019-12-08"
+    },
+    {
+      "event": "100 IM",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 60.01,
+      "time_display": "1:00.01",
+      "date": "2024-03-10"
+    },
+    {
+      "event": "100 IM",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 62.32,
+      "time_display": "1:02.32",
+      "date": "2021-12-10"
+    },
+    {
+      "event": "100 IM",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 58.80,
+      "time_display": "58.80",
+      "date": "2025-03-15"
+    },
+    {
+      "event": "100 IM",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Michael Sabo",
+      "time_seconds": 56.22,
+      "time_display": "56.22",
+      "date": "2024-03-09"
+    },
+    {
+      "event": "100 IM",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 59.64,
+      "time_display": "59.64",
+      "date": "2022-02-11"
+    },
+    {
+      "event": "100 IM",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 53.32,
+      "time_display": "53.32",
+      "date": "2025-03-08"
+    },
+    {
+      "event": "200 IM",
+      "age_group": "8 & Under",
+      "gender": "Female",
+      "swimmer_name": "Ella Kate Davis",
+      "time_seconds": 195.25,
+      "time_display": "3:15.25",
+      "date": "2025-01-19"
+    },
+    {
+      "event": "200 IM",
+      "age_group": "8 & Under",
+      "gender": "Male",
+      "swimmer_name": "Brayden Mullenaux",
+      "time_seconds": 176.40,
+      "time_display": "2:56.40",
+      "date": "2023-02-11"
+    },
+    {
+      "event": "200 IM",
+      "age_group": "9/10",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 146.20,
+      "time_display": "2:26.20",
+      "date": "2022-04-15"
+    },
+    {
+      "event": "200 IM",
+      "age_group": "9/10",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 153.15,
+      "time_display": "2:33.15",
+      "date": "2019-12-08"
+    },
+    {
+      "event": "200 IM",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 130.64,
+      "time_display": "2:10.64",
+      "date": "2024-03-10"
+    },
+    {
+      "event": "200 IM",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 134.27,
+      "time_display": "2:14.27",
+      "date": "2021-12-10"
+    },
+    {
+      "event": "200 IM",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 126.45,
+      "time_display": "2:06.45",
+      "date": "2025-03-15"
+    },
+    {
+      "event": "200 IM",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Michael Sabo",
+      "time_seconds": 119.86,
+      "time_display": "1:59.86",
+      "date": "2024-03-09"
+    },
+    {
+      "event": "200 IM",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 126.36,
+      "time_display": "2:06.36",
+      "date": "2022-02-24"
+    },
+    {
+      "event": "200 IM",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 114.42,
+      "time_display": "1:54.42",
+      "date": "2024-12-06"
+    },
+    {
+      "event": "400 IM",
+      "age_group": "11/12",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 285.67,
+      "time_display": "4:45.67",
+      "date": "2024-03-10"
+    },
+    {
+      "event": "400 IM",
+      "age_group": "11/12",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 292.59,
+      "time_display": "4:52.59",
+      "date": "2021-12-10"
+    },
+    {
+      "event": "400 IM",
+      "age_group": "13/14",
+      "gender": "Female",
+      "swimmer_name": "Reagan Strohhacker",
+      "time_seconds": 272.60,
+      "time_display": "4:32.60",
+      "date": "2025-03-15"
+    },
+    {
+      "event": "400 IM",
+      "age_group": "13/14",
+      "gender": "Male",
+      "swimmer_name": "Michael Sabo",
+      "time_seconds": 258.19,
+      "time_display": "4:18.19",
+      "date": "2024-03-09"
+    },
+    {
+      "event": "400 IM",
+      "age_group": "15 & Over",
+      "gender": "Female",
+      "swimmer_name": "Molly Ivie",
+      "time_seconds": 269.88,
+      "time_display": "4:29.88",
+      "date": "2022-02-24"
+    },
+    {
+      "event": "400 IM",
+      "age_group": "15 & Over",
+      "gender": "Male",
+      "swimmer_name": "Chandler Rose",
+      "time_seconds": 246.49,
+      "time_display": "4:06.49",
+      "date": "2024-12-06"
+    }
+  ]
+}
+
