@@ -42,7 +42,7 @@ export default function Login() {
         <h2 className="text-2xl font-bold text-center text-slate-800 mb-2">
           {isSignUp ? 'Create Account' : 'Welcome Back'}
         </h2>
-        <p className="text-slate-500 text-center mb-8">StormTracker Swim Analytics</p>
+        <p className="text-slate-500 text-center mb-8">GoodSwim Team Management</p>
 
         <form onSubmit={handleAuth} className="space-y-4">
           <div>
