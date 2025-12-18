@@ -590,24 +590,25 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto items-center">
             <PricingCard 
               name="Starter"
-              price="Free"
+              price="$1"
+              period="swimmer/mo"
               description="Perfect for getting started"
               features={[
-                'Up to 25 swimmers',
                 'Practice builder',
                 'Basic reports',
                 'Parent portal',
+                'Roster management',
                 'Email support'
               ]}
-              cta="Get Started Free"
+              cta="Get Started"
             />
             <PricingCard 
               name="Pro"
-              price="$29"
-              period="month"
+              price="$3"
+              period="swimmer/mo"
               description="For growing programs"
               features={[
-                'Unlimited swimmers',
+                'Everything in Starter',
                 'AI video analysis',
                 'Advanced reports',
                 'Meet management',
@@ -619,9 +620,9 @@ export default function LandingPage() {
             />
             <PricingCard 
               name="Club"
-              price="$79"
-              period="month"
-              description="For large organizations"
+              price="$5"
+              period="swimmer/mo"
+              description="For elite programs"
               features={[
                 'Everything in Pro',
                 'Multiple coach accounts',
