@@ -52,7 +52,7 @@ supabase db push database/push_notifications_schema.sql
 ```bash
 supabase secrets set VAPID_PUBLIC_KEY="YOUR_PUBLIC_KEY"
 supabase secrets set VAPID_PRIVATE_KEY="YOUR_PRIVATE_KEY"
-supabase secrets set VAPID_SUBJECT="mailto:admin@stormtracker.com"
+supabase secrets set VAPID_SUBJECT="mailto:admin@goodswim.com"
 ```
 
 ### 5️⃣ Deploy Edge Function (1 minute)

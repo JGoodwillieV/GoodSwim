@@ -115,7 +115,7 @@ supabase functions deploy send-push
 |------|-------|
 | `VAPID_PUBLIC_KEY` | Your public key from Step 1 |
 | `VAPID_PRIVATE_KEY` | Your private key from Step 1 |
-| `VAPID_SUBJECT` | `mailto:your-email@stormtracker.com` |
+| `VAPID_SUBJECT` | `mailto:your-email@goodswim.com` |
 
 3. Click **"Add Secret"** for each
 4. **Redeploy Edge Function** after adding secrets (important!)
@@ -125,7 +125,7 @@ supabase functions deploy send-push
 ```bash
 supabase secrets set VAPID_PUBLIC_KEY="YOUR_PUBLIC_KEY"
 supabase secrets set VAPID_PRIVATE_KEY="YOUR_PRIVATE_KEY"
-supabase secrets set VAPID_SUBJECT="mailto:admin@stormtracker.com"
+supabase secrets set VAPID_SUBJECT="mailto:admin@goodswim.com"
 ```
 
 ---

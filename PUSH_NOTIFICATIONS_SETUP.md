@@ -1,6 +1,6 @@
-# 🔔 StormTracker Push Notifications Setup Guide
+# 🔔 GoodSwim Push Notifications Setup Guide
 
-Complete guide to enable push notifications for parent accounts in StormTracker.
+Complete guide to enable push notifications for parent accounts in GoodSwim.
 
 ## 📋 Table of Contents
 
@@ -41,7 +41,7 @@ Before you begin, ensure you have:
 - ✅ Node.js 16+ installed
 - ✅ Supabase CLI installed (`npm install -g supabase`)
 - ✅ Supabase project with admin access
-- ✅ StormTracker repository cloned locally
+- ✅ GoodSwim repository cloned locally
 
 ---
 
@@ -82,7 +82,7 @@ aB3dE...YOUR_PRIVATE_KEY...xyz123
 
 1. **Navigate to your project:**
    ```bash
-   cd StormTracker
+   cd GoodSwim
    ```
 
 2. **Run the migration:**
@@ -133,7 +133,7 @@ Set these secrets in Supabase:
 # Set VAPID keys
 supabase secrets set VAPID_PUBLIC_KEY="YOUR_PUBLIC_KEY"
 supabase secrets set VAPID_PRIVATE_KEY="YOUR_PRIVATE_KEY"
-supabase secrets set VAPID_SUBJECT="mailto:your-email@stormtracker.com"
+supabase secrets set VAPID_SUBJECT="mailto:your-email@goodswim.com"
 ```
 
 **Alternative: Via Supabase Dashboard**
@@ -198,7 +198,7 @@ Should show `send-push` with status "Active"
 
 ### 5.1 Test Push Subscription
 
-1. **Open StormTracker as a parent**
+1. **Open GoodSwim as a parent**
 2. **Navigate to:** Notifications (bell icon in sidebar)
 3. **Click:** "Enable" button
 4. **Allow notifications** when browser prompts
@@ -312,7 +312,7 @@ SELECT * FROM notification_history WHERE user_id = 'USER_UUID' ORDER BY sent_at 
 - Notifications only work for installed PWA
 
 **Installation Flow:**
-1. Open StormTracker in Safari
+1. Open GoodSwim in Safari
 2. Tap Share button (square with arrow)
 3. Tap "Add to Home Screen"
 4. Tap "Add"

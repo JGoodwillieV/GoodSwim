@@ -265,7 +265,7 @@ git push origin main
 
 > **New Feature: Team Calendar Manager** 🗓️
 > 
-> You can now create and manage team events directly in StormTracker! 
+> You can now create and manage team events directly in GoodSwim! 
 >
 > **Where:** Sidebar → Calendar
 >

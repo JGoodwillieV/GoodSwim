@@ -20,7 +20,7 @@ You need to create the missing database table and functions. Follow these steps:
 
 1. **Log in to Supabase**
    - Go to https://supabase.com
-   - Open your StormTracker project
+   - Open your GoodSwim project
 
 2. **Open SQL Editor**
    - Click on "SQL Editor" in the left sidebar
@@ -40,7 +40,7 @@ You need to create the missing database table and functions. Follow these steps:
    - You should see an empty table (no error)
 
 5. **Test the Fix**
-   - Go back to your StormTracker app
+   - Go back to your GoodSwim app
    - Refresh the page (F5)
    - Try confirming meet entries again
    - The error should be gone!
@@ -71,7 +71,7 @@ Both methods achieve the same result.
 After running the SQL script, test the feature:
 
 1. **As a Parent**:
-   - Log in to StormTracker
+   - Log in to GoodSwim
    - Go to Parent Dashboard
    - Look for pending meet confirmations
    - Click on a confirmation

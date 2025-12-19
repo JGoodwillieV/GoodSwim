@@ -332,7 +332,7 @@ The Category Progress feature provides coaches with powerful insights into strok
 - Celebrate team successes with concrete data
 - Make informed decisions about practice focus
 
-The feature integrates seamlessly into the existing StormTracker workflow and requires no database changes, making it a zero-friction addition to the coaching toolkit.
+The feature integrates seamlessly into the existing GoodSwim workflow and requires no database changes, making it a zero-friction addition to the coaching toolkit.
 
 ---
 

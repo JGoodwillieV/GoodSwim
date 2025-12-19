@@ -7,7 +7,7 @@ The Category Progress feature shows you how each stroke category (Freestyle, Bac
 ## How to Access
 
 ### Option 1: From Dashboard (Recommended)
-1. Open StormTracker
+1. Open GoodSwim
 2. Look for the **"Category Progress"** widget on your dashboard (it's right above "Practice Test Sets")
 3. Click **"View Report"** to see the full analysis
 

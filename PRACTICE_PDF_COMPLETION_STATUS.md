@@ -127,7 +127,7 @@ All features specified in the Practice Feature design document (Parts 1-7) have 
 - [x] Use shared templates
 
 ### Future (Phase 2) 🔜
-- [ ] StormTracker curated library
+- [ ] GoodSwim curated library
 - [ ] Template ratings
 - [ ] Usage statistics
 
@@ -312,7 +312,7 @@ When ready to build Phase 2, these features remain:
    - Link results back to practice
 
 ### Medium Priority
-4. **StormTracker Curated Library**
+4. **GoodSwim Curated Library**
    - Pre-built practice templates
    - By focus area
    - By event type

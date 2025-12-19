@@ -70,7 +70,7 @@ I've successfully implemented a comprehensive lane-based test set feature that a
 
 ### Step 2: Test the Feature (10 minutes)
 
-1. **Open StormTracker** in your browser
+1. **Open GoodSwim** in your browser
 2. Go to **Test Sets** section
 3. Click **"New Test Set"**
 4. Select a group and some swimmers
@@ -136,7 +136,7 @@ Your hosting platform will automatically deploy the changes.
 
 **Before Practice:**
 ```
-1. Open StormTracker
+1. Open GoodSwim
 2. Tap "New Test Set"
 3. Select "Senior Group"
 4. Select 12 swimmers

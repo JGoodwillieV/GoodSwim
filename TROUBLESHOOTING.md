@@ -106,7 +106,7 @@ The code extracts just "50 Free" from the full event name, but let's verify the 
 
 ## Step 5: Check Browser Console for Errors
 
-1. Open your StormTracker app
+1. Open your GoodSwim app
 2. Press **F12** to open Developer Tools
 3. Go to **Console** tab
 4. Navigate to a swimmer profile

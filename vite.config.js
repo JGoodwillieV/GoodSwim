@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png', 'team-logo-white.png', 'team-logo.png'],
       manifest: {
-        name: 'StormTracker',
-        short_name: 'StormTracker',
+        name: 'GoodSwim',
+        short_name: 'GoodSwim',
         description: 'Swim Team Management Platform',
         theme_color: '#0ea5e9',
         background_color: '#0f172a',

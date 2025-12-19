@@ -2,7 +2,7 @@
 
 ## 📦 What's Included
 
-This feature package includes a comprehensive AI-powered event auto-generation system for the StormTracker Meets feature, built according to your PDF specifications and enhanced with additional intelligent features.
+This feature package includes a comprehensive AI-powered event auto-generation system for the GoodSwim Meets feature, built according to your PDF specifications and enhanced with additional intelligent features.
 
 ## 📚 Documentation
 
@@ -344,7 +344,7 @@ The Auto-Generate Events feature is **fully implemented** and **production-ready
 **Version**: 1.0.0  
 **Status**: ✅ Production Ready  
 **Last Updated**: December 2024  
-**Built for**: StormTracker Swim Team Management System
+**Built for**: GoodSwim Swim Team Management System
 
 🏊‍♂️ **Happy coaching!** ⚡
 

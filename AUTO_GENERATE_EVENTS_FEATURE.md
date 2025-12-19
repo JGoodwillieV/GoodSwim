@@ -343,5 +343,5 @@ After using auto-generate, you should see:
 
 ---
 
-**Built with the StormTracker Auto-Generate Events Engine** 🏊‍♂️⚡
+**Built with the GoodSwim Auto-Generate Events Engine** 🏊‍♂️⚡
 

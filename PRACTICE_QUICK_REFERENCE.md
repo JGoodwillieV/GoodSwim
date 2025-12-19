@@ -4,7 +4,7 @@
 
 1. **Run SQL** → Supabase SQL Editor → Paste `database/practices_schema.sql` → Run
 2. **Deploy** → `git push` (if using Vercel)
-3. **Use** → StormTracker → Click "Practices" in sidebar → "+ New Practice"
+3. **Use** → GoodSwim → Click "Practices" in sidebar → "+ New Practice"
 
 ---
 

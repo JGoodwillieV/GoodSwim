@@ -94,7 +94,7 @@ After a thorough review of the original PDF design document (Parts 1-7), we've s
 - ✅ Personal template library
 - ✅ Template categories (in database)
 - 🔜 Phase 2: Team shared library UI
-- 🔜 Phase 2: StormTracker curated library
+- 🔜 Phase 2: GoodSwim curated library
 
 ### ✅ Part 6: AI-Powered Features
 **Status**: Placeholders for Phase 2
@@ -412,7 +412,7 @@ Thank you for the opportunity to build this comprehensive feature. Every detail 
 
 ---
 
-*StormTracker Practice Feature*  
+*GoodSwim Practice Feature*  
 *Design Document Parts 1-7: COMPLETE ✅*  
 *Version 1.1.0 - December 12, 2024*  
 *Built with ❤️ for swim coaches everywhere*

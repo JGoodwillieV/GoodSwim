@@ -24,7 +24,7 @@ Go to your Supabase project:
 ### 2. Creating a Lane-Based Test Set
 
 #### Step 1: Select Group & Swimmers
-1. Open StormTracker and click **"New Test Set"**
+1. Open GoodSwim and click **"New Test Set"**
 2. Select your group (e.g., "Senior Group")
 3. Select all swimmers participating in the set
 4. Configure the set details (distance, stroke, reps, etc.)
@@ -139,7 +139,7 @@ After completing the set:
 
 For questions or issues, check:
 - This guide
-- The main StormTracker documentation
+- The main GoodSwim documentation
 - Browser console (F12) for technical errors
 
 Happy timing! 🏊‍♀️🏊‍♂️

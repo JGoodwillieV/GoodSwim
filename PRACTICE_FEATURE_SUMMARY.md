@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Practice Feature (MVP - Phase 1) is a comprehensive practice planning system for swim coaches, integrated into the StormTracker application.
+The Practice Feature (MVP - Phase 1) is a comprehensive practice planning system for swim coaches, integrated into the GoodSwim application.
 
 ---
 
@@ -201,7 +201,7 @@ This ensures totals are **always accurate** without manual calculation.
 ## File Structure
 
 ```
-StormTracker/
+GoodSwim/
 ├── database/
 │   └── practices_schema.sql          ← Database schema
 ├── src/
@@ -411,7 +411,7 @@ Watch for:
 
 ### Code Style
 
-- Follows existing StormTracker patterns
+- Follows existing GoodSwim patterns
 - Uses Tailwind CSS for styling
 - Uses Lucide React for icons
 - Consistent with App.jsx structure
@@ -465,7 +465,7 @@ Watch for:
 - Tailwind CSS
 - Lucide React Icons
 
-**Inspired By**: The design document provided by the StormTracker team
+**Inspired By**: The design document provided by the GoodSwim team
 
 ---
 

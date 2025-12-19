@@ -354,7 +354,7 @@ If an event/age group has no team record in the database:
 
 **Step 1**: Sarah's coach uploads meet results  
 **Step 2**: Sarah's time (25.45) is recorded  
-**Step 3**: Sarah opens her profile on StormTracker  
+**Step 3**: Sarah opens her profile on GoodSwim  
 **Step 4**: She sees "Standards & Goals" card for 50 Free  
 **Step 5**: She clicks "View Ladder"  
 **Step 6**: Modal opens showing:

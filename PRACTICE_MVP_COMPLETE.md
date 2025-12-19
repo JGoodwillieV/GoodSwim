@@ -2,7 +2,7 @@
 
 ## ✅ Mission Accomplished
 
-The **Practice Feature (Phase 1 MVP)** for StormTracker has been successfully implemented! All planned features are complete and ready for use.
+The **Practice Feature (Phase 1 MVP)** for GoodSwim has been successfully implemented! All planned features are complete and ready for use.
 
 ---
 
@@ -188,7 +188,7 @@ The **Practice Feature (Phase 1 MVP)** for StormTracker has been successfully im
 
 ### Visual Design
 - **Color-coded set types** (instant recognition)
-- **Clean, modern interface** (consistent with StormTracker design)
+- **Clean, modern interface** (consistent with GoodSwim design)
 - **Responsive layout** (works on all devices)
 - **Loading states** (smooth UX)
 - **Error handling** (user-friendly messages)
@@ -334,7 +334,7 @@ Bridge between practice planning and performance tracking (full integration in P
 
 ### Quick Start (5 minutes)
 1. Run SQL in Supabase
-2. Go to Practices in StormTracker
+2. Go to Practices in GoodSwim
 3. Click "+ New Practice"
 4. Add a set
 5. Add items to set
@@ -466,7 +466,7 @@ Beyond the MVP spec, we also included:
 
 ## 🙏 Acknowledgments
 
-**Designed By**: StormTracker team (from design document)  
+**Designed By**: GoodSwim team (from design document)  
 **Built By**: AI Assistant (Claude Sonnet 4.5)  
 **Built For**: Swim coaches everywhere  
 
@@ -529,6 +529,6 @@ The Practice Feature is production-ready and waiting for deployment. Just follow
 ---
 
 *Built with ❤️ for swim coaches everywhere*
-*StormTracker Practice Feature MVP*
+*GoodSwim Practice Feature MVP*
 *Version 1.0.0 - December 12, 2024*
 

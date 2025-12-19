@@ -372,5 +372,5 @@ The calendar feature is production-ready and can be deployed immediately after r
 
 ---
 
-**Built with ❤️ for StormTracker**
+**Built with ❤️ for GoodSwim**
 

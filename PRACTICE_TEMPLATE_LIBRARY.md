@@ -188,7 +188,7 @@ This completes **Part 5: Template & Library System** from the original design:
 - [x] Create from template
 
 ### 🔜 Future (Phase 2)
-- [ ] StormTracker curated library (pre-built templates)
+- [ ] GoodSwim curated library (pre-built templates)
 - [ ] Template ratings/favorites
 - [ ] Template usage statistics
 - [ ] Import/export templates

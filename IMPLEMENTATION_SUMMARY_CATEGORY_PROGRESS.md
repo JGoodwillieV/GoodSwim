@@ -192,7 +192,7 @@ The feature uses existing tables:
 - Error handling and edge cases covered
 
 ### UI/UX
-- Consistent with existing StormTracker design
+- Consistent with existing GoodSwim design
 - Intuitive navigation
 - Clear visual indicators
 - Helpful tooltips and labels

@@ -2,7 +2,7 @@
 
 ## ✅ What Was Built
 
-A complete, production-ready push notification system for StormTracker that enables real-time communication between coaches and parents.
+A complete, production-ready push notification system for GoodSwim that enables real-time communication between coaches and parents.
 
 ---
 
@@ -158,7 +158,7 @@ VITE_VAPID_PUBLIC_KEY=your_public_key
 # Supabase secrets
 supabase secrets set VAPID_PUBLIC_KEY="your_public_key"
 supabase secrets set VAPID_PRIVATE_KEY="your_private_key"
-supabase secrets set VAPID_SUBJECT="mailto:admin@stormtracker.com"
+supabase secrets set VAPID_SUBJECT="mailto:admin@goodswim.com"
 ```
 
 ### 3. Deploy Database Schema (2 minutes)
@@ -495,7 +495,7 @@ See `PUSH_NOTIFICATIONS_QUICK_START.md` to get started!
 
 ---
 
-**Built with ❤️ for StormTracker**  
+**Built with ❤️ for GoodSwim**  
 **Version:** 1.0.0  
 **December 2024**
 

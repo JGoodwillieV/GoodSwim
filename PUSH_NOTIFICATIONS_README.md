@@ -1,10 +1,10 @@
-# 🔔 StormTracker Push Notifications
+# 🔔 GoodSwim Push Notifications
 
 Complete push notification system for keeping parents informed about their swimmers' activities.
 
 ## 📖 Overview
 
-The StormTracker push notification system enables real-time communication between coaches and parents through native browser push notifications. Parents receive updates about meets, practice changes, test sets, and important announcements directly on their devices.
+The GoodSwim push notification system enables real-time communication between coaches and parents through native browser push notifications. Parents receive updates about meets, practice changes, test sets, and important announcements directly on their devices.
 
 ### Key Features
 
@@ -83,7 +83,7 @@ See [PUSH_NOTIFICATIONS_QUICK_START.md](./PUSH_NOTIFICATIONS_QUICK_START.md) for
    - **Desktop**: Click install icon in address bar
 
 2. **Enable Notifications**
-   - Open StormTracker from home screen
+   - Open GoodSwim from home screen
    - Tap bell icon (🔔) in sidebar
    - Tap "Enable" button
    - Allow notifications when prompted
@@ -149,7 +149,7 @@ VITE_VAPID_PUBLIC_KEY=BPX5c1y...your_public_key
 ```bash
 supabase secrets set VAPID_PUBLIC_KEY="BPX5c1y..."
 supabase secrets set VAPID_PRIVATE_KEY="aB3dE..."
-supabase secrets set VAPID_SUBJECT="mailto:admin@stormtracker.com"
+supabase secrets set VAPID_SUBJECT="mailto:admin@goodswim.com"
 ```
 
 ## 📝 Usage Examples
@@ -432,5 +432,5 @@ When adding new notification triggers:
 
 **Version:** 1.0.0  
 **Last Updated:** December 2024  
-**Requires:** StormTracker v2.0+, Supabase Edge Functions
+**Requires:** GoodSwim v2.0+, Supabase Edge Functions
 

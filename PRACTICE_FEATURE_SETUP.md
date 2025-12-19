@@ -2,7 +2,7 @@
 
 ## 🎉 Welcome to the Practice Feature (MVP - Phase 1)
 
-This guide will help you set up and start using StormTracker's new Practice Planning feature!
+This guide will help you set up and start using GoodSwim's new Practice Planning feature!
 
 ---
 
@@ -25,7 +25,7 @@ The Practice Feature MVP includes everything coaches need to build, schedule, an
 ### Step 1: Set Up the Database (2 minutes)
 
 1. Open your browser and go to https://supabase.com
-2. Log in and select your StormTracker project
+2. Log in and select your GoodSwim project
 3. Click **SQL Editor** in the left sidebar
 4. Open the file `database/practices_schema.sql` from your project
 5. Copy ALL the SQL code from that file
@@ -53,7 +53,7 @@ Vercel will automatically deploy your changes!
 
 ### Step 3: Start Using It! (1 minute)
 
-1. Open StormTracker in your browser
+1. Open GoodSwim in your browser
 2. Look for **"Practices"** in the sidebar (or "Practice" in mobile bottom nav)
 3. Click **"+ New Practice"** to create your first practice
 4. Build your practice and save!

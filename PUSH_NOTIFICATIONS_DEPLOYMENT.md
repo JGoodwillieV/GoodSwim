@@ -43,7 +43,7 @@ npx web-push generate-vapid-keys
 ```bash
 supabase secrets set VAPID_PUBLIC_KEY="YOUR_PUBLIC_KEY"
 supabase secrets set VAPID_PRIVATE_KEY="YOUR_PRIVATE_KEY"
-supabase secrets set VAPID_SUBJECT="mailto:admin@stormtracker.com"
+supabase secrets set VAPID_SUBJECT="mailto:admin@goodswim.com"
 ```
 
 - [ ] All three secrets set
@@ -226,20 +226,20 @@ WHERE sent_at > NOW() - INTERVAL '24 hours';
 Provide these instructions:
 
 **iOS:**
-1. Open StormTracker in Safari
+1. Open GoodSwim in Safari
 2. Tap Share button
 3. Tap "Add to Home Screen"
 4. Open app from home screen
 5. Tap bell icon and enable notifications
 
 **Android:**
-1. Open StormTracker in Chrome
+1. Open GoodSwim in Chrome
 2. Install app from prompt or menu
 3. Open app from home screen
 4. Tap bell icon and enable notifications
 
 **Desktop:**
-1. Open StormTracker
+1. Open GoodSwim
 2. Click install icon in address bar
 3. Click bell icon and enable notifications
 

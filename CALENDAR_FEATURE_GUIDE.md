@@ -2,7 +2,7 @@
 
 ## Overview
 
-The StormTracker calendar feature provides a unified view of all team activities including:
+The GoodSwim calendar feature provides a unified view of all team activities including:
 - **Swim Meets** - Automatically pulled from the meets manager
 - **Practices** - Scheduled practices filtered by swimmer's training group
 - **Team Events** - Custom events created by coaches (social events, office hours, fundraisers, etc.)
@@ -216,7 +216,7 @@ The calendar export uses the **iCalendar (.ics)** standard format, which is univ
 ```
 BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//StormTracker//Calendar Export//EN
+PRODID:-//GoodSwim//Calendar Export//EN
 BEGIN:VEVENT
 UID:[unique-id]
 SUMMARY:[Event Title]

@@ -354,7 +354,7 @@ export default function LandingPage() {
               Everything You Need to Succeed
             </h2>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              From practice planning to parent communication, StormTracker handles it all.
+              From practice planning to parent communication, GoodSwim handles it all.
             </p>
           </div>
 
@@ -556,7 +556,7 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             <TestimonialCard 
-              quote="StormTracker has completely transformed how I run practices. The visual builder is intuitive and swimmers love seeing their Trophy Case fill up."
+              quote="GoodSwim has completely transformed how I run practices. The visual builder is intuitive and swimmers love seeing their Trophy Case fill up."
               author="Sarah Mitchell"
               role="Head Coach"
               team="Blue Tide Aquatics"

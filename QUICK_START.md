@@ -4,8 +4,8 @@ Get the team records feature up and running in 5 minutes! ⚡
 
 ## Prerequisites
 
-- ✅ Supabase account with access to your StormTracker database
-- ✅ StormTracker project cloned/downloaded
+- ✅ Supabase account with access to your GoodSwim database
+- ✅ GoodSwim project cloned/downloaded
 - ⚠️ Node.js (OPTIONAL - only needed for Method B below)
 
 ## Step-by-Step Setup
@@ -13,7 +13,7 @@ Get the team records feature up and running in 5 minutes! ⚡
 ### Step 1: Create the Database Table (2 minutes)
 
 1. Open your browser and go to https://supabase.com
-2. Log in and select your StormTracker project
+2. Log in and select your GoodSwim project
 3. Click **SQL Editor** in the left sidebar
 4. Open the file `database/team_records_schema.sql` from your project
 5. Copy ALL the SQL code from that file
@@ -49,9 +49,9 @@ Get the team records feature up and running in 5 minutes! ⚡
 #### Method B: Node.js Script (Alternative)
 
 1. Open your terminal/command prompt
-2. Navigate to your StormTracker project folder:
+2. Navigate to your GoodSwim project folder:
    ```bash
-   cd path/to/StormTracker
+   cd path/to/GoodSwim
    ```
 3. Run the data loader script:
    ```bash
@@ -89,7 +89,7 @@ Vercel will automatically deploy. The team records will work immediately since a
 
 ### Step 4: Verify It Works (1 minute)
 
-1. Open StormTracker in your browser (local or deployed on Vercel)
+1. Open GoodSwim in your browser (local or deployed on Vercel)
 2. Go to any swimmer's profile
 3. Find an event where they have a recorded time (e.g., "50 Free")
 4. Look for the "Standards & Goals" card
@@ -281,7 +281,7 @@ Setup complete when you can check all these:
 - ✅ SQL schema ran successfully in Supabase
 - ✅ Data loader script completed without errors
 - ✅ 250+ records visible in Supabase table editor
-- ✅ Opened a swimmer profile in StormTracker
+- ✅ Opened a swimmer profile in GoodSwim
 - ✅ Clicked "View Ladder" on an event
 - ✅ Saw gold/orange team record entry with star icon
 - ✅ Team record shows correct swimmer name and time

@@ -14,7 +14,7 @@ You don't need Node.js installed locally! Just use Supabase SQL Editor to load t
 
 ### Step 1: Create Database Table (2 min)
 
-1. Go to https://supabase.com → Your StormTracker project
+1. Go to https://supabase.com → Your GoodSwim project
 2. Click **SQL Editor** (left sidebar)
 3. Open `database/team_records_schema.sql` from your repo
 4. Copy all SQL → Paste into editor → Click **Run**
@@ -52,7 +52,7 @@ git push
 
 Or manually deploy:
 - Go to vercel.com
-- Import/redeploy your StormTracker project
+- Import/redeploy your GoodSwim project
 - ✅ Live!
 
 ---
@@ -111,7 +111,7 @@ Only these matter for Vercel deployment:
        ↓
 ┌─────────────┐
 │   Vercel    │ ← Your React app deployed here
-│ (StormTracker)
+│ (GoodSwim)
 └──────┬──────┘
        │ Fetch team records
        ↓

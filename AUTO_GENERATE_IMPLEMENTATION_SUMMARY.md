@@ -2,7 +2,7 @@
 
 ## 🎯 Overview
 
-Successfully implemented a comprehensive AI-powered event auto-generation system for the StormTracker Meets feature. The system analyzes swimmer performance data using a sophisticated multi-tier scoring algorithm to recommend optimal event entries.
+Successfully implemented a comprehensive AI-powered event auto-generation system for the GoodSwim Meets feature. The system analyzes swimmer performance data using a sophisticated multi-tier scoring algorithm to recommend optimal event entries.
 
 ## ✅ Implemented Features
 

@@ -32,7 +32,7 @@ Before deploying to production, verify all files are present:
 
 1. Go to https://supabase.com
 2. Log in to your account
-3. Select your StormTracker project
+3. Select your GoodSwim project
 4. Click **"SQL Editor"** in left sidebar
 5. Click **"New query"**
 
@@ -109,7 +109,7 @@ You should see multiple policies (2-3 per table).
    - Wait for "Deployment Ready" message
 
 4. **Verify Deployment**
-   - Visit your StormTracker URL
+   - Visit your GoodSwim URL
    - Check that new "Practices" menu item appears
    - Try creating a test practice
 
@@ -136,7 +136,7 @@ If not using Vercel:
 ## ✅ Post-Deployment Testing
 
 ### Test 1: Database Connection
-1. Log in to StormTracker
+1. Log in to GoodSwim
 2. Navigate to "Practices" in sidebar
 3. Should see Practice Hub with empty state
 4. ✅ Pass if page loads without errors
@@ -200,7 +200,7 @@ If not using Vercel:
 4. ✅ Pass if copy is created
 
 ### Test 10: Mobile View
-1. Open StormTracker on mobile device (or resize browser)
+1. Open GoodSwim on mobile device (or resize browser)
 2. Check bottom navigation shows "Practice"
 3. Tap Practice
 4. Should see Practice Hub

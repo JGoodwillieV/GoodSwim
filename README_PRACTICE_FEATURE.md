@@ -1,8 +1,8 @@
-# 🏊 StormTracker Practice Feature - README
+# 🏊 GoodSwim Practice Feature - README
 
 ## Welcome! 🎉
 
-You now have a **complete, production-ready Practice Planning Feature** for StormTracker!
+You now have a **complete, production-ready Practice Planning Feature** for GoodSwim!
 
 ---
 
@@ -59,7 +59,7 @@ You now have a **complete, production-ready Practice Planning Feature** for Stor
 
 3. **Use** (1 min)
    ```
-   StormTracker → Practices → + New Practice → Build → Save
+   GoodSwim → Practices → + New Practice → Build → Save
    ```
 
 **Done!** 🎉
@@ -115,7 +115,7 @@ README_PRACTICE_FEATURE.md         (This file)
 
 ```
 ┌─────────────────────────────────────────┐
-│           StormTracker UI               │
+│           GoodSwim UI               │
 │  ┌──────────┐        ┌──────────────┐  │
 │  │ Practice │───────▶│   Practice   │  │
 │  │   Hub    │        │   Builder    │  │
@@ -402,13 +402,13 @@ If you have questions:
 
 ## 🙏 Thank You!
 
-Thank you for choosing StormTracker's Practice Feature. This tool was built with care to help swim coaches everywhere save time and build better practices.
+Thank you for choosing GoodSwim's Practice Feature. This tool was built with care to help swim coaches everywhere save time and build better practices.
 
 **Happy Practice Planning! 🏊‍♂️🏊‍♀️**
 
 ---
 
-*StormTracker Practice Feature - MVP (Phase 1)*  
+*GoodSwim Practice Feature - MVP (Phase 1)*  
 *Built: December 12, 2024*  
 *Status: Production Ready ✅*  
 *Version: 1.0.0*

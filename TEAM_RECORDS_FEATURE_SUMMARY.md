@@ -2,7 +2,7 @@
 
 ## Overview
 
-A new feature has been added to StormTracker that displays Hurricane SC team records in the Standards & Goals "View Ladder" section. Swimmers can now see how their personal bests compare to both official time standards and their team's all-time records for their age group.
+A new feature has been added to GoodSwim that displays Hurricane SC team records in the Standards & Goals "View Ladder" section. Swimmers can now see how their personal bests compare to both official time standards and their team's all-time records for their age group.
 
 ## What's New
 
@@ -152,7 +152,7 @@ node database/load_team_records.js
 ```
 
 ### Step 3: Verify
-1. Open StormTracker
+1. Open GoodSwim
 2. Go to any swimmer profile
 3. Find an event with a time
 4. Click "View Ladder" in Standards & Goals
@@ -352,7 +352,7 @@ A: Check that database indexes were created with the schema.
 
 ## Summary
 
-The team records feature is a powerful addition to StormTracker that:
+The team records feature is a powerful addition to GoodSwim that:
 - ✅ Displays team records alongside official standards
 - ✅ Motivates swimmers with relevant, achievable goals
 - ✅ Preserves team history and honors record holders
