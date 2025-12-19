@@ -1,20 +1,24 @@
 -- GoodSwim Stripe Billing Schema
 -- Run this in Supabase SQL Editor
+-- This script handles both fresh installs and updates to existing tables
 
--- 1. SUBSCRIPTIONS TABLE
--- Stores team subscription status and Stripe references
+-- =====================================================
+-- STEP 1: SUBSCRIPTIONS TABLE
+-- =====================================================
+
+-- Create subscriptions table if it doesn't exist
 CREATE TABLE IF NOT EXISTS subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    team_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+    team_id UUID NOT NULL,
     
     -- Stripe References
-    stripe_customer_id TEXT UNIQUE,
-    stripe_subscription_id TEXT UNIQUE,
+    stripe_customer_id TEXT,
+    stripe_subscription_id TEXT,
     stripe_price_id TEXT,
     
     -- Subscription Status
-    status TEXT NOT NULL DEFAULT 'trialing' CHECK (status IN ('trialing', 'active', 'canceled', 'unpaid', 'past_due', 'incomplete')),
-    tier TEXT NOT NULL DEFAULT 'trial' CHECK (tier IN ('trial', 'starter', 'pro', 'club')),
+    status TEXT NOT NULL DEFAULT 'trialing',
+    tier TEXT NOT NULL DEFAULT 'trial',
     
     -- Billing Cycle
     current_period_start TIMESTAMPTZ,
@@ -24,21 +28,39 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     
     -- Metadata
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    -- Constraints
+    CONSTRAINT fk_team FOREIGN KEY (team_id) REFERENCES user_profiles(id) ON DELETE CASCADE
 );
 
--- Indexes for performance
+-- Add unique constraints if they don't exist (ignore errors if they do)
+DO $$ 
+BEGIN
+    -- Try to add unique constraint on team_id
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'subscriptions_team_id_key') THEN
+        ALTER TABLE subscriptions ADD CONSTRAINT subscriptions_team_id_key UNIQUE (team_id);
+    END IF;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Create indexes if they don't exist
 CREATE INDEX IF NOT EXISTS idx_subscriptions_team_id ON subscriptions(team_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_customer_id ON subscriptions(stripe_customer_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_tier ON subscriptions(tier);
 
--- 2. FEATURE LIMITS TABLE
--- Defines what each tier can access
-CREATE TABLE IF NOT EXISTS feature_limits (
+-- =====================================================
+-- STEP 2: DROP AND RECREATE FEATURE_LIMITS TABLE
+-- (This is safe since it only contains static config data)
+-- =====================================================
+
+DROP TABLE IF EXISTS feature_limits CASCADE;
+
+CREATE TABLE feature_limits (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tier TEXT NOT NULL UNIQUE CHECK (tier IN ('trial', 'starter', 'pro', 'club')),
+    tier TEXT NOT NULL UNIQUE,
     
     -- Swimmer/Coach Limits
     max_swimmers INTEGER,  -- NULL = unlimited
@@ -73,7 +95,7 @@ CREATE TABLE IF NOT EXISTS feature_limits (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. INSERT DEFAULT FEATURE LIMITS
+-- Insert feature limits for each tier
 INSERT INTO feature_limits (tier, max_swimmers, max_coaches, manual_entry, sd3_import, csv_import, basic_calendar, parent_portal, parent_portal_readonly, push_notifications, practice_builder, trophy_case, team_records, ai_video_analysis, ai_video_monthly_limit, ai_chat, meet_reports, advanced_analytics, custom_branding)
 VALUES 
     -- Trial: Limited to get them hooked
@@ -86,28 +108,12 @@ VALUES
     ('pro', NULL, 3, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, FALSE, 0, TRUE, TRUE, FALSE, FALSE),
     
     -- Club ($5/mo): Everything + AI
-    ('club', NULL, NULL, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, 10, TRUE, TRUE, TRUE, TRUE)
-ON CONFLICT (tier) DO UPDATE SET
-    max_swimmers = EXCLUDED.max_swimmers,
-    max_coaches = EXCLUDED.max_coaches,
-    manual_entry = EXCLUDED.manual_entry,
-    sd3_import = EXCLUDED.sd3_import,
-    csv_import = EXCLUDED.csv_import,
-    basic_calendar = EXCLUDED.basic_calendar,
-    parent_portal = EXCLUDED.parent_portal,
-    parent_portal_readonly = EXCLUDED.parent_portal_readonly,
-    push_notifications = EXCLUDED.push_notifications,
-    practice_builder = EXCLUDED.practice_builder,
-    trophy_case = EXCLUDED.trophy_case,
-    team_records = EXCLUDED.team_records,
-    ai_video_analysis = EXCLUDED.ai_video_analysis,
-    ai_video_monthly_limit = EXCLUDED.ai_video_monthly_limit,
-    ai_chat = EXCLUDED.ai_chat,
-    meet_reports = EXCLUDED.meet_reports,
-    advanced_analytics = EXCLUDED.advanced_analytics,
-    custom_branding = EXCLUDED.custom_branding;
+    ('club', NULL, NULL, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, 10, TRUE, TRUE, TRUE, TRUE);
 
--- 4. ROW LEVEL SECURITY
+-- =====================================================
+-- STEP 3: ROW LEVEL SECURITY
+-- =====================================================
+
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE feature_limits ENABLE ROW LEVEL SECURITY;
 
@@ -117,11 +123,11 @@ CREATE POLICY "Users can view own subscription"
     ON subscriptions FOR SELECT 
     USING (team_id = auth.uid());
 
--- Subscriptions: Only service role can modify (webhooks)
-DROP POLICY IF EXISTS "Service role can manage subscriptions" ON subscriptions;
-CREATE POLICY "Service role can manage subscriptions" 
-    ON subscriptions FOR ALL 
-    USING (auth.role() = 'service_role');
+-- Subscriptions: Allow insert for authenticated users (for trial creation)
+DROP POLICY IF EXISTS "Users can insert own subscription" ON subscriptions;
+CREATE POLICY "Users can insert own subscription" 
+    ON subscriptions FOR INSERT 
+    WITH CHECK (team_id = auth.uid());
 
 -- Feature limits: Everyone can read (needed for UI)
 DROP POLICY IF EXISTS "Anyone can view feature limits" ON feature_limits;
@@ -129,7 +135,10 @@ CREATE POLICY "Anyone can view feature limits"
     ON feature_limits FOR SELECT 
     USING (TRUE);
 
--- 5. AUTO-UPDATE TIMESTAMP TRIGGER
+-- =====================================================
+-- STEP 4: AUTO-UPDATE TIMESTAMP TRIGGER
+-- =====================================================
+
 CREATE OR REPLACE FUNCTION update_subscription_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -144,12 +153,14 @@ CREATE TRIGGER trg_update_subscription_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_subscription_updated_at();
 
--- 6. HELPER FUNCTION: Get effective tier for a user
+-- =====================================================
+-- STEP 5: HELPER FUNCTION - Get effective tier
+-- =====================================================
+
 CREATE OR REPLACE FUNCTION get_effective_tier(user_id UUID)
 RETURNS TEXT AS $$
 DECLARE
     sub_record RECORD;
-    effective_tier TEXT;
 BEGIN
     SELECT * INTO sub_record 
     FROM subscriptions 
@@ -175,8 +186,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 7. AUTO-CREATE SUBSCRIPTION ON USER SIGNUP
--- This function creates a trial subscription when a new user signs up
+-- =====================================================
+-- STEP 6: AUTO-CREATE SUBSCRIPTION ON USER SIGNUP
+-- =====================================================
+
 CREATE OR REPLACE FUNCTION create_trial_subscription()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -184,7 +197,7 @@ BEGIN
     IF NEW.role = 'coach' THEN
         INSERT INTO subscriptions (team_id, status, tier, trial_end)
         VALUES (NEW.id, 'trialing', 'trial', NOW() + INTERVAL '14 days')
-        ON CONFLICT DO NOTHING;
+        ON CONFLICT (team_id) DO NOTHING;
     END IF;
     RETURN NEW;
 END;
@@ -196,8 +209,14 @@ CREATE TRIGGER trg_create_trial_subscription
     FOR EACH ROW
     EXECUTE FUNCTION create_trial_subscription();
 
--- Grant necessary permissions
+-- =====================================================
+-- STEP 7: GRANT PERMISSIONS
+-- =====================================================
+
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT SELECT ON feature_limits TO anon, authenticated;
-GRANT SELECT ON subscriptions TO authenticated;
+GRANT SELECT, INSERT ON subscriptions TO authenticated;
 
+-- =====================================================
+-- DONE! Your billing tables are ready.
+-- =====================================================
