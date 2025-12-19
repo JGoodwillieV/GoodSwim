@@ -20,7 +20,7 @@ Apply RLS policies that allow parents to view test sets and results for their li
 4. Click **Run** (or press Ctrl+Enter / Cmd+Enter)
 
 ### Step 3: Verify the Fix
-1. Log in as a parent user in your StormTracker app
+1. Log in as a parent user in your GoodSwim app
 2. Navigate to one of your swimmers
 3. Click on the **Practice** tab
 4. You should now see test set results!

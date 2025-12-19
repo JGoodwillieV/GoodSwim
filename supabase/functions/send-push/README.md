@@ -22,7 +22,7 @@ Private Key: aB...
 # Set VAPID keys
 supabase secrets set VAPID_PUBLIC_KEY="YOUR_PUBLIC_KEY"
 supabase secrets set VAPID_PRIVATE_KEY="YOUR_PRIVATE_KEY"
-supabase secrets set VAPID_SUBJECT="mailto:your-email@stormtracker.com"
+supabase secrets set VAPID_SUBJECT="mailto:your-email@goodswim.com"
 ```
 
 ### 3. Set Environment Variable for Frontend

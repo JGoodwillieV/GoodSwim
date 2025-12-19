@@ -1,6 +1,6 @@
 {
-  "name": "StormTracker - Swim Team Manager",
-  "short_name": "StormTracker",
+  "name": "GoodSwim - Swim Team Manager",
+  "short_name": "GoodSwim",
   "description": "Track swimmer performance, analyze videos, and manage your swim team",
   "start_url": "/",
   "display": "standalone",

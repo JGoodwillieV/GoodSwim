@@ -1,5 +1,5 @@
 -- =====================================================
--- STORMTRACKER PUSH NOTIFICATIONS SCHEMA
+-- GOODSWIM PUSH NOTIFICATIONS SCHEMA
 -- =====================================================
 -- This schema supports push notifications, badge counts, and notification preferences
 

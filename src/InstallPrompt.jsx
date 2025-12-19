@@ -95,7 +95,7 @@ export default function InstallPrompt() {
           </div>
           
           <div className="flex-1">
-            <h3 className="font-bold text-slate-800 text-sm">Install StormTracker</h3>
+            <h3 className="font-bold text-slate-800 text-sm">Install GoodSwim</h3>
             <p className="text-slate-500 text-xs mt-1 leading-relaxed">
               Add to your home screen for the best experience!
             </p>
@@ -146,7 +146,7 @@ export default function InstallPrompt() {
         </div>
         
         <div className="flex-1">
-          <h3 className="font-bold text-slate-800 text-sm">Install StormTracker</h3>
+          <h3 className="font-bold text-slate-800 text-sm">Install GoodSwim</h3>
           <p className="text-slate-500 text-xs mt-1 leading-relaxed">
             Install our app for quick access and offline support!
           </p>

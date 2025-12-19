@@ -162,7 +162,7 @@ export function usePushNotifications() {
       if ('serviceWorker' in navigator && 'Notification' in window) {
         const registration = await navigator.serviceWorker.ready;
         
-        await registration.showNotification('StormTracker Test', {
+        await registration.showNotification('GoodSwim Test', {
           body: 'Push notifications are working! 🎉',
           icon: '/icons/192.png',
           badge: '/icons/72.png',

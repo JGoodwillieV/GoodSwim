@@ -34,7 +34,7 @@ You should see a success message. The script will:
 - ✅ Add performance indexes
 
 ### Step 4: Test
-1. Refresh your StormTracker app
+1. Refresh your GoodSwim app
 2. Log in as a parent
 3. Navigate to a swimmer
 4. Click the **Practice** tab

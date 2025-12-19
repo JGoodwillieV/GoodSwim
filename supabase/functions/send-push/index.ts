@@ -6,7 +6,7 @@ import webpush from 'npm:web-push@3.6.6'
 // VAPID keys (set these in Supabase secrets)
 const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || ''
 const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY') || ''
-const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') || 'mailto:admin@stormtracker.com'
+const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') || 'mailto:admin@goodswim.com'
 
 // Configure web-push with VAPID keys
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {

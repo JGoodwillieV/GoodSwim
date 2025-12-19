@@ -26,7 +26,7 @@ If you already have a `72.png` in the `/public/icons/` folder, you can use it as
 1. **Design Tool:** Use Figma, Photoshop, or any image editor
 2. **Size:** 72x72 pixels
 3. **Style:** Monochrome (white icon on transparent, or single color)
-4. **Design:** Simple logo or "ST" letters for StormTracker
+4. **Design:** Simple logo or "GS" letters for GoodSwim
 
 ### Option 3: Convert from Existing Logo
 
@@ -65,7 +65,7 @@ The badge should appear next to your notification.
 
 ## Example
 
-A good badge icon for StormTracker could be:
+A good badge icon for GoodSwim could be:
 - Stylized wave or swimmer icon (monochrome)
 - "ST" letters in bold font
 - Lightning bolt for "Storm" theme

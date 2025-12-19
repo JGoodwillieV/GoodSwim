@@ -1,6 +1,6 @@
 # Team Records Setup Guide
 
-This guide explains how to set up and use the Hurricane SC team records feature in StormTracker.
+This guide explains how to set up and use the Hurricane SC team records feature in GoodSwim.
 
 ## Overview
 
@@ -30,7 +30,7 @@ After creating the table, load the Hurricane SC records data:
 
 ```bash
 # Make sure you're in the project root directory
-cd StormTracker
+cd GoodSwim
 
 # Run the load script
 node database/load_team_records.js
@@ -52,7 +52,7 @@ The script will:
 
 To verify everything is working:
 
-1. Open StormTracker in your browser
+1. Open GoodSwim in your browser
 2. Navigate to a swimmer's profile
 3. Find an event where the swimmer has a time
 4. Look at the "Standards & Goals" section
@@ -200,5 +200,5 @@ If you encounter any issues with the team records feature, please check:
 3. Browser console for error messages
 4. Verify the table schema matches the SQL file
 
-For additional help, contact the StormTracker development team.
+For additional help, contact the GoodSwim development team.
 

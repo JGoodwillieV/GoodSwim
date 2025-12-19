@@ -1,5 +1,5 @@
 // service-worker.js
-const CACHE_NAME = 'stormtracker-v1';
+const CACHE_NAME = 'goodswim-v1';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
@@ -137,10 +137,10 @@ self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {};
   
   const options = {
-    body: data.body || 'New update from StormTracker',
+    body: data.body || 'New update from GoodSwim',
     icon: '/icons/192.png',
     badge: '/icons/72.png',
-    tag: data.tag || 'stormtracker-notification',
+    tag: data.tag || 'goodswim-notification',
     data: { url: data.url || '/' },
     actions: data.actions || [],
     vibrate: [200, 100, 200],
@@ -149,7 +149,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'StormTracker', options)
+    self.registration.showNotification(data.title || 'GoodSwim', options)
   );
 });
 

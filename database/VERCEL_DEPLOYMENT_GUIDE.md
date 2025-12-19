@@ -11,7 +11,7 @@ If you're deploying directly to Vercel without running local Node.js scripts, fo
 This step is the same regardless of deployment method:
 
 1. Go to https://supabase.com and log in
-2. Select your StormTracker project
+2. Select your GoodSwim project
 3. Click **SQL Editor** in the left sidebar
 4. Open `database/team_records_schema.sql` from your repository
 5. Copy ALL the SQL code
@@ -59,7 +59,7 @@ git push
 
 Or use the Vercel dashboard:
 1. Go to vercel.com
-2. Import your StormTracker repository
+2. Import your GoodSwim repository
 3. Deploy
 
 The team records feature will work immediately since all the data is in Supabase!
@@ -96,7 +96,7 @@ Once the data is in Supabase:
 
 After loading data and deploying to Vercel:
 
-1. Open your deployed StormTracker URL
+1. Open your deployed GoodSwim URL
 2. Navigate to any swimmer's profile
 3. Find an event with a time
 4. Click "View Ladder"

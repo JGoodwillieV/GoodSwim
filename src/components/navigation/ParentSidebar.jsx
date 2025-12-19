@@ -148,12 +148,12 @@ export default function ParentSidebar({ activeTab, setActiveTab, onLogout }) {
         <div className="relative">
           <img 
             src="/team-logo-white.png" 
-            alt="StormTracker" 
+            alt="GoodSwim" 
             className="h-16 w-auto object-contain" 
           />
         </div>
         <div className="text-center">
-          <h1 className="text-white font-bold text-lg tracking-tight">StormTracker</h1>
+          <h1 className="text-white font-bold text-lg tracking-tight">GoodSwim</h1>
           <span className="text-xs text-slate-500">Parent Portal</span>
         </div>
       </div>

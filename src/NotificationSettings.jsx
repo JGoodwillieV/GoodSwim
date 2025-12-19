@@ -191,7 +191,7 @@ export default function NotificationSettings() {
                 Install App First
               </h4>
               <p className="text-blue-700 text-xs leading-relaxed">
-                On iOS, you must add StormTracker to your home screen before enabling notifications.
+                On iOS, you must add GoodSwim to your home screen before enabling notifications.
                 Tap the Share button and select "Add to Home Screen".
               </p>
             </div>

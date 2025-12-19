@@ -9,7 +9,7 @@ Before testing, ensure you have:
 1. ✅ Created the `team_records` table in Supabase (using `team_records_schema.sql`)
 2. ✅ Loaded the team records data (using `load_team_records.js` or manual import)
 3. ✅ At least one swimmer in the system with recorded times
-4. ✅ The StormTracker app running locally or deployed
+4. ✅ The GoodSwim app running locally or deployed
 
 ## Test Cases
 
@@ -193,7 +193,7 @@ For each event category:
 ### Test Case 9: Mobile Responsiveness
 
 **Setup:**
-- Open StormTracker on a mobile device or use browser DevTools mobile emulation
+- Open GoodSwim on a mobile device or use browser DevTools mobile emulation
 
 **Steps:**
 1. Navigate to swimmer profile on mobile
@@ -394,5 +394,5 @@ Once testing is complete:
 
 ## Contact
 
-For questions about this testing guide or the team records feature, contact the StormTracker development team.
+For questions about this testing guide or the team records feature, contact the GoodSwim development team.
 

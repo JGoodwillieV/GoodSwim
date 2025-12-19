@@ -49,14 +49,14 @@ const escapeICSText = (text) => {
  */
 const generateUID = (event) => {
   const timestamp = new Date().getTime();
-  return `${event.id}-${timestamp}@stormtracker.app`;
+  return `${event.id}-${timestamp}@goodswim.app`;
 };
 
 /**
  * Creates an .ics file content for a single event
  */
 export const createICSFile = (event) => {
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//StormTracker//Calendar Export//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT'];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//GoodSwim//Calendar Export//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT'];
   
   // UID
   lines.push(`UID:${generateUID(event)}`);

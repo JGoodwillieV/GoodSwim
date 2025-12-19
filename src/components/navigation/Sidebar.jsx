@@ -75,11 +75,11 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }) {
         <div className="relative">
           <img 
             src="/team-logo-white.png" 
-            alt="StormTracker" 
+            alt="GoodSwim" 
             className="h-16 w-auto object-contain" 
           />
         </div>
-        <h1 className="text-white font-bold text-lg text-center tracking-tight">StormTracker</h1>
+        <h1 className="text-white font-bold text-lg text-center tracking-tight">GoodSwim</h1>
       </div>
 
       {/* Main Navigation */}

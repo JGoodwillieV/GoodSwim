@@ -14,7 +14,7 @@ export default function PhotoModal({ photo, onClose }) {
       const blob = await response.blob();
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `stormtracker-${Date.now()}.jpg`;
+      link.download = `goodswim-${Date.now()}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

@@ -238,7 +238,7 @@ export default function InviteLanding({ token, onComplete }) {
           <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Waves size={28} />
           </div>
-          <h1 className="text-2xl font-bold mb-1">StormTracker</h1>
+          <h1 className="text-2xl font-bold mb-1">GoodSwim</h1>
           <p className="text-blue-100">Swim Team Management</p>
         </div>
 
