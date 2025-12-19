@@ -49,6 +49,7 @@ export default function SignUp() {
           .from('teams')
           .insert([{ 
             name: teamName,
+            state: state,
             subscription_tier: 'starter', // Default to free/starter
             subscription_status: 'trialing'
           }])
@@ -75,7 +76,6 @@ export default function SignUp() {
              display_name: `${firstName} ${lastName}`,
              first_name: firstName,
              last_name: lastName,
-             state: state,
              coach_role: role,
              first_login: true
         });
