@@ -535,7 +535,7 @@ const loadParentData = async () => {
       <div className="bg-gradient-to-r from-gray-900 to-gray-700 rounded-2xl p-6 text-white relative overflow-hidden">
         {/* Floating Background Logo */}
           <div className="absolute top-1/2 right-4 -translate-y-1/2 opacity-20 pointer-events-none">
-             <img src="/team-logo-white.png" className="h-48 w-auto" alt="" />
+             <img src="/GoodSwimLogo.png" className="h-48 w-auto" alt="" />
           </div>
 
           <div className="relative z-10">
