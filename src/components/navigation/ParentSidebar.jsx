@@ -40,9 +40,11 @@ const parentNavItems = [
   },
 ];
 
-export default function ParentSidebar({ activeTab, setActiveTab, onLogout }) {
+export default function ParentSidebar({ activeTab, setActiveTab, onLogout, session }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [hoveredItem, setHoveredItem] = useState(null);
+  // Get team name from user metadata or default to "GoodSwim"
+  const teamName = session?.user?.user_metadata?.team_name || "GoodSwim";
 
   // Fetch unread notifications count
   useEffect(() => {
@@ -153,7 +155,7 @@ export default function ParentSidebar({ activeTab, setActiveTab, onLogout }) {
           />
         </div>
         <div className="text-center">
-          <h1 className="text-white font-bold text-lg tracking-tight">GoodSwim</h1>
+          <h1 className="text-white font-bold text-lg tracking-tight">{teamName}</h1>
           <span className="text-xs text-slate-500">Parent Portal</span>
         </div>
       </div>

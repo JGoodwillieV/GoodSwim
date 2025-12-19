@@ -46,7 +46,9 @@ const navItems = [
   },
 ];
 
-export default function Sidebar({ activeTab, setActiveTab, onLogout }) {
+export default function Sidebar({ activeTab, setActiveTab, onLogout, session }) {
+  // Get team name from user metadata or default to "GoodSwim"
+  const teamName = session?.user?.user_metadata?.team_name || "GoodSwim";
 
   const handleNavClick = (id) => {
     setActiveTab(id);
@@ -79,7 +81,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout }) {
             className="h-16 w-auto object-contain" 
           />
         </div>
-        <h1 className="text-white font-bold text-lg text-center tracking-tight">GoodSwim</h1>
+        <h1 className="text-white font-bold text-lg text-center tracking-tight">{teamName}</h1>
       </div>
 
       {/* Main Navigation */}

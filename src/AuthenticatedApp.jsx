@@ -282,7 +282,7 @@ export default function App() {
     return (
       <div className="flex min-h-screen bg-[#f8fafc]">
         {view !== 'view-analysis' && (
-          <ParentSidebar activeTab={view} setActiveTab={navigateTo} onLogout={handleLogout} />
+          <ParentSidebar activeTab={view} setActiveTab={navigateTo} onLogout={handleLogout} session={session} />
         )}
         {view !== 'view-analysis' && (
           <ParentMobileNav activeTab={view} setActiveTab={navigateTo} />
@@ -372,7 +372,7 @@ export default function App() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       {view !== 'view-analysis' && (
-        <Sidebar activeTab={view} setActiveTab={navigateTo} onLogout={handleLogout} />
+        <Sidebar activeTab={view} setActiveTab={navigateTo} onLogout={handleLogout} session={session} />
       )}
 
       {view !== 'view-analysis' && (
