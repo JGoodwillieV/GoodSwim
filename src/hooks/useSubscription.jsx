@@ -1,4 +1,4 @@
-// src/hooks/useSubscription.js
+// src/hooks/useSubscription.jsx
 // Subscription management hook for Stripe billing integration
 
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
