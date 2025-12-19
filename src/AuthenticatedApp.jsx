@@ -56,6 +56,7 @@ import CoachAssignmentManager from './CoachAssignmentManager';
 import { CommunicationsHub, ReportsHub, ToolsHub } from './hubs';
 import Team from './components/Team';
 import GroupDetail from './components/GroupDetail';
+import BillingSettings from './components/BillingSettings';
 
 // Icons
 import { ChevronLeft } from 'lucide-react';
@@ -542,6 +543,11 @@ export default function App() {
             onOpenAIChat={() => navigateTo('ai-chat')}
             onViewAnalysis={handleViewAnalysis}
           />
+        )}
+
+        {/* Billing Settings */}
+        {view === 'billing' && (
+          <BillingSettings teamId={session?.user?.id} />
         )}
         
         {/* Unified Schedule View */}

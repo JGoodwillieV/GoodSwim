@@ -6,6 +6,7 @@ export { default as Icon } from './Icon';
 export { default as Dashboard } from './Dashboard';
 export { default as Roster } from './Roster';
 export { default as SwimmerProfile } from './SwimmerProfile';
+export { default as BillingSettings } from './BillingSettings';
 
 // Navigation components
 export { 
@@ -16,4 +17,3 @@ export {
   Breadcrumb,
   BackButton
 } from './navigation';
-

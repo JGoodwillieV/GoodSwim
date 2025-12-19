@@ -44,6 +44,12 @@ const navItems = [
     label: 'Tools',
     description: 'AI analysis & chat'
   },
+  { 
+    id: 'billing', 
+    icon: 'credit-card', 
+    label: 'Billing',
+    description: 'Subscription & payments'
+  },
 ];
 
 export default function Sidebar({ activeTab, setActiveTab, onLogout, session }) {
