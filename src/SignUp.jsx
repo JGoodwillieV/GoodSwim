@@ -6,8 +6,24 @@ export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [teamName, setTeamName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [state, setState] = useState('');
+  const [role, setRole] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const usStates = [
+    'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware',
+    'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky',
+    'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi',
+    'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico',
+    'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania',
+    'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
+    'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
+  ];
+
+  const roleOptions = ['Head Coach', 'Age Group Coach', 'Staff', 'Other'];
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -56,7 +72,11 @@ export default function SignUp() {
         await supabase.from('user_profiles').insert({
              id: authData.user.id,
              role: 'coach',
-             display_name: email.split('@')[0],
+             display_name: `${firstName} ${lastName}`,
+             first_name: firstName,
+             last_name: lastName,
+             state: state,
+             coach_role: role,
              first_login: true
         });
       }
@@ -86,6 +106,31 @@ export default function SignUp() {
               placeholder="e.g. Springfield Sharks"
             />
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">First Name</label>
+              <input 
+                type="text" 
+                required
+                className="w-full p-2 border rounded-lg"
+                value={firstName}
+                onChange={e => setFirstName(e.target.value)}
+                placeholder="John"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Last Name</label>
+              <input 
+                type="text" 
+                required
+                className="w-full p-2 border rounded-lg"
+                value={lastName}
+                onChange={e => setLastName(e.target.value)}
+                placeholder="Smith"
+              />
+            </div>
+          </div>
           
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
@@ -107,6 +152,40 @@ export default function SignUp() {
               value={password}
               onChange={e => setPassword(e.target.value)}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">State</label>
+            <select 
+              required
+              className="w-full p-2 border rounded-lg bg-white"
+              value={state}
+              onChange={e => setState(e.target.value)}
+            >
+              <option value="">Select a state...</option>
+              {usStates.map((stateName) => (
+                <option key={stateName} value={stateName}>
+                  {stateName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+            <select 
+              required
+              className="w-full p-2 border rounded-lg bg-white"
+              value={role}
+              onChange={e => setRole(e.target.value)}
+            >
+              <option value="">Select a role...</option>
+              {roleOptions.map((roleOption) => (
+                <option key={roleOption} value={roleOption}>
+                  {roleOption}
+                </option>
+              ))}
+            </select>
           </div>
 
           <button 
