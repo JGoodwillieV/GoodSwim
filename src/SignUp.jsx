@@ -31,55 +31,31 @@ export default function SignUp() {
     setError(null);
 
     try {
-      // 1. Create Auth User
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // Pass all signup data as metadata - the database trigger will handle the rest!
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            team_name: teamName,
+            first_name: firstName,
+            last_name: lastName,
+            state: state,
+            coach_role: role,
+            full_name: `${firstName} ${lastName}`
+          }
+        }
       });
 
-      if (authError) throw authError;
+      if (error) throw error;
 
-      if (authData.user) {
-        // 2. Create the Team (This triggers your database logic)
-        // Note: It is safer to do this via a Postgres Trigger on auth.users creation,
-        // or a Supabase Edge Function.
-        // However, for client-side MVP:
-        
-        const { data: teamData, error: teamError } = await supabase
-          .from('teams')
-          .insert([{ 
-            name: teamName,
-            state: state,
-            subscription_tier: 'starter', // Default to free/starter
-            subscription_status: 'trialing'
-          }])
-          .select()
-          .single();
-
-        if (teamError) throw teamError;
-
-        // 3. Link User to Team as Owner
-        const { error: memberError } = await supabase
-          .from('team_members')
-          .insert([{
-            team_id: teamData.id,
-            user_id: authData.user.id,
-            role: 'owner'
-          }]);
-
-        if (memberError) throw memberError;
-        
-        // 4. Create User Profile
-        await supabase.from('user_profiles').insert({
-             id: authData.user.id,
-             role: 'coach',
-             display_name: `${firstName} ${lastName}`,
-             first_name: firstName,
-             last_name: lastName,
-             coach_role: role,
-             first_login: true
-        });
-      }
+      // Success! The database trigger automatically creates:
+      // - The team record
+      // - The user_profile record
+      // - The team_members record
+      // User just needs to confirm their email now
+      alert('Success! Please check your email to confirm your account.');
+      
     } catch (err) {
       setError(err.message);
     } finally {
