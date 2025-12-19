@@ -147,7 +147,7 @@ export default function ParentSidebar({ activeTab, setActiveTab, onLogout }) {
       <div className="flex flex-col items-center gap-3 mb-6 px-2">
         <div className="relative">
           <img 
-            src="/team-logo-white.png" 
+            src="/GoodSwimLogo.png" 
             alt="GoodSwim" 
             className="h-16 w-auto object-contain" 
           />
