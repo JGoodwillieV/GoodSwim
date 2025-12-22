@@ -57,6 +57,7 @@ import { CommunicationsHub, ReportsHub, ToolsHub } from './hubs';
 import Team from './components/Team';
 import GroupDetail from './components/GroupDetail';
 import BillingSettings from './components/BillingSettings';
+import { SubscriptionProvider } from './hooks/useSubscription';
 
 // Icons
 import { ChevronLeft } from 'lucide-react';
@@ -547,7 +548,9 @@ export default function App() {
 
         {/* Billing Settings */}
         {view === 'billing' && (
-          <BillingSettings teamId={session?.user?.id} />
+          <SubscriptionProvider>
+            <BillingSettings />
+          </SubscriptionProvider>
         )}
         
         {/* Unified Schedule View */}

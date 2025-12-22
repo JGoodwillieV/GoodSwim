@@ -6,35 +6,53 @@ import { supabase } from '../supabase';
 
 const SubscriptionContext = createContext(null);
 
-export function SubscriptionProvider({ children, teamId }) {
+export function SubscriptionProvider({ children }) {
   const [subscription, setSubscription] = useState(null);
   const [limits, setLimits] = useState(null);
   const [loading, setLoading] = useState(true);
   const [swimmerCount, setSwimmerCount] = useState(0);
   const [error, setError] = useState(null);
+  const [teamId, setTeamId] = useState(null);
 
   useEffect(() => {
-    if (!teamId) {
-      setLoading(false);
-      return;
-    }
-
     const fetchData = async () => {
       try {
         setError(null);
+        
+        // 0. Get the current user's team ID from team_members
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
+        const { data: teamMember, error: tmError } = await supabase
+          .from('team_members')
+          .select('team_id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (tmError || !teamMember) {
+          console.error('Could not find team for user:', tmError);
+          setLoading(false);
+          return;
+        }
+
+        const currentTeamId = teamMember.team_id;
+        setTeamId(currentTeamId);
         
         // 1. Get Subscription Status
         const { data: sub, error: subError } = await supabase
           .from('subscriptions')
           .select('*')
-          .eq('team_id', teamId)
+          .eq('team_id', currentTeamId)
           .single();
 
         // Handle no subscription (create default trial)
         if (subError && subError.code === 'PGRST116') {
           // No subscription exists - use trial defaults
           const defaultSub = {
-            team_id: teamId,
+            team_id: currentTeamId,
             status: 'trialing',
             tier: 'trial',
             trial_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
@@ -51,11 +69,11 @@ export function SubscriptionProvider({ children, teamId }) {
           
           setLimits(trialLimits);
           
-          // Get swimmer count
+          // Get swimmer count (swimmers belong to team via coach_id which is the user_id)
           const { count } = await supabase
             .from('swimmers')
             .select('id', { count: 'exact', head: true })
-            .eq('coach_id', teamId);
+            .eq('coach_id', user.id);
           
           setSwimmerCount(count || 0);
           setLoading(false);
@@ -105,7 +123,7 @@ export function SubscriptionProvider({ children, teamId }) {
         const { count } = await supabase
           .from('swimmers')
           .select('id', { count: 'exact', head: true })
-          .eq('coach_id', teamId);
+          .eq('coach_id', user.id);
 
         setSwimmerCount(count || 0);
         setLoading(false);
@@ -118,29 +136,7 @@ export function SubscriptionProvider({ children, teamId }) {
     };
 
     fetchData();
-
-    // Set up realtime subscription for updates
-    const channel = supabase
-      .channel('subscription_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'subscriptions',
-          filter: `team_id=eq.${teamId}`
-        },
-        () => {
-          // Refetch on any subscription change
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, [teamId]);
+  }, []);
 
   // Helper: Check if a specific feature is available
   const hasFeature = useCallback((featureName) => {
@@ -212,6 +208,7 @@ export function SubscriptionProvider({ children, teamId }) {
     loading,
     error,
     swimmerCount,
+    teamId,
     hasFeature,
     canAddSwimmer,
     remainingSwimmers,
@@ -236,12 +233,14 @@ export const useSubscription = () => {
   const context = useContext(SubscriptionContext);
   if (!context) {
     // Return safe defaults when used outside provider
+    // Note: loading is false to prevent infinite spinners - wrap in SubscriptionProvider for real data
     return {
       subscription: null,
       limits: null,
-      loading: true,
-      error: null,
+      loading: false,
+      error: 'SubscriptionProvider not found - wrap your component in SubscriptionProvider',
       swimmerCount: 0,
+      teamId: null,
       hasFeature: () => false,
       canAddSwimmer: () => true,
       remainingSwimmers: () => Infinity,

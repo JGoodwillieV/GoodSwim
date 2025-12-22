@@ -77,8 +77,8 @@ const PLANS = [
   }
 ];
 
-export default function BillingSettings({ teamId }) {
-  const { subscription, tier, swimmerCount, limits, loading, trialDaysLeft, isTrialExpiringSoon, isTrial, isPaid, isExpired, refresh } = useSubscription();
+export default function BillingSettings() {
+  const { subscription, tier, swimmerCount, limits, loading, trialDaysLeft, isTrialExpiringSoon, isTrial, isPaid, isExpired, refresh, teamId } = useSubscription();
   const [processing, setProcessing] = useState(null);
   const [error, setError] = useState(null);
 
