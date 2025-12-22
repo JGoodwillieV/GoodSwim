@@ -114,7 +114,7 @@ serve(async (req) => {
     }
 
     // Determine success/cancel URLs
-    const appUrl = Deno.env.get('APP_URL') || 'https://goodswim.app'
+    const appUrl = Deno.env.get('APP_URL') || 'https://goodswim.io'
     const successUrl = `${appUrl}/app?billing=success&tier=${tier}`
     const cancelUrl = `${appUrl}/app?billing=cancelled`
 
