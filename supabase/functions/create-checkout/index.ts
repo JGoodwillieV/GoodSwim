@@ -1,24 +1,24 @@
 // supabase/functions/create-checkout/index.ts
 // Creates Stripe Checkout session for subscription upgrades
+// Updated with compatible Deno imports
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import Stripe from 'https://esm.sh/stripe@14.10.0?target=deno'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.0'
+import Stripe from 'https://esm.sh/stripe@17.4.0?target=deno'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 // Price IDs from your Stripe Dashboard
-// TODO: Replace with your actual Stripe Price IDs after creating products
 const PRICE_IDS: Record<string, string> = {
-  starter: Deno.env.get('STRIPE_STARTER_PRICE_ID') || 'price_starter',
-  pro: Deno.env.get('STRIPE_PRO_PRICE_ID') || 'price_pro',
-  club: Deno.env.get('STRIPE_CLUB_PRICE_ID') || 'price_club',
+  starter: Deno.env.get('STRIPE_STARTER_PRICE_ID') || '',
+  pro: Deno.env.get('STRIPE_PRO_PRICE_ID') || '',
+  club: Deno.env.get('STRIPE_CLUB_PRICE_ID') || '',
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -32,8 +32,7 @@ serve(async (req) => {
     }
     
     const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2023-10-16',
-      httpClient: Stripe.createFetchHttpClient(),
+      apiVersion: '2024-11-20.acacia',
     })
 
     // Initialize Supabase client with service role
@@ -101,8 +100,7 @@ serve(async (req) => {
 
     // Get the price ID for the selected tier
     const priceId = PRICE_IDS[tier]
-    if (!priceId || priceId.startsWith('price_')) {
-      // If using placeholder price IDs, return error
+    if (!priceId) {
       console.error(`Price ID not configured for tier: ${tier}`)
       return new Response(
         JSON.stringify({ 
@@ -169,4 +167,3 @@ serve(async (req) => {
     )
   }
 })
-
