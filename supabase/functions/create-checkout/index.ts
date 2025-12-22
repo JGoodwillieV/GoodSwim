@@ -1,6 +1,6 @@
 // supabase/functions/create-checkout/index.ts
 // Creates Stripe Checkout session for subscription upgrades
-// Updated with compatible Deno imports
+// Updated for METERED billing (no quantity field)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.0'
 import Stripe from 'https://esm.sh/stripe@17.4.0?target=deno'
@@ -117,6 +117,7 @@ Deno.serve(async (req) => {
     const cancelUrl = `${appUrl}/app?billing=cancelled`
 
     // Create Checkout Session
+    // NOTE: No quantity for metered billing - usage is reported separately
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
@@ -124,7 +125,7 @@ Deno.serve(async (req) => {
       line_items: [
         {
           price: priceId,
-          quantity: 1,
+          // NO quantity field for metered/usage-based pricing!
         },
       ],
       success_url: successUrl,
