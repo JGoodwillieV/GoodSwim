@@ -1,5 +1,5 @@
 // service-worker.js
-const CACHE_NAME = 'goodswim-v1';
+const CACHE_NAME = 'goodswim-v2';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
