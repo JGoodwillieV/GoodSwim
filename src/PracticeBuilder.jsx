@@ -69,6 +69,19 @@ export default function PracticeBuilder({ practiceId, preFillData, onBack, onSav
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
+      // Get team_id from team_members table
+      const { data: teamMember } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!teamMember || !teamMember.team_id) {
+        alert('Unable to create practice: No team association found for your account.');
+        onBack();
+        return;
+      }
+      
       // Use preFillData if provided
       const title = preFillData 
         ? generateTitleFromSchedule(preFillData)
@@ -77,6 +90,7 @@ export default function PracticeBuilder({ practiceId, preFillData, onBack, onSav
       const newPractice = {
         coach_id: user.id,
         created_by: user.id,
+        team_id: teamMember.team_id,
         title: title,
         description: preFillData?.groupName ? `Practice for ${preFillData.groupName}` : '',
         status: 'draft',
@@ -1168,6 +1182,20 @@ function RecurringScheduleModal({ practice, sets, onClose, onSchedule }) {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      
+      // Get team_id from team_members table
+      const { data: teamMember } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!teamMember || !teamMember.team_id) {
+        alert('Unable to schedule recurring practices: No team association found.');
+        onClose();
+        return;
+      }
+      
       const practicesToCreate = [];
       
       let currentDate = new Date(startDate + 'T00:00:00');
@@ -1192,6 +1220,7 @@ function RecurringScheduleModal({ practice, sets, onClose, onSchedule }) {
             const newPractice = {
               coach_id: user.id,
               created_by: user.id,
+              team_id: teamMember.team_id,
               title: practice.title,
               description: practice.description,
               training_group_id: practice.training_group_id,

@@ -555,8 +555,20 @@ export default function ScheduleHub({
           status: 'draft'
         });
       } else if (data.type === 'practice') {
+        // Get team_id from team_members table
+        const { data: teamMember } = await supabase
+          .from('team_members')
+          .select('team_id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!teamMember || !teamMember.team_id) {
+          throw new Error('No team association found');
+        }
+
         await supabase.from('practices').insert({
           coach_id: user.id,
+          team_id: teamMember.team_id,
           title: data.title,
           scheduled_date: data.date,
           scheduled_time: data.time || null,

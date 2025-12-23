@@ -106,10 +106,23 @@ export default function TemplateLibrary({ onBack, onLoadTemplate, onCreateFromTe
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
+      // Get team_id from team_members table
+      const { data: teamMember } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!teamMember || !teamMember.team_id) {
+        alert('Unable to create practice from template: No team association found.');
+        return;
+      }
+
       // Create new practice from template
       const newPractice = {
         coach_id: user.id,
         created_by: user.id,
+        team_id: teamMember.team_id,
         title: `${template.name} (from template)`,
         description: template.description,
         status: 'draft',

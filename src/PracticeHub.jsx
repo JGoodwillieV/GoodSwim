@@ -77,10 +77,23 @@ export default function PracticeHub({ onBack, onCreateNew, onEditPractice, swimm
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
+      // Get team_id from team_members table
+      const { data: teamMember } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!teamMember || !teamMember.team_id) {
+        alert('Unable to copy practice: No team association found.');
+        return;
+      }
+      
       // Create copy of practice
       const newPractice = {
         coach_id: user.id,
         created_by: user.id,
+        team_id: teamMember.team_id,
         title: `${practice.title} (Copy)`,
         description: practice.description,
         training_group_id: practice.training_group_id,
