@@ -9,6 +9,7 @@ import {
   ChevronDown, ChevronUp, Eye, EyeOff, Edit3, MessageSquare,
   Zap, Target, ArrowRight, RotateCcw, Download, CheckCircle2, Triangle
 } from 'lucide-react';
+import { FeatureGate } from './components/gates';
 
 // Video type definitions
 const VIDEO_TYPES = [
@@ -250,8 +251,10 @@ Be specific and actionable. Reference specific timestamps when possible. Focus o
   };
 
   // Render based on current step
+  // Wrap entire component in FeatureGate for AI Video Analysis
   if (step === 'setup') {
     return (
+      <FeatureGate feature="ai_video_analysis" mode="replace">
       <SetupStep 
         swimmers={swimmers}
         selectedSwimmerId={selectedSwimmerId}
@@ -273,6 +276,7 @@ Be specific and actionable. Reference specific timestamps when possible. Focus o
         handleStartAnalysis={handleStartAnalysis}
         onBack={onBack}
       />
+      </FeatureGate>
     );
   }
 

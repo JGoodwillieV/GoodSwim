@@ -237,6 +237,17 @@ export default function App() {
     }
   };
 
+  // Listen for custom navigation events (from FeatureGate/UpgradePrompt)
+  useEffect(() => {
+    const handleNavigate = (e) => {
+      if (e.detail) {
+        navigateTo(e.detail);
+      }
+    };
+    window.addEventListener('navigate', handleNavigate);
+    return () => window.removeEventListener('navigate', handleNavigate);
+  }, []);
+
   const handleParentSelectSwimmer = (swimmer) => {
     setSelectedSwimmer(swimmer);
     setView('profile');
@@ -372,6 +383,7 @@ export default function App() {
 
   // --- Coach View ---
   return (
+    <SubscriptionProvider>
     <div className="flex min-h-screen bg-[#f8fafc]">
       {view !== 'view-analysis' && (
         <Sidebar activeTab={view} setActiveTab={navigateTo} onLogout={handleLogout} session={session} />
@@ -548,9 +560,7 @@ export default function App() {
 
         {/* Billing Settings */}
         {view === 'billing' && (
-          <SubscriptionProvider>
-            <BillingSettings />
-          </SubscriptionProvider>
+          <BillingSettings />
         )}
         
         {/* Unified Schedule View */}
@@ -807,5 +817,6 @@ export default function App() {
       
       <InstallPrompt />
     </div>
+    </SubscriptionProvider>
   );
 }

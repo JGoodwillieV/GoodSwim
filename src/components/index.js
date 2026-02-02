@@ -17,3 +17,14 @@ export {
   Breadcrumb,
   BackButton
 } from './navigation';
+
+// Feature gating components
+export {
+  FeatureGate,
+  useFeatureGate,
+  useFeatureGateContext,
+  LockedOverlay,
+  UpgradePrompt,
+  UpgradeBadge,
+  UsageLimitBanner
+} from './gates';

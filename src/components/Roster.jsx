@@ -6,6 +6,8 @@ import Icon from './Icon';
 import { supabase } from '../supabase';
 import { checkMultipleResults } from '../utils/teamRecordsManager';
 import { isValidTime } from '../utils/timeUtils';
+import { useSubscription } from '../hooks/useSubscription';
+import { useFeatureGate, UsageLimitBanner } from './gates';
 
 export default function Roster({ 
   swimmers, 
@@ -21,6 +23,12 @@ export default function Roster({
   const [isImporting, setIsImporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState(''); 
   const fileInputRef = useRef(null);
+
+  // Subscription & Feature Access
+  const { tier, swimmerCount, isTrial, canAddSwimmer, remainingSwimmers, getLimit } = useSubscription();
+  const sd3Access = useFeatureGate('sd3_import');
+  const csvAccess = useFeatureGate('csv_import');
+  const maxSwimmers = getLimit('max_swimmers');
 
   // --- FILTER & SORT ---
   const filteredSwimmers = useMemo(() => {
@@ -253,7 +261,36 @@ export default function Roster({
         else {
           const text = event.target.result;
           if (importType === 'roster') {
-            const newSwimmersData = await parseSD3Roster(text);
+            // Check if SD3 import is allowed for this tier
+            if (!sd3Access.isUnlocked) {
+              alert(`SD3 Import requires ${sd3Access.requiredTierDisplay} plan. Please upgrade to use this feature.`);
+              setShowImport(false);
+              setIsImporting(false);
+              return;
+            }
+
+            let newSwimmersData = await parseSD3Roster(text);
+            
+            // Enforce swimmer limit for trial users
+            if (maxSwimmers !== null && newSwimmersData.length > 0) {
+              const currentCount = swimmers.length;
+              const availableSlots = Math.max(0, maxSwimmers - currentCount);
+              
+              if (availableSlots === 0) {
+                alert(`You've reached your swimmer limit (${maxSwimmers}). Please upgrade to add more swimmers.`);
+                setShowImport(false);
+                setIsImporting(false);
+                return;
+              }
+              
+              if (newSwimmersData.length > availableSlots) {
+                // Truncate to available slots
+                const originalCount = newSwimmersData.length;
+                newSwimmersData = newSwimmersData.slice(0, availableSlots);
+                alert(`Your plan allows ${maxSwimmers} swimmers. Importing first ${availableSlots} of ${originalCount} swimmers. Upgrade for unlimited swimmers.`);
+              }
+            }
+
             if (newSwimmersData.length > 0) {
               const { data, error } = await supabase.from('swimmers').insert(newSwimmersData).select();
               if (error) throw error;
@@ -287,6 +324,18 @@ export default function Roster({
     const lines = text.split(/\r\n|\n/);
     const newEntries = [];
     const { data: { user } } = await supabase.auth.getUser();
+    
+    // Get team_id from team_members table
+    const { data: teamMember } = await supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!teamMember || !teamMember.team_id) {
+      throw new Error('No team association found for your account.');
+    }
+    
     const d0Regex = /^D0\d[A-Z0-9]{2,6}\s+(.+?)\s+[A-Z0-9]{8,}/;
     
     lines.forEach((line) => {
@@ -333,7 +382,8 @@ export default function Roster({
             efficiency_score: 70, 
             age, 
             gender, 
-            coach_id: user.id 
+            coach_id: user.id,
+            team_id: teamMember.team_id
           });
         }
       }
@@ -347,12 +397,26 @@ export default function Roster({
     if (!name) return;
     
     const { data: { user } } = await supabase.auth.getUser();
+    
+    // Get team_id from team_members table
+    const { data: teamMember } = await supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!teamMember || !teamMember.team_id) {
+      alert('Unable to add swimmer: No team association found.');
+      return;
+    }
+    
     const newSwimmer = { 
       name, 
       group_name: 'Unassigned', 
       status: 'New', 
       efficiency_score: 50, 
-      coach_id: user.id 
+      coach_id: user.id,
+      team_id: teamMember.team_id
     };
     
     const { data, error } = await supabase.from('swimmers').insert([newSwimmer]).select();
@@ -464,6 +528,30 @@ export default function Roster({
                 <Icon name="x" size={20} />
               </button>
             </div>
+
+            {/* Show swimmer limit warning for trial users */}
+            {importType === 'roster' && maxSwimmers !== null && (
+              <div className="mb-4">
+                <UsageLimitBanner 
+                  limitKey="max_swimmers"
+                  currentUsage={swimmers.length}
+                  showWhenUnderLimit={true}
+                />
+              </div>
+            )}
+
+            {/* Show locked message for SD3 import */}
+            {importType === 'roster' && !sd3Access.isUnlocked && (
+              <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <Icon name="lock" size={20} className="text-amber-600" />
+                  <div>
+                    <p className="font-medium text-amber-800">SD3 Import requires {sd3Access.requiredTierDisplay}</p>
+                    <p className="text-sm text-amber-600">Upgrade to import rosters from SD3 files</p>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <input 
               type="file" 
@@ -474,11 +562,20 @@ export default function Roster({
             />
             
             <div 
-              onClick={() => fileInputRef.current.click()} 
-              className={`border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center bg-slate-50 mb-6 group cursor-pointer transition-colors ${
-                importType === 'results' 
-                  ? 'border-yellow-300 hover:bg-yellow-50' 
-                  : 'border-slate-300 hover:bg-slate-100 hover:border-blue-400'
+              onClick={() => {
+                // Block click if feature is locked
+                if (importType === 'roster' && !sd3Access.isUnlocked) {
+                  window.dispatchEvent(new CustomEvent('navigate', { detail: 'billing' }));
+                  return;
+                }
+                fileInputRef.current.click();
+              }} 
+              className={`border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center mb-6 group cursor-pointer transition-colors ${
+                importType === 'roster' && !sd3Access.isUnlocked
+                  ? 'border-slate-200 bg-slate-50 opacity-60'
+                  : importType === 'results' 
+                    ? 'border-yellow-300 hover:bg-yellow-50 bg-slate-50' 
+                    : 'border-slate-300 hover:bg-slate-100 hover:border-blue-400 bg-slate-50'
               }`}
             >
               <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform ${
@@ -489,7 +586,9 @@ export default function Roster({
                 <Icon name={importType === 'results' ? 'trophy' : 'file-up'} size={24} />
               </div>
               <p className="text-slate-800 font-bold text-lg mb-1">
-                {isImporting ? 'Processing...' : 'Drag & drop or click to upload'}
+                {isImporting ? 'Processing...' : 
+                 (importType === 'roster' && !sd3Access.isUnlocked) ? 'Upgrade to Import' :
+                 'Drag & drop or click to upload'}
               </p>
             </div>
           </div>

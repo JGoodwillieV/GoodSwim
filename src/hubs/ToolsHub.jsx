@@ -6,9 +6,12 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import {
   Video, MessageSquare, Sparkles, ChevronRight, Play, Clock,
-  User, Loader2, Upload, Brain, Zap, Star, ExternalLink
+  User, Loader2, Upload, Brain, Zap, Star, ExternalLink, Lock, Crown
 } from 'lucide-react';
 import { formatDateSafe } from '../utils/dateUtils';
+import { FeatureGate, useFeatureGate } from '../components/gates';
+import { useSubscription } from '../hooks/useSubscription';
+import { getTierDisplayName } from '../config/features';
 
 // Recent Analysis Card
 function AnalysisCard({ analysis, onView }) {
@@ -46,23 +49,54 @@ function AnalysisCard({ analysis, onView }) {
   );
 }
 
-// Feature Card
-function FeatureCard({ icon: Icon, title, description, color, onClick, badge }) {
+// Feature Card - with optional locked state
+function FeatureCard({ icon: Icon, title, description, color, onClick, badge, isLocked, requiredTier }) {
+  const handleClick = () => {
+    if (isLocked) {
+      // Navigate to billing when locked
+      window.dispatchEvent(new CustomEvent('navigate', { detail: 'billing' }));
+    } else {
+      onClick?.();
+    }
+  };
+
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       className={`w-full bg-gradient-to-br ${color} text-white rounded-xl p-5 text-left hover:shadow-lg transition-all group relative overflow-hidden`}
     >
+      {/* Locked overlay */}
+      {isLocked && (
+        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] z-20 flex items-center justify-center rounded-xl">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-2 border border-white/20">
+              <Lock size={20} />
+            </div>
+            <p className="text-sm font-medium">Upgrade to {getTierDisplayName(requiredTier)}</p>
+          </div>
+        </div>
+      )}
+      
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-3">
           <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
             <Icon size={24} />
           </div>
-          {badge && (
-            <span className="text-xs bg-white/20 px-2 py-1 rounded-full font-medium">
-              {badge}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {isLocked && requiredTier && (
+              <span className={`text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 ${
+                requiredTier === 'club' ? 'bg-purple-500/30' : 'bg-blue-500/30'
+              }`}>
+                <Crown size={12} />
+                {requiredTier === 'club' ? 'Club' : 'Pro'}
+              </span>
+            )}
+            {badge && !isLocked && (
+              <span className="text-xs bg-white/20 px-2 py-1 rounded-full font-medium">
+                {badge}
+              </span>
+            )}
+          </div>
         </div>
         <h3 className="font-bold text-lg">{title}</h3>
         <p className="text-sm opacity-80 mt-1">{description}</p>
@@ -82,6 +116,10 @@ export default function ToolsHub({
   const [recentAnalyses, setRecentAnalyses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ totalAnalyses: 0 });
+  
+  // Check feature access
+  const aiVideoAccess = useFeatureGate('ai_video_analysis');
+  const aiChatAccess = useFeatureGate('ai_chat');
 
   useEffect(() => {
     fetchRecentAnalyses();
@@ -125,6 +163,8 @@ export default function ToolsHub({
           color="from-blue-500 to-indigo-600"
           onClick={onStartAnalysis}
           badge="Powered by Gemini"
+          isLocked={!aiVideoAccess.isUnlocked}
+          requiredTier={aiVideoAccess.requiredTier}
         />
         <FeatureCard
           icon={MessageSquare}
@@ -133,6 +173,8 @@ export default function ToolsHub({
           color="from-violet-500 to-purple-600"
           onClick={onOpenAIChat}
           badge="Beta"
+          isLocked={!aiChatAccess.isUnlocked}
+          requiredTier={aiChatAccess.requiredTier}
         />
       </div>
 

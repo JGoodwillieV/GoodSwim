@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { supabase } from '../supabase';
+import { FEATURES, tierHasFeature, getUsageLimit, USAGE_LIMITS } from '../config/features';
 
 const SubscriptionContext = createContext(null);
 
@@ -101,6 +102,13 @@ export function SubscriptionProvider({ children }) {
           effectiveTier = 'expired';
         }
 
+        console.log('[useSubscription] Subscription loaded:', { 
+          tier: sub?.tier, 
+          effectiveTier, 
+          status: sub?.status,
+          teamId: currentTeamId
+        });
+
         setSubscription({ ...sub, effectiveTier });
 
         // 3. Get Feature Limits for this Tier
@@ -139,10 +147,48 @@ export function SubscriptionProvider({ children }) {
   }, []);
 
   // Helper: Check if a specific feature is available
+  // Uses both the central FEATURES config and database limits
   const hasFeature = useCallback((featureName) => {
-    if (!limits) return false;
     if (subscription?.effectiveTier === 'expired') return false;
+    
+    const tier = subscription?.effectiveTier || 'trial';
+    
+    // First check the central config (for tier-based features)
+    if (FEATURES[featureName]) {
+      return tierHasFeature(tier, featureName);
+    }
+    
+    // Fall back to database limits for any features not in central config
+    if (!limits) return false;
     return limits[featureName] === true;
+  }, [limits, subscription]);
+
+  // Helper: Check feature with more detail
+  const getFeatureAccess = useCallback((featureName) => {
+    const tier = subscription?.effectiveTier || 'trial';
+    const feature = FEATURES[featureName];
+    
+    if (!feature) {
+      return {
+        isUnlocked: limits?.[featureName] === true,
+        requiredTier: null,
+        reason: 'unknown'
+      };
+    }
+    
+    const isUnlocked = tierHasFeature(tier, featureName);
+    return {
+      isUnlocked,
+      requiredTier: feature.requiredTier,
+      feature,
+      reason: isUnlocked ? 'tier' : 'upgrade_required'
+    };
+  }, [limits, subscription]);
+
+  // Helper: Get usage limit for current tier
+  const getLimit = useCallback((limitKey) => {
+    const tier = subscription?.effectiveTier || 'trial';
+    return getUsageLimit(tier, limitKey) ?? limits?.[limitKey] ?? null;
   }, [limits, subscription]);
 
   // Helper: Check if user can add another swimmer
@@ -210,6 +256,8 @@ export function SubscriptionProvider({ children }) {
     swimmerCount,
     teamId,
     hasFeature,
+    getFeatureAccess,
+    getLimit,
     canAddSwimmer,
     remainingSwimmers,
     trialDaysLeft,
@@ -242,6 +290,8 @@ export const useSubscription = () => {
       swimmerCount: 0,
       teamId: null,
       hasFeature: () => false,
+      getFeatureAccess: () => ({ isUnlocked: false, requiredTier: null, reason: 'no_provider' }),
+      getLimit: () => null,
       canAddSwimmer: () => true,
       remainingSwimmers: () => Infinity,
       trialDaysLeft: () => 14,

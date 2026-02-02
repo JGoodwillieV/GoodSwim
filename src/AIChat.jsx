@@ -2,8 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabase';
 import { Send, Bot, User, Loader2, ChevronLeft, Sparkles } from 'lucide-react';
+import { FeatureGate } from './components/gates';
 
-export default function AIChat({ onBack }) {
+function AIChatContent({ onBack }) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([
     { role: 'model', text: "Hi Coach! I have read your entire database. Ask me anything about your roster, times, or standards." }
@@ -197,5 +198,14 @@ export default function AIChat({ onBack }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap in FeatureGate
+export default function AIChat({ onBack }) {
+  return (
+    <FeatureGate feature="ai_chat" mode="replace">
+      <AIChatContent onBack={onBack} />
+    </FeatureGate>
   );
 }

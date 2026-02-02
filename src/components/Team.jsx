@@ -3,10 +3,12 @@
 // Roster is the default view, Groups are clickable to show individual group swimmers
 
 import React, { useState } from 'react';
-import { Users, Filter, Trophy } from 'lucide-react';
+import { Users, Filter, Trophy, Lock } from 'lucide-react';
 import Roster from './Roster';
 import GroupsList from './GroupsList';
 import RecordBoard from './RecordBoard';
+import { UsageLimitBanner, useFeatureGate } from './gates';
+import { useSubscription } from '../hooks/useSubscription';
 
 const TABS = [
   { id: 'roster', label: 'Roster', icon: Users },
@@ -24,20 +26,35 @@ export default function Team({
   onViewTrophyCase 
 }) {
   const [activeTab, setActiveTab] = useState('roster');
+  const { swimmerCount, isTrial } = useSubscription();
+  const recordsAccess = useFeatureGate('team_records');
 
   return (
     <div className="h-full overflow-hidden flex flex-col">
       {/* Header with Tabs */}
       <div className="p-4 md:p-8 pb-0">
-        <div className="mb-6">
+        <div className="mb-4">
           <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Team</h1>
           <p className="text-slate-500">Manage your roster, groups, and team records</p>
         </div>
+
+        {/* Swimmer limit banner for trial users */}
+        {isTrial && (
+          <div className="mb-4">
+            <UsageLimitBanner 
+              limitKey="max_swimmers"
+              currentUsage={swimmerCount}
+              showWhenUnderLimit={true}
+            />
+          </div>
+        )}
 
         {/* Tab Navigation */}
         <div className="flex gap-2 overflow-x-auto pb-2 border-b border-slate-200">
           {TABS.map(tab => {
             const Icon = tab.icon;
+            const isLocked = tab.id === 'records' && !recordsAccess.isUnlocked;
+            
             return (
               <button
                 key={tab.id}
@@ -50,6 +67,9 @@ export default function Team({
               >
                 <Icon size={18} />
                 {tab.label}
+                {isLocked && (
+                  <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-600 rounded font-medium">PRO</span>
+                )}
               </button>
             );
           })}
@@ -82,7 +102,27 @@ export default function Team({
         )}
         
         {activeTab === 'records' && (
-          <RecordBoard />
+          recordsAccess.isUnlocked ? (
+            <RecordBoard />
+          ) : (
+            <div className="p-6">
+              <div className="bg-white border-2 border-dashed border-blue-200 rounded-2xl p-8 text-center max-w-lg mx-auto">
+                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Trophy size={28} className="text-blue-600" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Team Records</h3>
+                <p className="text-slate-500 mb-6">
+                  Track and display team records, celebrate record breakers, and view historical data.
+                </p>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'billing' }))}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                >
+                  Upgrade to Pro
+                </button>
+              </div>
+            </div>
+          )
         )}
       </div>
     </div>

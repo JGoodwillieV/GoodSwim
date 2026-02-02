@@ -7,8 +7,10 @@ import { supabase } from '../supabase';
 import {
   FileText, TrendingUp, BarChart3, ChevronRight, Calendar,
   Trophy, Users, Clock, Loader2, Award, Target, Layers, 
-  Timer, Medal, Activity
+  Timer, Medal, Activity, Lock, Crown
 } from 'lucide-react';
+import { useFeatureGate } from '../components/gates';
+import { getTierDisplayName } from '../config/features';
 
 // Tab configuration - simplified to 2 tabs
 const TABS = [
@@ -17,6 +19,7 @@ const TABS = [
 ];
 
 // Report card configuration matching the screenshot
+// Feature key indicates which feature is required (null = available to all)
 const REPORT_CARDS = [
   {
     id: 'meet-report',
@@ -25,56 +28,64 @@ const REPORT_CARDS = [
     icon: FileText,
     color: 'violet',
     gradient: 'from-violet-500 to-purple-600',
-    featured: true
+    featured: true,
+    featureKey: 'meet_reports' // Pro feature
   },
   {
     id: 'qualifiers',
     title: 'Qualifiers List',
     description: 'See who made the cut for Champs, Sectionals, etc.',
     icon: Award,
-    color: 'blue'
+    color: 'blue',
+    featureKey: null // Available to all
   },
   {
     id: 'relay-generator',
     title: 'Relay Generator',
     description: 'Auto-build optimal A, B, and C relays.',
     icon: Layers,
-    color: 'purple'
+    color: 'purple',
+    featureKey: null
   },
   {
     id: 'big-movers',
     title: 'Big Movers',
     description: 'Leaderboard of total time dropped this season.',
     icon: TrendingUp,
-    color: 'emerald'
+    color: 'emerald',
+    featureKey: null
   },
   {
     id: 'close-calls',
     title: 'Close Calls',
     description: 'Swimmers within striking distance of a time standard.',
     icon: Target,
-    color: 'orange'
+    color: 'orange',
+    featureKey: null
   },
   {
     id: 'team-funnel',
     title: 'Team Funnel',
     description: 'Visualize team progression through time standards.',
     icon: Activity,
-    color: 'cyan'
+    color: 'cyan',
+    featureKey: 'advanced_analytics' // Club feature
   },
   {
     id: 'team-records',
     title: 'Team Records',
     description: 'Analyze team record breaks and history.',
     icon: Medal,
-    color: 'amber'
+    color: 'amber',
+    featureKey: 'team_records' // Pro feature
   },
   {
     id: 'top-times',
     title: 'Top Times',
     description: 'View top 10 times by event, age, and date range.',
     icon: Timer,
-    color: 'rose'
+    color: 'rose',
+    featureKey: null
   },
 ];
 
@@ -91,19 +102,49 @@ const colorClasses = {
 };
 
 // Report Card Component
-function ReportCard({ report, onClick, featured = false }) {
+function ReportCard({ report, onClick, featured = false, isLocked = false, requiredTier = null }) {
   const Icon = report.icon;
   const colors = colorClasses[report.color] || colorClasses.blue;
+  
+  const handleClick = () => {
+    if (isLocked) {
+      window.dispatchEvent(new CustomEvent('navigate', { detail: 'billing' }));
+    } else {
+      onClick?.(report.id);
+    }
+  };
   
   if (featured) {
     return (
       <button
-        onClick={() => onClick?.(report.id)}
+        onClick={handleClick}
         className={`w-full bg-gradient-to-br ${report.gradient} text-white rounded-2xl p-6 text-left hover:shadow-xl transition-all group relative overflow-hidden`}
       >
+        {/* Locked overlay */}
+        {isLocked && (
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] z-20 flex items-center justify-center rounded-2xl">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-2 border border-white/20">
+                <Lock size={20} />
+              </div>
+              <p className="text-sm font-medium">Upgrade to {getTierDisplayName(requiredTier)}</p>
+            </div>
+          </div>
+        )}
+        
         <div className="relative z-10">
-          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-            <Icon size={24} />
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+              <Icon size={24} />
+            </div>
+            {isLocked && requiredTier && (
+              <span className={`text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 ${
+                requiredTier === 'club' ? 'bg-purple-500/30' : 'bg-blue-500/30'
+              }`}>
+                <Crown size={12} />
+                {requiredTier === 'club' ? 'Club' : 'Pro'}
+              </span>
+            )}
           </div>
           <h3 className="font-bold text-xl mb-1">{report.title}</h3>
           <p className="text-white/80 text-sm">{report.description}</p>
@@ -115,9 +156,23 @@ function ReportCard({ report, onClick, featured = false }) {
   
   return (
     <button
-      onClick={() => onClick?.(report.id)}
-      className={`w-full bg-white border-2 border-dashed ${colors.border} rounded-2xl p-5 text-left hover:shadow-lg hover:border-solid transition-all group`}
+      onClick={handleClick}
+      className={`w-full bg-white border-2 border-dashed ${colors.border} rounded-2xl p-5 text-left hover:shadow-lg hover:border-solid transition-all group relative overflow-hidden`}
     >
+      {/* Locked overlay */}
+      {isLocked && (
+        <div className="absolute inset-0 bg-slate-100/90 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl">
+          <div className="text-center">
+            <Lock size={18} className="mx-auto mb-1 text-slate-400" />
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+              requiredTier === 'club' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
+            }`}>
+              {getTierDisplayName(requiredTier)}
+            </span>
+          </div>
+        </div>
+      )}
+      
       <div className={`w-12 h-12 ${colors.iconBg} rounded-xl flex items-center justify-center mb-4`}>
         <Icon size={22} className={colors.iconText} />
       </div>
@@ -129,6 +184,21 @@ function ReportCard({ report, onClick, featured = false }) {
 
 // Reports Tab Content
 function ReportsTab({ navigateTo }) {
+  // Check feature access for gated reports
+  const meetReportsAccess = useFeatureGate('meet_reports');
+  const teamRecordsAccess = useFeatureGate('team_records');
+  const advancedAnalyticsAccess = useFeatureGate('advanced_analytics');
+  
+  const getFeatureAccess = (featureKey) => {
+    if (!featureKey) return { isUnlocked: true, requiredTier: null };
+    switch (featureKey) {
+      case 'meet_reports': return meetReportsAccess;
+      case 'team_records': return teamRecordsAccess;
+      case 'advanced_analytics': return advancedAnalyticsAccess;
+      default: return { isUnlocked: true, requiredTier: null };
+    }
+  };
+
   const handleReportClick = (reportId) => {
     // Navigate to the full reports page with the specific report type
     navigateTo?.('reports-full', { reportType: reportId });
@@ -139,34 +209,51 @@ function ReportsTab({ navigateTo }) {
       {/* Featured Report - Meet Report */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-1">
-          <ReportCard 
-            report={REPORT_CARDS[0]} 
-            onClick={handleReportClick}
-            featured={true}
-          />
+          {(() => {
+            const access = getFeatureAccess(REPORT_CARDS[0].featureKey);
+            return (
+              <ReportCard 
+                report={REPORT_CARDS[0]} 
+                onClick={handleReportClick}
+                featured={true}
+                isLocked={!access.isUnlocked}
+                requiredTier={access.requiredTier}
+              />
+            );
+          })()}
         </div>
         
         {/* Other reports grid */}
         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {REPORT_CARDS.slice(1, 3).map(report => (
-            <ReportCard 
-              key={report.id}
-              report={report}
-              onClick={handleReportClick}
-            />
-          ))}
+          {REPORT_CARDS.slice(1, 3).map(report => {
+            const access = getFeatureAccess(report.featureKey);
+            return (
+              <ReportCard 
+                key={report.id}
+                report={report}
+                onClick={handleReportClick}
+                isLocked={!access.isUnlocked}
+                requiredTier={access.requiredTier}
+              />
+            );
+          })}
         </div>
       </div>
 
       {/* Remaining reports */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {REPORT_CARDS.slice(3).map(report => (
-          <ReportCard 
-            key={report.id}
-            report={report}
-            onClick={handleReportClick}
-          />
-        ))}
+        {REPORT_CARDS.slice(3).map(report => {
+          const access = getFeatureAccess(report.featureKey);
+          return (
+            <ReportCard 
+              key={report.id}
+              report={report}
+              onClick={handleReportClick}
+              isLocked={!access.isUnlocked}
+              requiredTier={access.requiredTier}
+            />
+          );
+        })}
       </div>
     </div>
   );
