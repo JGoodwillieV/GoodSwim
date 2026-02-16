@@ -68,6 +68,7 @@ function PracticeCell({
   onClick, 
   isToday,
   assignedCoaches = [],
+  isCoachOverridden = false,
   onAssignCoaches
 }) {
   const isCanceled = exception?.exception_type === 'canceled';
@@ -149,8 +150,10 @@ function PracticeCell({
                 {assignedCoaches.slice(0, 2).map((coach, idx) => (
                   <div
                     key={idx}
-                    className="w-5 h-5 rounded-full bg-blue-500 text-white text-[8px] font-bold flex items-center justify-center"
-                    title={coach.name}
+                    className={`w-5 h-5 rounded-full text-white text-[8px] font-bold flex items-center justify-center ${
+                      coach.is_override ? 'bg-amber-500' : 'bg-blue-500'
+                    }`}
+                    title={`${coach.name}${coach.is_override ? ' (override)' : coach.is_recurring ? ' (recurring)' : ''}`}
                   >
                     {coach.initials || coach.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                   </div>
@@ -159,6 +162,9 @@ function PracticeCell({
                   <div className="w-5 h-5 rounded-full bg-slate-400 text-white text-[8px] font-bold flex items-center justify-center">
                     +{assignedCoaches.length - 2}
                   </div>
+                )}
+                {isCoachOverridden && (
+                  <span className="text-[8px] text-amber-600 ml-0.5" title="Coach assignment overridden for this date">*</span>
                 )}
               </div>
             )}
@@ -171,14 +177,16 @@ function PracticeCell({
               {endTime && ` - ${formatTimeOfDay(endTime)}`}
             </span>
             
-            {/* Assigned Coaches (even without workout) */}
+            {/* Assigned Coaches (even without workout - from recurring assignments) */}
             {assignedCoaches.length > 0 && (
               <div className="flex items-center gap-0.5 mt-1">
                 {assignedCoaches.slice(0, 2).map((coach, idx) => (
                   <div
                     key={idx}
-                    className="w-5 h-5 rounded-full bg-blue-500 text-white text-[8px] font-bold flex items-center justify-center"
-                    title={coach.name}
+                    className={`w-5 h-5 rounded-full text-white text-[8px] font-bold flex items-center justify-center ${
+                      coach.is_override ? 'bg-amber-500' : 'bg-blue-500'
+                    }`}
+                    title={`${coach.name}${coach.is_override ? ' (override)' : coach.is_recurring ? ' (recurring)' : ''}`}
                   >
                     {coach.initials || coach.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                   </div>
@@ -187,6 +195,9 @@ function PracticeCell({
                   <div className="w-5 h-5 rounded-full bg-slate-400 text-white text-[8px] font-bold flex items-center justify-center">
                     +{assignedCoaches.length - 2}
                   </div>
+                )}
+                {isCoachOverridden && (
+                  <span className="text-[8px] text-amber-600 ml-0.5" title="Coach assignment overridden for this date">*</span>
                 )}
               </div>
             )}
@@ -223,7 +234,10 @@ function GroupRow({
   today,
   practiceCoaches,
   setShowCoachPicker,
-  filterCoach
+  filterCoach,
+  recurringAssignments,
+  assignmentOverrides,
+  staffMembers
 }) {
   // Get unique activity types for this group
   const activityTypes = [...new Set(schedules.map(s => s.activity_type))];
@@ -300,6 +314,65 @@ function GroupRow({
                 // For empty slots (no practice yet), they're already filtered by group in filteredGroups
               }
               
+              // Compute effective coaches: per-practice overrides > recurring assignments + date overrides
+              const perPracticeCoaches = practice ? (practiceCoaches[practice.id] || []) : [];
+              let effectiveCoaches = [];
+              let isCoachOverridden = false;
+              
+              if (perPracticeCoaches.length > 0) {
+                // Per-practice coaches exist - use them (explicit override)
+                effectiveCoaches = perPracticeCoaches;
+              } else {
+                // Fall back to recurring assignments for this group/day
+                const dayOfWeekForCoach = new Date(date + 'T00:00:00').getDay();
+                const recurring = (recurringAssignments || [])
+                  .filter(a =>
+                    a.group_name === groupName &&
+                    (a.day_of_week === null || a.day_of_week === undefined || a.day_of_week === dayOfWeekForCoach) &&
+                    a.effective_date <= date &&
+                    (a.end_date === null || a.end_date === undefined || a.end_date >= date)
+                  )
+                  .map(a => {
+                    const staff = (staffMembers || []).find(s => s.id === a.coach_id);
+                    return staff ? { ...staff, is_lead: a.is_lead, is_recurring: true } : null;
+                  })
+                  .filter(Boolean)
+                  .filter((c, i, arr) => arr.findIndex(x => x.id === c.id) === i);
+                
+                // Apply date overrides
+                const dateOverrides = (assignmentOverrides || []).filter(o =>
+                  o.group_name === groupName && o.override_date === date
+                );
+                
+                if (dateOverrides.length > 0) {
+                  isCoachOverridden = true;
+                  const absentIds = new Set(
+                    dateOverrides
+                      .filter(o => o.override_type === 'absent' || o.override_type === 'substitute' || o.override_type === 'removed')
+                      .map(o => o.original_coach_id)
+                  );
+                  
+                  effectiveCoaches = recurring.filter(c => !absentIds.has(c.id));
+                  
+                  // Add substitutes and extras
+                  dateOverrides
+                    .filter(o => (o.override_type === 'substitute' || o.override_type === 'added') && o.replacement_coach_id)
+                    .forEach(o => {
+                      const staff = (staffMembers || []).find(s => s.id === o.replacement_coach_id);
+                      if (staff && !effectiveCoaches.some(c => c.id === staff.id)) {
+                        effectiveCoaches.push({
+                          ...staff,
+                          is_lead: false,
+                          is_override: true,
+                          override_reason: o.reason
+                        });
+                      }
+                    });
+                } else {
+                  effectiveCoaches = recurring;
+                }
+              }
+
               return (
                 <td key={date} className={`p-2 ${dayIdx === 0 || dayIdx === 6 ? 'bg-slate-50/50' : ''}`}>
                   <PracticeCell
@@ -308,7 +381,8 @@ function GroupRow({
                     practice={practice}
                     exception={exception}
                     isToday={isToday}
-                    assignedCoaches={practice ? practiceCoaches[practice.id] || [] : []}
+                    assignedCoaches={effectiveCoaches}
+                    isCoachOverridden={isCoachOverridden}
                     onAssignCoaches={() => practice && setShowCoachPicker(practice.id)}
                     onClick={() => onCellClick({
                       groupName,
@@ -343,6 +417,7 @@ export default function WorkoutPlanner({ onCreatePractice, onViewPractice }) {
   // Coach assignment filtering
   const [staffMembers, setStaffMembers] = useState([]);
   const [assignments, setAssignments] = useState([]);
+  const [assignmentOverrides, setAssignmentOverrides] = useState([]);
   const [filterCoach, setFilterCoach] = useState('all');
   
   // Practice coach assignments (for individual practices)
@@ -424,6 +499,15 @@ export default function WorkoutPlanner({ onCreatePractice, onViewPractice }) {
         .or(`end_date.is.null,end_date.gte.${new Date().toISOString().split('T')[0]}`);
       
       setAssignments(assignmentsData || []);
+      
+      // Load coach assignment overrides for this week
+      const { data: overridesData } = await supabase
+        .from('coach_assignment_overrides')
+        .select('*')
+        .gte('override_date', startDate)
+        .lte('override_date', endDate);
+      
+      setAssignmentOverrides(overridesData || []);
       
       // Load practice-specific coach assignments
       if (practicesData && practicesData.length > 0) {
@@ -776,6 +860,9 @@ export default function WorkoutPlanner({ onCreatePractice, onViewPractice }) {
                   practiceCoaches={practiceCoaches}
                   setShowCoachPicker={setShowCoachPicker}
                   filterCoach={filterCoach}
+                  recurringAssignments={assignments}
+                  assignmentOverrides={assignmentOverrides}
+                  staffMembers={staffMembers}
                 />
               ))}
             </tbody>
