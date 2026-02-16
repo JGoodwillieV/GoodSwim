@@ -58,7 +58,7 @@ const compareEvents = (a, b) => {
   return aKey.distance - bKey.distance;
 };
 
-export default function MotivationalTimesChart({ swimmerId, age, gender }) {
+export default function MotivationalTimesChart({ swimmerId, age, gender, course = 'SCY' }) {
   const [loading, setLoading] = useState(true);
   const [eventData, setEventData] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'event', direction: 'asc' });
@@ -70,13 +70,15 @@ export default function MotivationalTimesChart({ swimmerId, age, gender }) {
 
       const { data: results } = await supabase
         .from('results')
-        .select('event, time, date')
-        .eq('swimmer_id', swimmerId);
+        .select('event, time, date, course')
+        .eq('swimmer_id', swimmerId)
+        .eq('course', course);
 
       const { data: standards } = await supabase
         .from('time_standards')
         .select('*')
         .eq('gender', gender)
+        .eq('course', course)
         .in('name', ['B', 'BB', 'A', 'AA', 'AAA', 'AAAA'])
         .lte('age_min', age)
         .gte('age_max', age);
@@ -143,7 +145,7 @@ export default function MotivationalTimesChart({ swimmerId, age, gender }) {
     };
 
     fetchData();
-  }, [swimmerId, age, gender]);
+  }, [swimmerId, age, gender, course]);
 
   const sortedData = useMemo(() => {
     const data = [...eventData];

@@ -30,7 +30,7 @@ const STANDARD_SCORES = {
   'Nationals': 180
 };
 
-export default function VersatilityChart({ swimmerId, age, gender }) {
+export default function VersatilityChart({ swimmerId, age, gender, course = 'SCY' }) {
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -60,17 +60,19 @@ export default function VersatilityChart({ swimmerId, age, gender }) {
     const calculateStrengths = async () => {
       if (!swimmerId) return;
 
-      // 1. Fetch ALL results for this swimmer
+      // 1. Fetch results for this swimmer filtered by course
       const { data: myResults } = await supabase
         .from('results')
-        .select('event, time')
-        .eq('swimmer_id', swimmerId);
+        .select('event, time, course')
+        .eq('swimmer_id', swimmerId)
+        .eq('course', course);
 
-      // 2. Fetch ALL standards for this age/gender
+      // 2. Fetch standards for this age/gender/course
       const { data: standards } = await supabase
         .from('time_standards')
         .select('*')
         .eq('gender', gender)
+        .eq('course', course)
         .lte('age_min', age)
         .gte('age_max', age);
 
@@ -137,7 +139,7 @@ export default function VersatilityChart({ swimmerId, age, gender }) {
     };
 
     calculateStrengths();
-  }, [swimmerId, age, gender]);
+  }, [swimmerId, age, gender, course]);
 
   if (loading) return <div className="h-64 w-full flex items-center justify-center text-slate-500">Loading Chart...</div>;
   

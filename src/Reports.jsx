@@ -242,7 +242,7 @@ const CloseCallsReport = ({ onBack }) => {
         setProgressMsg(`Fetching results ${page * 1000 + 1} - ${(page + 1) * 1000}...`);
         const { data: batch, error } = await supabase
           .from('results')
-          .select('swimmer_id, event, time, date')
+          .select('swimmer_id, event, time, date, course')
           .order('id', { ascending: true })
           .range(page * 1000, (page + 1) * 1000 - 1);
         
@@ -934,7 +934,7 @@ const RelayGenerator = ({ onBack }) => {
         let keepFetching = true;
         while (keepFetching) {
             setProgressMsg(`Scanning results batch ${page + 1}...`);
-            const { data: batch } = await supabase.from('results').select('swimmer_id, event, time').order('id').range(page*2000, (page+1)*2000-1);
+            const { data: batch } = await supabase.from('results').select('swimmer_id, event, time, course').order('id').range(page*2000, (page+1)*2000-1);
             if (!batch || batch.length === 0) keepFetching = false;
             else {
                 allResults = [...allResults, ...batch];
@@ -1703,7 +1703,7 @@ const BigMoversReport = ({ onBack }) => {
         setProgressMsg(`Fetching results ${page * 1000 + 1} - ${(page + 1) * 1000}...`);
         const { data: batch, error } = await supabase
           .from('results')
-          .select('swimmer_id, event, time, date')
+          .select('swimmer_id, event, time, date, course')
           .gte('date', dateRange.start)
           .lte('date', dateRange.end)
           .order('id', { ascending: true })
@@ -1726,7 +1726,7 @@ const BigMoversReport = ({ onBack }) => {
       while (keepFetching) {
         const { data: batch, error } = await supabase
           .from('results')
-          .select('swimmer_id, event, time, date')
+          .select('swimmer_id, event, time, date, course')
           .lt('date', dateRange.start)
           .order('id', { ascending: true })
           .range(page * 1000, (page + 1) * 1000 - 1);
@@ -2756,7 +2756,7 @@ const TeamFunnelReport = ({ onBack }) => {
         setProgressMsg(`Fetching results ${page * 1000 + 1} - ${(page + 1) * 1000}...`);
         const { data: batch, error } = await supabase
           .from('results')
-          .select('swimmer_id, event, time')
+          .select('swimmer_id, event, time, course')
           .order('id', { ascending: true })
           .range(page * 1000, (page + 1) * 1000 - 1);
 
@@ -3393,12 +3393,10 @@ const TopTimesReport = ({ onBack }) => {
           if (ageGroup === '15-18' && (age < 15 || age > 18)) return false;
         }
         
-        // Category filter (SCY, SCM, LCM)
+        // Category filter (SCY, SCM, LCM) - uses the course column on results
         if (category !== 'all') {
-          const eventUpper = (r.event || '').toUpperCase();
-          if (category === 'SCY' && !eventUpper.includes('(Y)') && !eventUpper.includes('YARD')) return false;
-          if (category === 'SCM' && !eventUpper.includes('(S)') && !eventUpper.includes('SHORT')) return false;
-          if (category === 'LCM' && !eventUpper.includes('(L)') && !eventUpper.includes('LONG')) return false;
+          const resultCourse = (r.course || 'SCY').toUpperCase();
+          if (resultCourse !== category) return false;
         }
         
         return true;

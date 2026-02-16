@@ -4,7 +4,7 @@ import { supabase } from './supabase';
 import { Trophy, List } from 'lucide-react';
 import StandardsModal from './StandardsModal';
 
-export default function Standards({ eventName, bestTime, gender, age }) {
+export default function Standards({ eventName, bestTime, gender, age, course = 'SCY' }) {
   const [standards, setStandards] = useState([]);
   const [nextCut, setNextCut] = useState(null);
   const [currentLevel, setCurrentLevel] = useState(null);
@@ -26,12 +26,13 @@ export default function Standards({ eventName, bestTime, gender, age }) {
         return;
       }
 
-      // 1. Fetch standards for this stroke/age/gender
+      // 1. Fetch standards for this stroke/age/gender/course
       // We use a broader search here and filter strictly in JS below
       const { data } = await supabase
         .from('time_standards')
         .select('*')
         .eq('gender', gender)
+        .eq('course', course)
         .ilike('event', `%${stroke}%`) // Match "Free", "Fly", "Breast"
         .lte('age_min', age)
         .gte('age_max', age)
@@ -56,7 +57,7 @@ export default function Standards({ eventName, bestTime, gender, age }) {
       }
     };
     fetchStandards();
-  }, [eventName, bestTime, gender, age]);
+  }, [eventName, bestTime, gender, age, course]);
 
   const calculateStanding = (stds, time) => {
     if (!time || time <= 0 || !stds.length) {
@@ -156,6 +157,7 @@ export default function Standards({ eventName, bestTime, gender, age }) {
         eventName={eventName}
         age={age}
         gender={gender}
+        course={course}
       />
     </>
   );

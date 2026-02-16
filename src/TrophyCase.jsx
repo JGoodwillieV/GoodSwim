@@ -34,7 +34,7 @@ const BADGES = [
 // Map of all standard keys for database query
 const ALL_STANDARD_KEYS = BADGES.map(b => b.key);
 
-export default function TrophyCase({ swimmerId, age, gender }) {
+export default function TrophyCase({ swimmerId, age, gender, course = 'SCY' }) {
   const [counts, setCounts] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -62,17 +62,19 @@ export default function TrophyCase({ swimmerId, age, gender }) {
     const calculateBadges = async () => {
       if (!swimmerId) return;
 
-      // 1. Fetch ALL results for this swimmer
+      // 1. Fetch results for this swimmer filtered by course
       const { data: results } = await supabase
         .from('results')
-        .select('event, time')
-        .eq('swimmer_id', swimmerId);
+        .select('event, time, course')
+        .eq('swimmer_id', swimmerId)
+        .eq('course', course);
 
-      // 2. Fetch ALL standards for this age/gender (including new championship standards)
+      // 2. Fetch standards for this age/gender/course (including new championship standards)
       const { data: standards } = await supabase
         .from('time_standards')
         .select('*')
         .eq('gender', gender)
+        .eq('course', course)
         .in('name', ALL_STANDARD_KEYS)
         .lte('age_min', age)
         .gte('age_max', age);
@@ -127,7 +129,7 @@ export default function TrophyCase({ swimmerId, age, gender }) {
     };
 
     calculateBadges();
-  }, [swimmerId, age, gender]);
+  }, [swimmerId, age, gender, course]);
 
   if (loading) return <div className="p-4 text-center text-slate-400 text-xs">Loading Trophies...</div>;
 

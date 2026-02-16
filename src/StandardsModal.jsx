@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Trophy, Clock, Star } from 'lucide-react';
 import { supabase } from './supabase';
 
-export default function StandardsModal({ isOpen, onClose, standards, bestTime, eventName, age, gender }) {
+export default function StandardsModal({ isOpen, onClose, standards, bestTime, eventName, age, gender, course = 'SCY' }) {
   const [teamRecord, setTeamRecord] = useState(null);
 
   useEffect(() => {
@@ -21,14 +21,14 @@ export default function StandardsModal({ isOpen, onClose, standards, bestTime, e
       // Convert gender format: M/F -> Male/Female
       const genderFull = gender === 'M' || gender === 'Male' ? 'Male' : 'Female';
 
-      // Fetch team record from database
+      // Fetch team record from database (filtered by course)
       const { data, error } = await supabase
         .from('team_records')
         .select('*')
         .eq('event', eventName)
         .eq('age_group', ageGroup)
         .eq('gender', genderFull)
-        .eq('course', 'SCY')
+        .eq('course', course)
         .single();
 
       if (!error && data) {
@@ -39,7 +39,7 @@ export default function StandardsModal({ isOpen, onClose, standards, bestTime, e
     };
 
     fetchTeamRecord();
-  }, [isOpen, eventName, age, gender]);
+  }, [isOpen, eventName, age, gender, course]);
 
   if (!isOpen) return null;
 
@@ -85,7 +85,7 @@ export default function StandardsModal({ isOpen, onClose, standards, bestTime, e
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <Trophy size={18} className="text-yellow-500"/> Time Standards
             </h3>
-            <p className="text-xs text-slate-400">{eventName}</p>
+            <p className="text-xs text-slate-400">{eventName} <span className="ml-1 px-1.5 py-0.5 bg-slate-700 rounded text-slate-300">{course}</span></p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-colors">
             <X size={20} />

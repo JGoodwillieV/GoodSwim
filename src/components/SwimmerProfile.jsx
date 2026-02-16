@@ -39,7 +39,27 @@ export default function SwimmerProfile({
   const [selectedEvent, setSelectedEvent] = useState('');
   const [uploadingResultId, setUploadingResultId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [course, setCourse] = useState(swimmer?.preferred_course || 'SCY');
   const videoInputRef = useRef(null);
+
+  // Update course when swimmer changes (respect their preference)
+  useEffect(() => {
+    if (swimmer?.preferred_course) {
+      setCourse(swimmer.preferred_course);
+    }
+  }, [swimmer?.id]);
+
+  // Save course preference when changed
+  const handleCourseChange = async (newCourse) => {
+    setCourse(newCourse);
+    setSelectedEvent(''); // Reset selected event when course changes
+    if (swimmer?.id) {
+      await supabase
+        .from('swimmers')
+        .update({ preferred_course: newCourse })
+        .eq('id', swimmer.id);
+    }
+  };
 
   // --- Fetch Real Data ---
   useEffect(() => {
@@ -68,11 +88,16 @@ export default function SwimmerProfile({
     fetchData();
   }, [swimmer]);
 
+  // --- Filter results by selected course ---
+  const filteredResults = useMemo(() => {
+    return results.filter(r => (r.course || 'SCY') === course);
+  }, [results, course]);
+
   // --- Chart Data & Best Time Calculation ---
   const uniqueEvents = useMemo(() => {
-    const events = new Set(results.map(r => getBaseEventName(r.event)));
+    const events = new Set(filteredResults.map(r => getBaseEventName(r.event)));
     return Array.from(events).sort();
-  }, [results]);
+  }, [filteredResults]);
 
   useEffect(() => {
     if (uniqueEvents.length > 0 && !selectedEvent) {
@@ -81,7 +106,7 @@ export default function SwimmerProfile({
   }, [uniqueEvents, selectedEvent]);
 
   const chartData = useMemo(() => {
-    const eventResults = results.filter(r => getBaseEventName(r.event) === selectedEvent);
+    const eventResults = filteredResults.filter(r => getBaseEventName(r.event) === selectedEvent);
     const bestTimePerDay = {};
     
     eventResults.forEach(r => {
@@ -104,7 +129,7 @@ export default function SwimmerProfile({
 
     return Object.values(bestTimePerDay)
       .sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
-  }, [selectedEvent, results]);
+  }, [selectedEvent, filteredResults]);
 
   // Calculate Best Time Overall
   const bestTimeOverall = useMemo(() => {
@@ -117,7 +142,7 @@ export default function SwimmerProfile({
   const groupedResults = useMemo(() => {
     const groups = {};
 
-    results.forEach(r => {
+    filteredResults.forEach(r => {
       const baseName = getBaseEventName(r.event);
       const dateKey = r.date;
       const key = `${dateKey}_${baseName}`; 
@@ -136,7 +161,7 @@ export default function SwimmerProfile({
     });
 
     return Object.values(groups).sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [results]);
+  }, [filteredResults]);
 
   const getImprovement = (group, allGroups) => {
     const pTime = group.prelim ? timeToSeconds(group.prelim.time) : null;
@@ -215,9 +240,27 @@ export default function SwimmerProfile({
           </button>
           <div>
             <h2 className="text-3xl font-bold text-slate-900">{swimmer.name}</h2>
-            <p className="text-slate-500">
-              {swimmer.group_name || 'Unassigned'} • {swimmer.age || 'N/A'} Years Old
-            </p>
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-slate-500">
+                {swimmer.group_name || 'Unassigned'} • {swimmer.age || 'N/A'} Years Old
+              </p>
+              {/* Course Toggle */}
+              <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+                {['SCY', 'LCM'].map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => handleCourseChange(c)}
+                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                      course === c
+                        ? 'bg-white text-blue-700 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
         
@@ -334,6 +377,7 @@ export default function SwimmerProfile({
                 bestTime={bestTimeOverall}
                 gender={swimmer.gender || 'M'} 
                 age={swimmer.age}
+                course={course}
               />
             )}
           </div>
@@ -343,6 +387,7 @@ export default function SwimmerProfile({
             swimmerId={swimmer.id}
             age={swimmer.age}
             gender={swimmer.gender || 'M'}
+            course={course}
           />
 
           {/* Grid with Trophy Case, Versatility Chart, Coach's Notes */}
@@ -351,12 +396,14 @@ export default function SwimmerProfile({
               swimmerId={swimmer.id}
               age={swimmer.age}
               gender={swimmer.gender || 'M'}
+              course={course}
             />
 
             <VersatilityChart 
               swimmerId={swimmer.id} 
               age={swimmer.age} 
-              gender={swimmer.gender || 'M'} 
+              gender={swimmer.gender || 'M'}
+              course={course}
             />
 
             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">

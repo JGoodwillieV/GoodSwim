@@ -1174,7 +1174,7 @@ export default function MeetReportGenerator({ onBack }) {
       while (keepFetching) {
         const { data: batch, error } = await supabase
           .from('results')
-          .select('swimmer_id, event, time, date')
+          .select('swimmer_id, event, time, date, course')
           .lt('date', dateRange.start)
           .in('swimmer_id', swimmerIds)
           .order('id', { ascending: true })

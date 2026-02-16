@@ -14,8 +14,8 @@ const AGE_GROUPS = [
   '15 & Over'
 ];
 
-// Events organized by distance and stroke
-const EVENTS_ORDER = [
+// Events organized by distance and stroke - SCY
+const SCY_EVENTS_ORDER = [
   // Sprint
   '25 Free', '25 Back', '25 Breast', '25 Fly',
   '50 Free', '50 Back', '50 Breast', '50 Fly',
@@ -29,20 +29,43 @@ const EVENTS_ORDER = [
   '1650 Free'
 ];
 
+// Events organized by distance and stroke - LCM
+const LCM_EVENTS_ORDER = [
+  // Sprint
+  '50 Free', '50 Back', '50 Breast', '50 Fly',
+  // Mid-distance
+  '100 Free', '100 Back', '100 Breast', '100 Fly',
+  '200 Free', '200 Back', '200 Breast', '200 Fly', '200 IM',
+  // Distance
+  '400 Free', '400 IM',
+  '800 Free',
+  '1500 Free'
+];
+
+// Map course to its event list
+const EVENTS_BY_COURSE = {
+  SCY: SCY_EVENTS_ORDER,
+  LCM: LCM_EVENTS_ORDER,
+  SCM: LCM_EVENTS_ORDER // SCM uses same distances as LCM
+};
+
 export default function RecordBoard() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('8 & Under');
+  const [selectedCourse, setSelectedCourse] = useState('SCY');
 
   useEffect(() => {
     fetchRecords();
-  }, []);
+  }, [selectedCourse]);
 
   const fetchRecords = async () => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('team_records')
         .select('*')
+        .eq('course', selectedCourse)
         .order('event');
 
       if (error) throw error;
@@ -69,8 +92,9 @@ export default function RecordBoard() {
         .map(r => r.event)
     );
     
-    // Return events in the defined order that exist in this age group
-    return EVENTS_ORDER.filter(event => eventsInGroup.has(event));
+    // Return events in the defined order for the selected course that exist in this age group
+    const eventsOrder = EVENTS_BY_COURSE[selectedCourse] || SCY_EVENTS_ORDER;
+    return eventsOrder.filter(event => eventsInGroup.has(event));
   };
 
   if (loading) {
@@ -87,11 +111,31 @@ export default function RecordBoard() {
     <div className="p-4 md:p-8 overflow-y-auto h-full pb-24 md:pb-8">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <Trophy size={32} className="text-amber-500" />
-          <h2 className="text-2xl font-bold text-slate-800">Team Record Board</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <Trophy size={32} className="text-amber-500" />
+              <h2 className="text-2xl font-bold text-slate-800">Team Record Board</h2>
+            </div>
+            <p className="text-slate-500">Current team records by age group and event</p>
+          </div>
+          {/* Course Selector */}
+          <div className="flex items-center bg-slate-100 rounded-lg p-1">
+            {['SCY', 'LCM'].map((c) => (
+              <button
+                key={c}
+                onClick={() => setSelectedCourse(c)}
+                className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${
+                  selectedCourse === c
+                    ? 'bg-white text-blue-700 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
-        <p className="text-slate-500">Current team records by age group and event</p>
       </div>
 
       {/* Age Group Selector */}
@@ -214,7 +258,11 @@ export default function RecordBoard() {
         <div className="flex items-center justify-center gap-8 text-sm text-slate-600">
           <div className="flex items-center gap-2">
             <Trophy size={16} className="text-amber-500" />
-            <span>All times are Short Course Yards (SCY)</span>
+            <span>
+              {selectedCourse === 'SCY' ? 'Short Course Yards (SCY)' : 
+               selectedCourse === 'LCM' ? 'Long Course Meters (LCM)' : 
+               'Short Course Meters (SCM)'}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Medal size={16} className="text-slate-400" />

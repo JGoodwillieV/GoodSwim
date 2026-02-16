@@ -90,9 +90,11 @@ export function normalizeGender(gender) {
  * @param {string} result.event - Event name
  * @param {string} result.time - Time string
  * @param {string} result.date - Date of the swim
+ * @param {string} [result.course] - Course type (SCY, SCM, LCM) - defaults to 'SCY'
  * @returns {Promise<Object|null>} Record break info or null if no record broken
  */
 export async function checkForRecordBreak(result) {
+  const course = result.course || 'SCY';
   try {
     console.log('  Checking result:', result);
     
@@ -142,14 +144,14 @@ export async function checkForRecordBreak(result) {
     }
     
     // 5. Fetch current team record
-    console.log('  🔍 Looking for record:', eventName, ageGroup, gender);
+    console.log('  🔍 Looking for record:', eventName, ageGroup, gender, course);
     const { data: currentRecord, error: recordError } = await supabase
       .from('team_records')
       .select('*')
       .eq('event', eventName)
       .eq('age_group', ageGroup)
       .eq('gender', gender)
-      .eq('course', 'SCY')
+      .eq('course', course)
       .maybeSingle(); // Use maybeSingle to avoid error if no record exists
     
     if (recordError) {
@@ -174,6 +176,7 @@ export async function checkForRecordBreak(result) {
         event: eventName,
         age_group: ageGroup,
         gender: gender,
+        course: course,
         time_seconds: timeSeconds,
         time_display: secondsToTimeDisplay(timeSeconds),
         date: result.date,
@@ -254,6 +257,8 @@ function deduplicateRecordBreaks(recordBreaks) {
  */
 export async function updateTeamRecord(recordBreak) {
   try {
+    const course = recordBreak.course || 'SCY';
+    
     const recordData = {
       event: recordBreak.event,
       age_group: recordBreak.age_group,
@@ -262,7 +267,7 @@ export async function updateTeamRecord(recordBreak) {
       time_seconds: recordBreak.time_seconds,
       time_display: recordBreak.time_display,
       date: recordBreak.date,
-      course: 'SCY',
+      course: course,
       updated_at: new Date().toISOString()
     };
     
@@ -276,7 +281,7 @@ export async function updateTeamRecord(recordBreak) {
       time_seconds: recordBreak.time_seconds,
       time_display: recordBreak.time_display,
       date: recordBreak.date,
-      course: 'SCY',
+      course: course,
       previous_record_holder: recordBreak.previous_record?.swimmer_name || null,
       previous_time_seconds: recordBreak.previous_record?.time_seconds || null,
       previous_time_display: recordBreak.previous_record?.time_display || null,
@@ -318,7 +323,7 @@ export async function updateTeamRecord(recordBreak) {
       .eq('event', recordBreak.event)
       .eq('age_group', recordBreak.age_group)
       .eq('gender', recordBreak.gender)
-      .eq('course', 'SCY')
+      .eq('course', course)
       .maybeSingle();
     
     // 4. Update or insert current team record

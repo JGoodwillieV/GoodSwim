@@ -493,7 +493,7 @@ export const generateRecommendationsForSwimmer = async (swimmer, meet, options =
     // 2. Load swimmer's historical results
     const { data: results } = await supabase
       .from('results')
-      .select('event, time, date')
+      .select('event, time, date, course')
       .eq('swimmer_id', swimmer.id)
       .order('date', { ascending: false });
     

@@ -376,7 +376,7 @@ export function CategoryProgressReport({ onBack }) {
       while (keepFetching) {
         let query = supabase
           .from('results')
-          .select('swimmer_id, event, time, date')
+          .select('swimmer_id, event, time, date, course')
           .order('date', { ascending: true })
           .order('id', { ascending: true }) // Secondary sort for consistent pagination
           .range(page * 1000, (page + 1) * 1000 - 1);
@@ -411,7 +411,7 @@ export function CategoryProgressReport({ onBack }) {
         while (keepFetchingHist) {
           const { data: batch, error } = await supabase
             .from('results')
-            .select('swimmer_id, event, time, date')
+            .select('swimmer_id, event, time, date, course')
             .lt('date', startDateStr)
             .order('id', { ascending: true })
             .range(histPage * 1000, (histPage + 1) * 1000 - 1);
@@ -948,7 +948,7 @@ export function CategoryProgressWidget({ onViewFull }) {
       while (keepFetching) {
         const { data: batch, error } = await supabase
           .from('results')
-          .select('swimmer_id, event, time, date')
+          .select('swimmer_id, event, time, date, course')
           .gte('date', seasonStartStr)
           .order('date', { ascending: true })
           .order('id', { ascending: true })
@@ -971,7 +971,7 @@ export function CategoryProgressWidget({ onViewFull }) {
       while (keepFetchingHist) {
         const { data: batch, error } = await supabase
           .from('results')
-          .select('swimmer_id, event, time, date')
+          .select('swimmer_id, event, time, date, course')
           .lt('date', seasonStartStr)
           .order('id', { ascending: true })
           .range(histPage * 1000, (histPage + 1) * 1000 - 1);
