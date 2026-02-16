@@ -6,7 +6,6 @@ import React, { useState, useEffect } from 'react';
 import Icon from './Icon';
 import { Timer, Calendar, Trophy, Waves, Heart, ChevronRight, Clock, MapPin, ArrowRight } from 'lucide-react';
 import { RecentTestSets } from '../TestSetDisplay';
-import { CategoryProgressWidget } from '../CategoryProgressReport';
 import { supabase } from '../supabase';
 import { formatDateSafe, formatTimeOfDay, parseDateSafe } from '../utils/dateUtils';
 
@@ -210,11 +209,7 @@ export default function Dashboard({ navigateTo, swimmers, stats, onLogout, onInv
         <div className="lg:col-span-2 space-y-6">
           
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-100 shadow-sm">
-              <p className="text-slate-500 text-xs font-medium mb-1">Team Efficiency</p>
-              <h3 className="text-2xl md:text-3xl font-bold text-slate-800">84%</h3>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-100 shadow-sm">
               <p className="text-slate-500 text-xs font-medium mb-1">Active Swimmers</p>
               <h3 className="text-2xl md:text-3xl font-bold text-slate-800">{activeCount}</h3>
@@ -295,11 +290,6 @@ export default function Dashboard({ navigateTo, swimmers, stats, onLogout, onInv
               </button>
             </div>
           </div>
-
-          {/* Category Progress Widget */}
-          <CategoryProgressWidget 
-            onViewFull={() => navigateTo('category-progress')}
-          />
 
           {/* Recent Test Sets */}
           <RecentTestSets 

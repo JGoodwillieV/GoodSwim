@@ -2,12 +2,19 @@
 // Reports Hub - All reports and progress tracking
 // Updated to show all report types from existing Reports.jsx
 
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabase';
+import React, { useState } from 'react';
 import {
-  FileText, TrendingUp, BarChart3, ChevronRight, Calendar,
-  Trophy, Users, Clock, Loader2, Award, Target, Layers, 
-  Timer, Medal, Activity, Lock, Crown
+  FileText,
+  TrendingUp,
+  BarChart3,
+  Award,
+  Target,
+  Layers,
+  Timer,
+  Medal,
+  Activity,
+  Lock,
+  Crown
 } from 'lucide-react';
 import { useFeatureGate } from '../components/gates';
 import { getTierDisplayName } from '../config/features';
@@ -260,132 +267,16 @@ function ReportsTab({ navigateTo }) {
 }
 
 // Progress Tab Content
-function ProgressTab({ navigateTo }) {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // Get swimmer count
-      const { count: swimmerCount } = await supabase
-        .from('swimmers')
-        .select('*', { count: 'exact', head: true })
-        .eq('coach_id', user.id);
-
-      // Get results count this month
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      
-      const { count: resultsCount } = await supabase
-        .from('results')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', startOfMonth.toISOString());
-
-      // Get meets this season
-      const { count: meetsCount } = await supabase
-        .from('meets')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['draft', 'open', 'closed', 'completed']);
-
-      setStats({
-        swimmers: swimmerCount || 0,
-        resultsThisMonth: resultsCount || 0,
-        meetsThisSeason: meetsCount || 0,
-      });
-    } catch (err) {
-      console.error('Error fetching stats:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="animate-spin text-blue-500" size={32} />
-      </div>
-    );
-  }
-
+function ProgressTab() {
   return (
-    <div className="space-y-6">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white border border-slate-200 rounded-xl p-5 text-center">
-          <Users size={24} className="mx-auto text-blue-500 mb-2" />
-          <div className="text-3xl font-bold text-slate-800">{stats?.swimmers || 0}</div>
-          <div className="text-sm text-slate-500">Swimmers</div>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-5 text-center">
-          <Clock size={24} className="mx-auto text-emerald-500 mb-2" />
-          <div className="text-3xl font-bold text-slate-800">{stats?.resultsThisMonth || 0}</div>
-          <div className="text-sm text-slate-500">Times This Month</div>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-5 text-center">
-          <Trophy size={24} className="mx-auto text-amber-500 mb-2" />
-          <div className="text-3xl font-bold text-slate-800">{stats?.meetsThisSeason || 0}</div>
-          <div className="text-sm text-slate-500">Meets</div>
-        </div>
+    <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
+      <div className="w-14 h-14 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center">
+        <BarChart3 size={28} className="text-slate-500" />
       </div>
-
-      {/* Quick Links */}
-      <div className="space-y-3">
-        <h3 className="font-semibold text-slate-700">Quick Access</h3>
-        
-        <button
-          onClick={() => navigateTo?.('meets')}
-          className="w-full bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between hover:shadow-md transition-all text-left"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-              <FileText size={20} className="text-amber-600" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-slate-800">Meet Entries & Confirmations</h4>
-              <p className="text-sm text-slate-500">Manage entries, SD3 uploads, and parent confirmations</p>
-            </div>
-          </div>
-          <ChevronRight size={20} className="text-slate-300" />
-        </button>
-
-        <button
-          onClick={() => navigateTo?.('test-sets-list')}
-          className="w-full bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between hover:shadow-md transition-all text-left"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Clock size={20} className="text-blue-600" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-slate-800">Test Set History</h4>
-              <p className="text-sm text-slate-500">View all recorded test sets</p>
-            </div>
-          </div>
-          <ChevronRight size={20} className="text-slate-300" />
-        </button>
-
-        <button
-          onClick={() => navigateTo?.('team')}
-          className="w-full bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between hover:shadow-md transition-all text-left"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-violet-100 rounded-lg flex items-center justify-center">
-              <Trophy size={20} className="text-violet-600" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-slate-800">Team Records</h4>
-              <p className="text-sm text-slate-500">View trophy case and record history</p>
-            </div>
-          </div>
-          <ChevronRight size={20} className="text-slate-300" />
-        </button>
-      </div>
+      <h3 className="mt-4 text-xl font-bold text-slate-800">Coming Soon</h3>
+      <p className="mt-1 text-sm text-slate-500">
+        Progress tracking is under construction.
+      </p>
     </div>
   );
 }
