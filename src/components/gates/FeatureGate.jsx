@@ -109,7 +109,7 @@ export default function FeatureGate({
       // Children should check useFeatureGate or accept isLocked prop
       return (
         <FeatureGateContext.Provider value={{ feature, isUnlocked: false }}>
-          <div className={`opacity-60 pointer-events-none ${className}`}>
+          <div className={`opacity-90 pointer-events-none select-none ${className}`}>
             {children}
           </div>
         </FeatureGateContext.Provider>

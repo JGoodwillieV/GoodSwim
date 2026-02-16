@@ -125,16 +125,26 @@ function ReportCard({ report, onClick, featured = false, isLocked = false, requi
     return (
       <button
         onClick={handleClick}
-        className={`w-full bg-gradient-to-br ${report.gradient} text-white rounded-2xl p-6 text-left hover:shadow-xl transition-all group relative overflow-hidden`}
+        className={`w-full bg-gradient-to-br ${report.gradient} text-white rounded-2xl p-6 ${isLocked ? 'pb-24' : ''} text-left hover:shadow-xl transition-all group relative overflow-hidden`}
       >
-        {/* Locked overlay */}
+        {/* Locked banner (keeps underlying text readable) */}
         {isLocked && (
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] z-20 flex items-center justify-center rounded-2xl">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-2 border border-white/20">
-                <Lock size={20} />
+          <div className="absolute inset-x-0 bottom-0 z-20 p-4">
+            <div className="flex items-center justify-between gap-3 bg-white/90 text-slate-900 rounded-xl px-4 py-3 shadow-lg border border-white/30 backdrop-blur-sm">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 bg-slate-900/5 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Lock size={16} className="text-slate-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">Locked</p>
+                  <p className="text-xs text-slate-600 truncate">
+                    Upgrade to {getTierDisplayName(requiredTier)}
+                  </p>
+                </div>
               </div>
-              <p className="text-sm font-medium">Upgrade to {getTierDisplayName(requiredTier)}</p>
+              <div className="text-xs font-semibold text-blue-700 whitespace-nowrap">
+                View plans →
+              </div>
             </div>
           </div>
         )}
@@ -164,20 +174,36 @@ function ReportCard({ report, onClick, featured = false, isLocked = false, requi
   return (
     <button
       onClick={handleClick}
-      className={`w-full bg-white border-2 border-dashed ${colors.border} rounded-2xl p-5 text-left hover:shadow-lg hover:border-solid transition-all group relative overflow-hidden`}
+      className={`w-full bg-white border-2 border-dashed ${colors.border} rounded-2xl p-5 ${isLocked ? 'pb-20' : ''} text-left hover:shadow-lg hover:border-solid transition-all group relative overflow-hidden`}
     >
-      {/* Locked overlay */}
+      {/* Locked chip + banner (keeps underlying text readable) */}
       {isLocked && (
-        <div className="absolute inset-0 bg-slate-100/90 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl">
-          <div className="text-center">
-            <Lock size={18} className="mx-auto mb-1 text-slate-400" />
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-              requiredTier === 'club' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
+        <>
+          <div className="absolute top-4 right-4 z-10">
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm ${
+              requiredTier === 'club'
+                ? 'bg-purple-600 text-white'
+                : 'bg-blue-600 text-white'
             }`}>
+              <Lock size={12} />
               {getTierDisplayName(requiredTier)}
-            </span>
+            </div>
           </div>
-        </div>
+          <div className="absolute inset-x-0 bottom-0 z-10 p-4">
+            <div className="flex items-center justify-between gap-3 bg-slate-50 text-slate-800 rounded-xl px-4 py-3 shadow-sm border border-slate-200">
+              <div className="flex items-center gap-2 min-w-0">
+                <Lock size={16} className="text-slate-500 flex-shrink-0" />
+                <span className="text-sm font-semibold truncate">Locked</span>
+                <span className="text-xs text-slate-600 truncate">
+                  Upgrade to {getTierDisplayName(requiredTier)}
+                </span>
+              </div>
+              <div className="text-xs font-semibold text-blue-700 whitespace-nowrap">
+                View plans →
+              </div>
+            </div>
+          </div>
+        </>
       )}
       
       <div className={`w-12 h-12 ${colors.iconBg} rounded-xl flex items-center justify-center mb-4`}>

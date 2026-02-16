@@ -63,16 +63,26 @@ function FeatureCard({ icon: Icon, title, description, color, onClick, badge, is
   return (
     <button
       onClick={handleClick}
-      className={`w-full bg-gradient-to-br ${color} text-white rounded-xl p-5 text-left hover:shadow-lg transition-all group relative overflow-hidden`}
+      className={`w-full bg-gradient-to-br ${color} text-white rounded-xl p-5 ${isLocked ? 'pb-24' : ''} text-left hover:shadow-lg transition-all group relative overflow-hidden`}
     >
-      {/* Locked overlay */}
+      {/* Locked banner (keeps underlying text readable) */}
       {isLocked && (
-        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] z-20 flex items-center justify-center rounded-xl">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-2 border border-white/20">
-              <Lock size={20} />
+        <div className="absolute inset-x-0 bottom-0 z-20 p-4">
+          <div className="flex items-center justify-between gap-3 bg-white/90 text-slate-900 rounded-xl px-4 py-3 shadow-lg border border-white/30 backdrop-blur-sm">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 bg-slate-900/5 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Lock size={16} className="text-slate-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate">Locked</p>
+                <p className="text-xs text-slate-600 truncate">
+                  Upgrade to {getTierDisplayName(requiredTier)}
+                </p>
+              </div>
             </div>
-            <p className="text-sm font-medium">Upgrade to {getTierDisplayName(requiredTier)}</p>
+            <div className="text-xs font-semibold text-blue-700 whitespace-nowrap flex items-center gap-1">
+              View plans <ChevronRight size={14} />
+            </div>
           </div>
         </div>
       )}

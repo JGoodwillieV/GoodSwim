@@ -32,7 +32,7 @@ export default function LockedOverlay({
 
   if (compact) {
     return (
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] rounded-xl flex items-center justify-center z-10">
+      <div className="absolute inset-0 bg-slate-900/25 rounded-xl flex items-center justify-center z-10">
         <div className="text-center p-3">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white rounded-lg shadow-lg text-sm font-medium text-slate-700">
             <Lock size={14} className="text-slate-500" />
@@ -44,7 +44,7 @@ export default function LockedOverlay({
   }
 
   return (
-    <div className="absolute inset-0 bg-gradient-to-b from-slate-900/50 to-slate-900/70 backdrop-blur-[2px] rounded-xl flex items-center justify-center z-10">
+    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-900/10 to-slate-900/35 rounded-xl flex items-center justify-center z-10">
       <div className="text-center p-6 max-w-sm">
         {/* Lock Icon */}
         <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm border border-white/20">

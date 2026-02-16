@@ -597,7 +597,7 @@ export default function Roster({
               }} 
               className={`border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center mb-6 group cursor-pointer transition-colors ${
                 importType === 'roster' && !sd3Access.isUnlocked
-                  ? 'border-slate-200 bg-slate-50 opacity-60'
+                  ? 'border-slate-200 bg-slate-50 opacity-90'
                   : importType === 'results' 
                     ? 'border-yellow-300 hover:bg-yellow-50 bg-slate-50' 
                     : 'border-slate-300 hover:bg-slate-100 hover:border-blue-400 bg-slate-50'
