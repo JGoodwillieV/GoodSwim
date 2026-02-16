@@ -90,6 +90,7 @@ export default function Dashboard({ navigateTo, swimmers, stats, onLogout, onInv
   
   // Feature gating (match Tools gating)
   const aiVideoAccess = useFeatureGate('ai_video_analysis');
+  const aiChatAccess = useFeatureGate('ai_chat');
 
   // Fetch today's schedule items
   useEffect(() => {
@@ -193,6 +194,14 @@ export default function Dashboard({ navigateTo, swimmers, stats, onLogout, onInv
       return;
     }
     navigateTo('analysis');
+  };
+  
+  const handleAIAssistantClick = () => {
+    if (!aiChatAccess.isUnlocked) {
+      navigateTo?.('billing');
+      return;
+    }
+    navigateTo('ai-chat');
   };
 
   return (
@@ -422,9 +431,20 @@ export default function Dashboard({ navigateTo, swimmers, stats, onLogout, onInv
           
           {/* AI Chat Card */}
           <div 
-            onClick={() => navigateTo('ai-chat')} 
-            className="bg-gradient-to-br from-violet-500 to-purple-600 p-5 rounded-2xl shadow-lg shadow-purple-200/50 text-white relative overflow-hidden cursor-pointer hover:from-violet-600 hover:to-purple-700 transition-all group"
+            onClick={handleAIAssistantClick}
+            className={`bg-gradient-to-br from-violet-500 to-purple-600 p-5 rounded-2xl shadow-lg shadow-purple-200/50 text-white relative overflow-hidden cursor-pointer hover:from-violet-600 hover:to-purple-700 transition-all group ${
+              !aiChatAccess.isUnlocked ? 'opacity-75' : ''
+            }`}
           >
+            {!aiChatAccess.isUnlocked && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/5 backdrop-blur-[1px] pointer-events-none">
+                <div className="flex items-center gap-2 bg-white/90 border border-slate-200 rounded-full px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                  <Lock size={14} className="text-slate-500" />
+                  <span>Club</span>
+                  <Crown size={14} className="text-purple-600" />
+                </div>
+              </div>
+            )}
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-2">
                 <Icon name="message-square" size={18} className="text-purple-200"/>
