@@ -18,14 +18,7 @@ const DAYS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 
                 'July', 'August', 'September', 'October', 'November', 'December'];
 
-// Staff/Coaches for office hours
-const STAFF_MEMBERS = [
-  { id: 'joe', name: 'Joe' },
-  { id: 'jack', name: 'Jack' },
-  { id: 'harrison', name: 'Harrison' },
-  { id: 'nikki', name: 'Nikki' },
-  { id: 'max', name: 'Max' },
-];
+// Staff members are now loaded from the database (see staffMembers state)
 
 // Filter options
 const FILTERS = [
@@ -160,13 +153,16 @@ function getMonthCalendar(year, month) {
 }
 
 // Quick Create Modal Component
-function QuickCreateModal({ isOpen, onClose, type, onSubmit, loading }) {
+function QuickCreateModal({ isOpen, onClose, type, onSubmit, loading, staffMembers = [] }) {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [location, setLocation] = useState('');
   const [selectedCoach, setSelectedCoach] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringDay, setRecurringDay] = useState('');
+  const [recurringEndDate, setRecurringEndDate] = useState('');
   
   const colors = TYPE_COLORS[type] || TYPE_COLORS.event;
   const Icon = colors.icon;
@@ -183,7 +179,10 @@ function QuickCreateModal({ isOpen, onClose, type, onSubmit, loading }) {
         time,
         endTime,
         coach: selectedCoach,
-        type 
+        type,
+        isRecurring,
+        recurringDay: isRecurring ? (recurringDay || new Date(date + 'T00:00:00').getDay()) : null,
+        recurringEndDate: isRecurring ? recurringEndDate : null
       });
     } else {
       if (!title.trim()) return;
@@ -199,16 +198,29 @@ function QuickCreateModal({ isOpen, onClose, type, onSubmit, loading }) {
       setEndTime('');
       setLocation('');
       setSelectedCoach('');
+      setIsRecurring(false);
+      setRecurringDay('');
+      // Default recurring end date to ~4 months from now
+      const defaultEnd = new Date();
+      defaultEnd.setMonth(defaultEnd.getMonth() + 4);
+      setRecurringEndDate(defaultEnd.toISOString().split('T')[0]);
     }
   }, [isOpen, type]);
+
+  // When date changes, auto-detect the day of week for recurring
+  useEffect(() => {
+    if (date && isRecurring && !recurringDay) {
+      setRecurringDay(String(new Date(date + 'T00:00:00').getDay()));
+    }
+  }, [date, isRecurring]);
   
   if (!isOpen) return null;
   
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm">
-      <div className="bg-white w-full sm:w-auto sm:min-w-[400px] sm:rounded-2xl rounded-t-2xl shadow-xl overflow-hidden animate-slide-up sm:animate-none">
+      <div className="bg-white w-full sm:w-auto sm:min-w-[440px] sm:rounded-2xl rounded-t-2xl shadow-xl overflow-hidden animate-slide-up sm:animate-none max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className={`${colors.bg} px-6 py-4 flex items-center justify-between`}>
+        <div className={`${colors.bg} px-6 py-4 flex items-center justify-between shrink-0`}>
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg bg-white/50`}>
               <Icon size={20} className={colors.text} />
@@ -228,7 +240,7 @@ function QuickCreateModal({ isOpen, onClose, type, onSubmit, loading }) {
         </div>
         
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
           {isOfficeHours ? (
             /* Office Hours Form */
             <>
@@ -241,16 +253,18 @@ function QuickCreateModal({ isOpen, onClose, type, onSubmit, loading }) {
                   required
                 >
                   <option value="">Select a coach...</option>
-                  {STAFF_MEMBERS.map(staff => (
+                  {staffMembers.map(staff => (
                     <option key={staff.id} value={staff.id}>
-                      {staff.name}
+                      {staff.name} ({staff.role ? staff.role.replace('_', ' ') : 'Staff'})
                     </option>
                   ))}
                 </select>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Date *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {isRecurring ? 'First Date *' : 'Date *'}
+                </label>
                 <input
                   type="date"
                   value={date}
@@ -281,6 +295,68 @@ function QuickCreateModal({ isOpen, onClose, type, onSubmit, loading }) {
                     required
                   />
                 </div>
+              </div>
+
+              {/* Recurring Toggle */}
+              <div className={`p-4 rounded-xl border-2 transition-all ${
+                isRecurring ? 'border-teal-400 bg-teal-50/50' : 'border-slate-200 bg-slate-50'
+              }`}>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={isRecurring}
+                      onChange={(e) => setIsRecurring(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={`w-11 h-6 rounded-full transition-colors ${
+                      isRecurring ? 'bg-teal-500' : 'bg-slate-300'
+                    }`}>
+                      <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${
+                        isRecurring ? 'translate-x-5' : ''
+                      }`} />
+                    </div>
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-700">Make recurring</span>
+                    <p className="text-xs text-slate-500">Repeats every week on the same day</p>
+                  </div>
+                </label>
+
+                {isRecurring && (
+                  <div className="mt-4 space-y-3 pt-3 border-t border-teal-200">
+                    {/* Day of week */}
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Repeats every</label>
+                      <select
+                        value={recurringDay}
+                        onChange={(e) => setRecurringDay(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 bg-white"
+                      >
+                        {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => (
+                          <option key={idx} value={idx}>{day}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {/* End date */}
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Until</label>
+                      <input
+                        type="date"
+                        value={recurringEndDate}
+                        onChange={(e) => setRecurringEndDate(e.target.value)}
+                        min={date}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+                    {/* Preview count */}
+                    {recurringEndDate && date && (
+                      <p className="text-xs text-teal-600 font-medium">
+                        This will create ~{Math.ceil((new Date(recurringEndDate) - new Date(date)) / (7 * 24 * 60 * 60 * 1000)) + 1} weekly entries
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </>
           ) : (
@@ -350,7 +426,7 @@ function QuickCreateModal({ isOpen, onClose, type, onSubmit, loading }) {
               className={`flex-1 px-4 py-3 ${colors.bg} ${colors.text} rounded-xl font-medium ${colors.bgHover} transition flex items-center justify-center gap-2 disabled:opacity-50`}
             >
               {loading ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-              {isOfficeHours ? 'Schedule' : `Create ${colors.label}`}
+              {isOfficeHours ? (isRecurring ? 'Schedule All' : 'Schedule') : `Create ${colors.label}`}
             </button>
           </div>
         </form>
@@ -385,6 +461,7 @@ export default function ScheduleHub({
   const [events, setEvents] = useState([]);
   const [practiceSchedules, setPracticeSchedules] = useState([]);
   const [scheduleExceptions, setScheduleExceptions] = useState([]);
+  const [staffMembers, setStaffMembers] = useState([]);
 
   // Swipe handling for mobile
   const touchStartX = useRef(null);
@@ -517,6 +594,17 @@ export default function ScheduleHub({
         console.error('Error fetching schedule exceptions:', exceptionsError);
       }
 
+      // Fetch staff members for office hours
+      const { data: staffData, error: staffError } = await supabase
+        .from('staff_members')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (staffError) {
+        console.error('Error fetching staff:', staffError);
+      }
+      
       console.log('Schedule data fetched:', { 
         meetsTotal: meetsData?.length || 0,
         meetsFiltered: filteredMeets?.length || 0, 
@@ -525,6 +613,7 @@ export default function ScheduleHub({
         eventsFiltered: filteredEvents?.length || 0,
         practiceSchedules: schedulesData?.length || 0,
         exceptions: exceptionsData?.length || 0,
+        staff: staffData?.length || 0,
         dateRange 
       });
 
@@ -533,6 +622,7 @@ export default function ScheduleHub({
       setEvents(filteredEvents || []);
       setPracticeSchedules(schedulesData || []);
       setScheduleExceptions(exceptionsData || []);
+      setStaffMembers(staffData || []);
     } catch (error) {
       console.error('Error fetching schedule data:', error);
     } finally {
@@ -575,19 +665,92 @@ export default function ScheduleHub({
           status: 'scheduled'
         });
       } else if (data.type === 'office_hours') {
-        // Get the coach name from the selected coach id
-        const coachName = STAFF_MEMBERS.find(s => s.id === data.coach)?.name || data.coach;
-        await supabase.from('team_events').insert({
-          created_by: user.id,
-          title: `Office Hours - ${coachName}`,
-          description: coachName, // Store coach name in description for easy retrieval
-          start_date: data.date,
-          start_time: data.time || null,
-          end_time: data.endTime || null,
-          event_type: 'office_hours'
-        });
+        // Get the coach name from staff_members
+        const coach = staffMembers.find(s => s.id === data.coach);
+        const coachName = coach?.name || 'Coach';
+        
+        // Get team_id
+        const { data: teamMember } = await supabase
+          .from('team_members')
+          .select('team_id')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (!teamMember || !teamMember.team_id) {
+          throw new Error('No team association found');
+        }
+        
+        if (data.isRecurring && data.recurringEndDate) {
+          // Generate recurring entries
+          const dayOfWeek = parseInt(data.recurringDay ?? new Date(data.date + 'T00:00:00').getDay());
+          const startDate = new Date(data.date + 'T00:00:00');
+          const endDate = new Date(data.recurringEndDate + 'T00:00:00');
+          
+          // Find first occurrence of the target day on or after start date
+          let current = new Date(startDate);
+          const currentDay = current.getDay();
+          const daysUntilTarget = (dayOfWeek - currentDay + 7) % 7;
+          if (daysUntilTarget > 0) {
+            current.setDate(current.getDate() + daysUntilTarget);
+          }
+          
+          const entries = [];
+          while (current <= endDate) {
+            entries.push({
+              team_id: teamMember.team_id,
+              created_by: user.id,
+              title: `Office Hours - ${coachName}`,
+              description: coachName,
+              start_date: current.toISOString().split('T')[0],
+              start_time: data.time || null,
+              end_time: data.endTime || null,
+              event_type: 'office_hours'
+            });
+            current.setDate(current.getDate() + 7);
+          }
+          
+          if (entries.length > 0) {
+            // Insert in batches of 50 to avoid hitting limits
+            for (let i = 0; i < entries.length; i += 50) {
+              const batch = entries.slice(i, i + 50);
+              const { error: insertError } = await supabase.from('team_events').insert(batch);
+              if (insertError) {
+                console.error('Error inserting office hours batch:', insertError);
+                throw insertError;
+              }
+            }
+          }
+        } else {
+          // Single entry
+          const { error: insertError } = await supabase.from('team_events').insert({
+            team_id: teamMember.team_id,
+            created_by: user.id,
+            title: `Office Hours - ${coachName}`,
+            description: coachName,
+            start_date: data.date,
+            start_time: data.time || null,
+            end_time: data.endTime || null,
+            event_type: 'office_hours'
+          });
+          if (insertError) {
+            console.error('Error inserting office hours:', insertError);
+            throw insertError;
+          }
+        }
       } else if (data.type === 'event') {
+        // Get team_id
+        const { data: teamMember } = await supabase
+          .from('team_members')
+          .select('team_id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!teamMember || !teamMember.team_id) {
+          throw new Error('No team association found');
+        }
+
         await supabase.from('team_events').insert({
+          team_id: teamMember.team_id,
           created_by: user.id,
           title: data.title,
           start_date: data.date,
@@ -1537,6 +1700,7 @@ export default function ScheduleHub({
         onClose={() => setQuickCreateType(null)}
         onSubmit={handleQuickCreate}
         loading={quickCreateLoading}
+        staffMembers={staffMembers}
       />
       
       {/* CSS for mobile slide-up animation */}
