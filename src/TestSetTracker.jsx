@@ -62,6 +62,8 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
   const audioRef = useRef(null);
+  const intervalFiredRef = useRef(false); // prevents multiple fires per interval
+  const warningFiredRef = useRef(false); // prevents multiple warning beeps
   
   // Get unique groups from swimmers
   const uniqueGroups = [...new Set(allSwimmers.map(s => s.group_name).filter(Boolean))];
@@ -99,21 +101,29 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
     return () => clearInterval(timerRef.current);
   }, [isRunning]);
 
-  // Interval beep
+  // Interval auto-advance and warning beeps
   useEffect(() => {
-    if (!useInterval || !isRunning || !soundEnabled) return;
+    if (!useInterval || !isRunning) return;
     
     const repElapsed = masterClock - repStartTime;
     const intervalMs = targetInterval * 1000;
     
-    // Beep at 5 seconds before interval
-    if (repElapsed >= intervalMs - 5000 && repElapsed < intervalMs - 4900) {
-      playBeep();
+    // Reset flags when we're in the first half of a new rep
+    if (repElapsed < intervalMs * 0.5) {
+      intervalFiredRef.current = false;
+      warningFiredRef.current = false;
     }
-    // Beep at interval
-    if (repElapsed >= intervalMs && repElapsed < intervalMs + 100) {
-      playBeep();
-      // Auto-advance to next rep — swimmers still swimming stay on their current rep
+    
+    // Warning beep at 5 seconds before interval (fire once)
+    if (repElapsed >= intervalMs - 5000 && !warningFiredRef.current && repElapsed < intervalMs) {
+      warningFiredRef.current = true;
+      if (soundEnabled) playBeep();
+    }
+    
+    // At interval: beep and advance (fire exactly once per rep)
+    if (repElapsed >= intervalMs && !intervalFiredRef.current) {
+      intervalFiredRef.current = true;
+      if (soundEnabled) playBeep();
       if (currentRep < reps) {
         advanceRep();
       }
