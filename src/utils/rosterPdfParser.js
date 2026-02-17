@@ -137,16 +137,21 @@ export async function parseMemberDirectoryPDF(file) {
     const dobMatch = dobRegex.exec(buf);
     if (!dobMatch) return;
 
-    const names = [...buf.matchAll(nameRegex)].map(m => m[0]);
-    if (names.length === 0) return;
-    const memberNameRaw = (names.length >= 2 ? names[1] : names[0]).trim();
-
     const bufLower = buf.toLowerCase();
+    const dobIdx = dobMatch.index ?? bufLower.indexOf(dobMatch[0].toLowerCase());
+
+    // In this PDF format, "Account Name" (parent) appears before "Member Name" (swimmer).
+    // Rather than assuming order, pick the LAST "Last, First ..." name chunk before the DOB.
+    const nameMatches = [...buf.matchAll(nameRegex)]
+      .map(m => ({ text: m[0], idx: typeof m.index === 'number' ? m.index : -1 }))
+      .filter(m => m.idx >= 0 && (dobIdx < 0 || m.idx < dobIdx));
+
+    if (nameMatches.length === 0) return;
+    const memberNameRaw = nameMatches[nameMatches.length - 1].text.trim();
+
     const memberIdx = bufLower.indexOf(memberNameRaw.toLowerCase());
     if (memberIdx < 0) return;
-
     const memberEnd = memberIdx + memberNameRaw.length;
-    const dobIdx = dobMatch.index ?? bufLower.indexOf(dobMatch[0].toLowerCase());
     if (dobIdx < 0 || dobIdx < memberEnd) return;
 
     const tail = buf.slice(memberEnd, dobIdx).replace(/\s+/g, ' ').trim();
