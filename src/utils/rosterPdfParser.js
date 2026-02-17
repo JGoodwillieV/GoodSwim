@@ -56,8 +56,15 @@ function deriveGroupName(tailBetweenMemberAndDob) {
     return catMatches[catMatches.length - 1][0].replace(/\s+/g, ' ').trim();
   }
 
-  // Known non-CAT groups seen in directory exports
+  // Known multi-word groups seen in directory exports (match from end of tail)
   const knownMulti = [
+    'Age Group Gold',
+    'Age Group Silver',
+    'Novice Gold',
+    'Novice Silver',
+    'Senior Gold',
+    'Senior Silver',
+    'Elite Team',
     'Tropical Storm',
     'Board Members'
   ];
@@ -244,7 +251,21 @@ export async function parseMemberDirectoryPDF(file) {
     const memberEnd = memberMatchIdx + memberNameRaw.length;
     if (dobIdx < memberEnd) return;
 
-    const tail = buf.slice(memberEnd, dobIdx).replace(/\s+/g, ' ').trim();
+    let tail = buf.slice(memberEnd, dobIdx).replace(/\s+/g, ' ').trim();
+
+    // SportsEngine "Member Directory" PDFs have a "Preferred" name column
+    // between Member Name and Roster. Strip it if the tail starts with the
+    // swimmer's first name (the most common "preferred" value).
+    if (memberNameRaw.includes(',')) {
+      const memberFirstName = memberNameRaw.split(',')[1].trim().split(/\s+/)[0];
+      if (memberFirstName) {
+        const tailWords = tail.split(/\s+/);
+        if (tailWords.length > 0 && tailWords[0].toLowerCase() === memberFirstName.toLowerCase()) {
+          tail = tailWords.slice(1).join(' ');
+        }
+      }
+    }
+
     const group_name = deriveGroupName(tail) || null;
     const date_of_birth = mdy2ToIso(dobMatch[1], dobMatch[2], dobMatch[3]);
 
