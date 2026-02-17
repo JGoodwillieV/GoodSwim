@@ -83,6 +83,8 @@ function deriveGroupName(tailBetweenMemberAndDob) {
 
 /**
  * Extract reasonably line-shaped text from a PDF (preserves row-like structure).
+ * For SportsEngine Member Directory PDFs, we need to group all columns of a single
+ * data row together, even if they have slightly different Y positions.
  */
 export async function extractLinesFromPDF(file) {
   const arrayBuffer = await file.arrayBuffer();
@@ -94,23 +96,51 @@ export async function extractLinesFromPDF(file) {
     const page = await pdf.getPage(pageNum);
     const textContent = await page.getTextContent();
 
-    // Group items by Y position into lines
-    const byY = new Map();
+    // Collect all text items with their positions
+    const items = [];
     for (const item of textContent.items) {
       const str = String(item?.str || '').trim();
       if (!str) continue;
       const x = item.transform?.[4] ?? 0;
       const y = item.transform?.[5] ?? 0;
-      // Round Y to avoid tiny float differences
-      const yKey = Math.round(y * 2) / 2; // 0.5 increments
-      if (!byY.has(yKey)) byY.set(yKey, []);
-      byY.get(yKey).push({ x, str });
+      items.push({ x, y, str });
     }
 
-    const yKeys = Array.from(byY.keys()).sort((a, b) => b - a); // top to bottom
-    for (const yKey of yKeys) {
-      const parts = byY.get(yKey).sort((a, b) => a.x - b.x).map(p => p.str);
-      const line = parts.join(' ').replace(/\s+/g, ' ').trim();
+    // Sort by Y (descending = top to bottom), then by X (ascending = left to right)
+    items.sort((a, b) => {
+      // Y positions within 5 points are considered the same row
+      const yDiff = b.y - a.y;
+      if (Math.abs(yDiff) > 5) return yDiff;
+      return a.x - b.x;
+    });
+
+    // Group items into rows based on Y proximity
+    // Items within 5 points of Y are grouped together
+    const rows = [];
+    let currentRow = [];
+    let lastY = null;
+
+    for (const item of items) {
+      if (lastY === null || Math.abs(item.y - lastY) <= 5) {
+        currentRow.push(item);
+      } else {
+        if (currentRow.length > 0) {
+          // Sort row by X position and join
+          currentRow.sort((a, b) => a.x - b.x);
+          rows.push(currentRow);
+        }
+        currentRow = [item];
+      }
+      lastY = item.y;
+    }
+    if (currentRow.length > 0) {
+      currentRow.sort((a, b) => a.x - b.x);
+      rows.push(currentRow);
+    }
+
+    // Convert rows to line strings
+    for (const row of rows) {
+      const line = row.map(p => p.str).join(' ').replace(/\s+/g, ' ').trim();
       if (line) lines.push(line);
     }
   }
@@ -149,13 +179,16 @@ export async function parseMemberDirectoryPDF(file) {
     //           ^-- parent         ^-- swimmer (we want this one)
     // We want the MEMBER NAME (swimmer), which is the SECOND "Last, First" name in the row.
 
-    const nameMatches = [...buf.matchAll(nameRegex)]
+    // Get only the portion of buffer before the DOB for name matching
+    const preDob = buf.slice(0, dobIdx);
+    
+    const nameMatches = [...preDob.matchAll(nameRegex)]
       .map(m => ({
         text: m[0],
         idx: typeof m.index === 'number' ? m.index : -1,
         len: String(m[0] || '').length
       }))
-      .filter(m => m.idx >= 0 && m.idx < dobIdx); // Only names before DOB
+      .filter(m => m.idx >= 0);
 
     if (nameMatches.length === 0) return;
 
@@ -169,22 +202,27 @@ export async function parseMemberDirectoryPDF(file) {
     //   "Anderson, Kastine Anderson, Marielle CAT 2 8/10/16" → want "Anderson, Marielle"
     //   "Neal, MaryKate Bessellieu, Deacon CAT 3 10/24/13"   → want "Bessellieu, Deacon"
     //   "Andrews, Harrison Andrews, Harrison Coaches 6/6/97" → want "Andrews, Harrison" (same person is coach)
+    //   "Ashby, Brice Ashby, Reese CAT 1 2/25/19"           → want "Ashby, Reese"
 
     let memberNameRaw = null;
+    let memberMatchIdx = -1;
 
     if (nameMatches.length >= 2) {
-      // Standard case: Account Name + Member Name → take the SECOND one
+      // Standard case: Account Name + Member Name → take the SECOND one (index 1)
       memberNameRaw = nameMatches[1].text.trim();
+      memberMatchIdx = nameMatches[1].idx;
     } else if (nameMatches.length === 1) {
       // Only one name found (unusual, but handle it)
       memberNameRaw = nameMatches[0].text.trim();
+      memberMatchIdx = nameMatches[0].idx;
     }
 
-    if (!memberNameRaw) return;
+    if (!memberNameRaw || memberMatchIdx < 0) return;
 
-    const memberIdx = buf.toLowerCase().indexOf(memberNameRaw.toLowerCase());
-    if (memberIdx < 0) return;
-    const memberEnd = memberIdx + memberNameRaw.length;
+    // Use the index from the regex match directly, not indexOf
+    // This is critical when the same last name appears in both Account and Member names
+    // (e.g., "Ashby, Brice Ashby, Reese" - indexOf("Ashby, Reese") would be wrong if it matched partial)
+    const memberEnd = memberMatchIdx + memberNameRaw.length;
     if (dobIdx < memberEnd) return;
 
     const tail = buf.slice(memberEnd, dobIdx).replace(/\s+/g, ' ').trim();
