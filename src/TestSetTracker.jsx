@@ -349,10 +349,15 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Get team_id from the selected swimmers
+      const teamId = selectedSwimmers[0]?.team_id;
+      if (!teamId) throw new Error('No team found for swimmers');
+
       // Create test set record
       const { data: testSet, error: testSetError } = await supabase
         .from('test_sets')
         .insert([{
+          team_id: teamId,
           coach_id: user.id,
           name: setName,
           group_name: selectedGroup,
