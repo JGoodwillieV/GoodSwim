@@ -6,6 +6,7 @@ import Icon from './Icon';
 import { supabase } from '../supabase';
 import { checkMultipleResults } from '../utils/teamRecordsManager';
 import { isValidTime } from '../utils/timeUtils';
+import { parseMemberDirectoryPDF } from '../utils/rosterPdfParser';
 import { useSubscription } from '../hooks/useSubscription';
 import { useFeatureGate, UsageLimitBanner } from './gates';
 
@@ -98,6 +99,141 @@ export default function Roster({
       byId.set(row.id, { ...existing, ...row });
     });
     return Array.from(byId.values());
+  };
+
+  const getUserAndTeamContext = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) throw new Error('You must be logged in to import a roster.');
+
+    const { data: teamMember, error } = await supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) throw error;
+    if (!teamMember?.team_id) throw new Error('No team association found for your account.');
+
+    return { userId: user.id, teamId: teamMember.team_id };
+  };
+
+  const handleRosterUpsert = async (incomingSwimmersRaw) => {
+    // Deduplicate within the import file (by normalized name)
+    const incomingByKey = new Map();
+    incomingSwimmersRaw.forEach((s) => {
+      const key = normalizeSwimmerNameKey(s?.name);
+      if (!key) return;
+      if (!incomingByKey.has(key)) {
+        incomingByKey.set(key, s);
+        return;
+      }
+      const prev = incomingByKey.get(key);
+      // Merge: keep the most informative values (prefer non-empty, prefer non-default group)
+      const prevGroup = prev?.group_name ? String(prev.group_name).trim() : '';
+      const nextGroup = s?.group_name ? String(s.group_name).trim() : '';
+      const chooseGroup = () => {
+        const prevIsDefault = prevGroup.toLowerCase() === 'imported';
+        const nextIsDefault = nextGroup.toLowerCase() === 'imported';
+        if (nextGroup && !nextIsDefault) return nextGroup;
+        if (prevGroup && !prevIsDefault) return prevGroup;
+        return nextGroup || prevGroup || 'Imported';
+      };
+      incomingByKey.set(key, {
+        ...prev,
+        ...s,
+        group_name: chooseGroup(),
+        age: (typeof s?.age === 'number' ? s.age : prev?.age) ?? null,
+        gender: s?.gender || prev?.gender || 'M',
+        date_of_birth: s?.date_of_birth || prev?.date_of_birth || null
+      });
+    });
+
+    const incomingSwimmers = Array.from(incomingByKey.values());
+
+    // Match against existing swimmers (by normalized name within this team)
+    const teamId = incomingSwimmers[0]?.team_id || null;
+    const existingByKey = new Map();
+    swimmers.forEach((s) => {
+      if (teamId && s?.team_id && s.team_id !== teamId) return;
+      const key = normalizeSwimmerNameKey(s?.name);
+      if (!key) return;
+      if (!existingByKey.has(key)) existingByKey.set(key, s);
+    });
+
+    const toInsert = [];
+    const toUpdatePatches = [];
+    incomingSwimmers.forEach((incoming) => {
+      const key = normalizeSwimmerNameKey(incoming?.name);
+      if (!key) return;
+      const existing = existingByKey.get(key);
+      if (!existing) {
+        toInsert.push(incoming);
+        return;
+      }
+      const patch = buildRosterUpdatePatch(existing, incoming);
+      if (patch) toUpdatePatches.push(patch);
+    });
+
+    // Enforce swimmer limit for trial users (limit only applies to NEW inserts, not updates)
+    let skippedNewDueToLimit = 0;
+    if (maxSwimmers !== null && toInsert.length > 0) {
+      const currentCount = swimmers.length;
+      const availableSlots = Math.max(0, maxSwimmers - currentCount);
+      if (availableSlots === 0) {
+        skippedNewDueToLimit = toInsert.length;
+        toInsert.splice(0);
+
+        // Allow updates even if no slots remain
+        if (toUpdatePatches.length === 0) {
+          alert(`You've reached your swimmer limit (${maxSwimmers}). Please upgrade to add more swimmers.`);
+          setShowImport(false);
+          setIsImporting(false);
+          return;
+        }
+      } else if (toInsert.length > availableSlots) {
+        const originalCount = toInsert.length;
+        skippedNewDueToLimit = Math.max(0, originalCount - availableSlots);
+        toInsert.splice(availableSlots);
+      }
+    }
+
+    if (toInsert.length === 0 && toUpdatePatches.length === 0) {
+      alert('No valid roster records found.');
+      return;
+    }
+
+    let updatedRows = [];
+    let insertedRows = [];
+
+    if (toUpdatePatches.length > 0) {
+      const { data, error } = await supabase.from('swimmers').upsert(toUpdatePatches).select();
+      if (error) throw error;
+      updatedRows = data || [];
+    }
+
+    if (toInsert.length > 0) {
+      const { data, error } = await supabase.from('swimmers').insert(toInsert).select();
+      if (error) throw error;
+      insertedRows = data || [];
+    }
+
+    if (updatedRows.length > 0 || insertedRows.length > 0) {
+      setSwimmers(prev => mergeSwimmersById(prev, [...updatedRows, ...insertedRows]));
+    }
+
+    const addedCount = insertedRows.length;
+    const updatedCount = updatedRows.length;
+    const skippedNote = skippedNewDueToLimit > 0
+      ? ` (Skipped ${skippedNewDueToLimit} new swimmer${skippedNewDueToLimit === 1 ? '' : 's'} due to plan limit.)`
+      : '';
+    if (addedCount > 0 && updatedCount > 0) {
+      alert(`Roster import complete: ${addedCount} added, ${updatedCount} updated.${skippedNote}`);
+    } else if (addedCount > 0) {
+      alert(`Successfully imported ${addedCount} new swimmer${addedCount === 1 ? '' : 's'}!${skippedNote}`);
+    } else {
+      alert(`Roster import complete: ${updatedCount} updated.${skippedNote}`);
+    }
+    setShowImport(false);
   };
 
   const buildRosterUpdatePatch = (existing, incoming) => {
@@ -328,6 +464,7 @@ export default function Roster({
     setIsImporting(true);
     
     const isExcel = file.name.match(/\.(xls|xlsx)$/i);
+    const isPdf = file.name.match(/\.pdf$/i);
     const reader = new FileReader();
 
     reader.onload = async (event) => {
@@ -343,7 +480,7 @@ export default function Roster({
           if (importType === 'results') {
             await handleResultsImport(rows);
           } else {
-            alert('Excel import is currently only supported for Results. Use .sd3 for Roster.');
+            alert('Excel import is currently only supported for Results. Use .sd3 or PDF for Roster.');
           }
         } 
         // B. TEXT/CSV FILE
@@ -352,130 +489,14 @@ export default function Roster({
           if (importType === 'roster') {
             // Check if SD3 import is allowed for this tier
             if (!sd3Access.isUnlocked) {
-              alert(`SD3 Import requires ${sd3Access.requiredTierDisplay} plan. Please upgrade to use this feature.`);
+              alert(`Roster Import (SD3/PDF) requires ${sd3Access.requiredTierDisplay} plan. Please upgrade to use this feature.`);
               setShowImport(false);
               setIsImporting(false);
               return;
             }
 
             const incomingSwimmersRaw = await parseSD3Roster(text);
-            
-            // Deduplicate within the import file (by normalized name)
-            const incomingByKey = new Map();
-            incomingSwimmersRaw.forEach((s) => {
-              const key = normalizeSwimmerNameKey(s?.name);
-              if (!key) return;
-              if (!incomingByKey.has(key)) {
-                incomingByKey.set(key, s);
-                return;
-              }
-              const prev = incomingByKey.get(key);
-              // Merge: keep the most informative values (prefer non-empty, prefer non-default group)
-              const prevGroup = prev?.group_name ? String(prev.group_name).trim() : '';
-              const nextGroup = s?.group_name ? String(s.group_name).trim() : '';
-              const chooseGroup = () => {
-                const prevIsDefault = prevGroup.toLowerCase() === 'imported';
-                const nextIsDefault = nextGroup.toLowerCase() === 'imported';
-                if (nextGroup && !nextIsDefault) return nextGroup;
-                if (prevGroup && !prevIsDefault) return prevGroup;
-                return nextGroup || prevGroup || 'Imported';
-              };
-              incomingByKey.set(key, {
-                ...prev,
-                ...s,
-                group_name: chooseGroup(),
-                age: (typeof s?.age === 'number' ? s.age : prev?.age) ?? null,
-                gender: s?.gender || prev?.gender || 'M',
-                date_of_birth: s?.date_of_birth || prev?.date_of_birth || null
-              });
-            });
-
-            const incomingSwimmers = Array.from(incomingByKey.values());
-
-            // Match against existing swimmers (by normalized name within this team)
-            const teamId = incomingSwimmers[0]?.team_id || null;
-            const existingByKey = new Map();
-            swimmers.forEach((s) => {
-              if (teamId && s?.team_id && s.team_id !== teamId) return;
-              const key = normalizeSwimmerNameKey(s?.name);
-              if (!key) return;
-              if (!existingByKey.has(key)) existingByKey.set(key, s);
-            });
-
-            const toInsert = [];
-            const toUpdatePatches = [];
-            incomingSwimmers.forEach((incoming) => {
-              const key = normalizeSwimmerNameKey(incoming?.name);
-              if (!key) return;
-              const existing = existingByKey.get(key);
-              if (!existing) {
-                toInsert.push(incoming);
-                return;
-              }
-              const patch = buildRosterUpdatePatch(existing, incoming);
-              if (patch) toUpdatePatches.push(patch);
-            });
-
-            // Enforce swimmer limit for trial users (limit only applies to NEW inserts, not updates)
-            let skippedNewDueToLimit = 0;
-            if (maxSwimmers !== null && toInsert.length > 0) {
-              const currentCount = swimmers.length;
-              const availableSlots = Math.max(0, maxSwimmers - currentCount);
-              if (availableSlots === 0) {
-                skippedNewDueToLimit = toInsert.length;
-                toInsert.splice(0);
-
-                // Allow updates even if no slots remain
-                if (toUpdatePatches.length === 0) {
-                  alert(`You've reached your swimmer limit (${maxSwimmers}). Please upgrade to add more swimmers.`);
-                  setShowImport(false);
-                  setIsImporting(false);
-                  return;
-                }
-              } else if (toInsert.length > availableSlots) {
-                const originalCount = toInsert.length;
-                skippedNewDueToLimit = Math.max(0, originalCount - availableSlots);
-                toInsert.splice(availableSlots);
-              }
-            }
-
-            if (toInsert.length === 0 && toUpdatePatches.length === 0) {
-              alert('No valid roster records found.');
-              return;
-            }
-
-            let updatedRows = [];
-            let insertedRows = [];
-
-            if (toUpdatePatches.length > 0) {
-              const { data, error } = await supabase.from('swimmers').upsert(toUpdatePatches).select();
-              if (error) throw error;
-              updatedRows = data || [];
-            }
-
-            if (toInsert.length > 0) {
-              const { data, error } = await supabase.from('swimmers').insert(toInsert).select();
-              if (error) throw error;
-              insertedRows = data || [];
-            }
-
-            if (updatedRows.length > 0 || insertedRows.length > 0) {
-              setSwimmers(prev => mergeSwimmersById(prev, [...updatedRows, ...insertedRows]));
-            }
-
-            const addedCount = insertedRows.length;
-            const updatedCount = updatedRows.length;
-            const skippedNote = skippedNewDueToLimit > 0
-              ? ` (Skipped ${skippedNewDueToLimit} new swimmer${skippedNewDueToLimit === 1 ? '' : 's'} due to plan limit.)`
-              : '';
-            if (addedCount > 0 && updatedCount > 0) {
-              alert(`Roster import complete: ${addedCount} added, ${updatedCount} updated.${skippedNote}`);
-            } else if (addedCount > 0) {
-              alert(`Successfully imported ${addedCount} new swimmer${addedCount === 1 ? '' : 's'}!${skippedNote}`);
-            } else {
-              alert(`Roster import complete: ${updatedCount} updated.${skippedNote}`);
-            }
-            setShowImport(false);
+            await handleRosterUpsert(incomingSwimmersRaw);
           } else { 
             const rows = parseCSVWithQuotes(text);
             await handleResultsImport(rows); 
@@ -490,6 +511,55 @@ export default function Roster({
     };
 
     if (isExcel) reader.readAsArrayBuffer(file);
+    else if (isPdf) {
+      // PDF roster imports are handled outside FileReader for best results
+      try {
+        if (importType !== 'roster') {
+          alert('PDF import is currently only supported for Roster.');
+          return;
+        }
+
+        if (!sd3Access.isUnlocked) {
+          alert(`Roster PDF Import requires ${sd3Access.requiredTierDisplay} plan. Please upgrade to use this feature.`);
+          setShowImport(false);
+          return;
+        }
+
+        const { userId, teamId } = await getUserAndTeamContext();
+        const parsed = await parseMemberDirectoryPDF(file);
+
+        // Filter out non-swimmer groups commonly present in directories
+        const excluded = new Set(['coaches', 'board members']);
+        const incoming = parsed
+          .filter(p => p?.name)
+          .filter(p => !(p?.group_name && excluded.has(String(p.group_name).toLowerCase())))
+          .map((p) => ({
+            name: p.name,
+            group_name: p.group_name || 'Imported',
+            status: 'New',
+            efficiency_score: 70,
+            age: p.date_of_birth ? (() => {
+              const dob = new Date(p.date_of_birth);
+              const today = new Date();
+              let age = today.getFullYear() - dob.getFullYear();
+              const m = today.getMonth() - dob.getMonth();
+              if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+              return age;
+            })() : null,
+            gender: null,
+            date_of_birth: p.date_of_birth || null,
+            coach_id: userId,
+            team_id: teamId
+          }));
+
+        await handleRosterUpsert(incoming);
+      } catch (err) {
+        console.error(err);
+        alert('Error importing: ' + err.message);
+      } finally {
+        setIsImporting(false);
+      }
+    }
     else reader.readAsText(file);
     
     e.target.value = null; 
@@ -726,8 +796,8 @@ export default function Roster({
                 <div className="flex items-center gap-3">
                   <Icon name="lock" size={20} className="text-amber-600" />
                   <div>
-                    <p className="font-medium text-amber-800">SD3 Import requires {sd3Access.requiredTierDisplay}</p>
-                    <p className="text-sm text-amber-600">Upgrade to import rosters from SD3 files</p>
+                    <p className="font-medium text-amber-800">Roster Import requires {sd3Access.requiredTierDisplay}</p>
+                    <p className="text-sm text-amber-600">Upgrade to import rosters from SD3 or Member Directory PDFs</p>
                   </div>
                 </div>
               </div>
@@ -760,7 +830,7 @@ export default function Roster({
               ref={fileInputRef} 
               onChange={handleFileSelect} 
               className="hidden" 
-              accept={importType === 'roster' ? '.sd3,.csv' : '.csv,.xls,.xlsx'} 
+              accept={importType === 'roster' ? '.sd3,.pdf' : '.csv,.xls,.xlsx'} 
             />
             
             <div 
