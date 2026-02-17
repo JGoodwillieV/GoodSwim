@@ -131,9 +131,11 @@ export async function parseMemberDirectoryPDF(file) {
 
   // Example DOB: 8/10/16
   const dobRegex = /\b(\d{1,2})\/(\d{1,2})\/(\d{2})\b/;
-  // Match "Last, First" names - more restrictive to avoid capturing too much
-  // Allows: Last, First or Last, First Middle (but stops at group keywords)
-  const nameRegex = /[A-Za-z][A-Za-z'\-.]+,\s*[A-Za-z][A-Za-z'\-.]+(?:\s+[A-Za-z][A-Za-z'\-.]+)?/g;
+  
+  // Match "Last, First" names ONLY - no middle names allowed to avoid over-matching
+  // This is critical because the PDF has: "AccountLast, AccountFirst MemberLast, MemberFirst"
+  // and we need to match these as TWO separate names, not one name with middle parts
+  const nameRegex = /[A-Za-z][A-Za-z'\-.]+,\s*[A-Za-z][A-Za-z'\-.]+/g;
 
   const flushBuffer = (buf) => {
     const dobMatch = dobRegex.exec(buf);
@@ -143,9 +145,9 @@ export async function parseMemberDirectoryPDF(file) {
 
     // In this PDF format, "Account Name" (parent) and "Member Name" (swimmer) appear in sequence.
     // Format: "Account Name" "Member Name" "Preferred" "Roster/Group" DOB ...
-    // We want the MEMBER NAME (swimmer), which is the SECOND "Last, First" name in the row,
-    // and it's immediately followed by the group/roster label (CAT, Coaches, etc.)
-    const groupHintRegex = /\b(CAT\s*\d+|Coaches|Board\s+Members|Tropical\s+Storm)\b/i;
+    // Example: "Anderson, Kastine Anderson, Marielle CAT 2 8/10/16"
+    //           ^-- parent         ^-- swimmer (we want this one)
+    // We want the MEMBER NAME (swimmer), which is the SECOND "Last, First" name in the row.
 
     const nameMatches = [...buf.matchAll(nameRegex)]
       .map(m => ({
@@ -157,45 +159,25 @@ export async function parseMemberDirectoryPDF(file) {
 
     if (nameMatches.length === 0) return;
 
-    // For SportsEngine Member Directory PDFs:
-    // - First name match = Account Name (parent)
-    // - Second name match = Member Name (swimmer) - THIS IS WHAT WE WANT
+    // For SportsEngine Member Directory PDFs, the format is ALWAYS:
+    // "Account Name" (parent) | "Member Name" (swimmer) | Preferred | Roster | DOB
     // 
-    // The member name is followed by optional "Preferred" name, then the group label.
-    // We identify the correct name by finding the one where the text IMMEDIATELY after it
-    // contains the group label (after stripping out any "preferred" nickname).
+    // The SECOND "Last, First" name is always the swimmer (Member Name).
+    // If there's only one name, use that one.
+    // 
+    // Examples:
+    //   "Anderson, Kastine Anderson, Marielle CAT 2 8/10/16" → want "Anderson, Marielle"
+    //   "Neal, MaryKate Bessellieu, Deacon CAT 3 10/24/13"   → want "Bessellieu, Deacon"
+    //   "Andrews, Harrison Andrews, Harrison Coaches 6/6/97" → want "Andrews, Harrison" (same person is coach)
 
     let memberNameRaw = null;
-    let bestScore = Number.POSITIVE_INFINITY;
 
-    for (const match of nameMatches) {
-      const end = match.idx + match.len;
-      const between = buf.slice(end, dobIdx).replace(/\s+/g, ' ').trim();
-      
-      if (!groupHintRegex.test(between)) continue;
-      
-      // Find where the group hint starts in the "between" text
-      const groupMatch = groupHintRegex.exec(between);
-      if (!groupMatch) continue;
-      
-      // The "gap" is how many characters until the group label appears
-      // The swimmer's name should have the smallest gap (group appears right after name or preferred name)
-      const gapToGroup = groupMatch.index;
-      
-      // Prefer names that are closer to the group label
-      if (gapToGroup < bestScore) {
-        bestScore = gapToGroup;
-        memberNameRaw = match.text.trim();
-      }
-    }
-
-    // Fallback: if no name has a group hint directly after it, use the last name before DOB
-    // (In standard format, this would be the Member Name)
-    if (!memberNameRaw && nameMatches.length > 0) {
-      // Prefer the second name if there are two (Account, Member pattern)
-      memberNameRaw = nameMatches.length >= 2 
-        ? nameMatches[1].text.trim() 
-        : nameMatches[nameMatches.length - 1].text.trim();
+    if (nameMatches.length >= 2) {
+      // Standard case: Account Name + Member Name → take the SECOND one
+      memberNameRaw = nameMatches[1].text.trim();
+    } else if (nameMatches.length === 1) {
+      // Only one name found (unusual, but handle it)
+      memberNameRaw = nameMatches[0].text.trim();
     }
 
     if (!memberNameRaw) return;
