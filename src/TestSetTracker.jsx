@@ -28,6 +28,7 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
   const [selectedSwimmers, setSelectedSwimmers] = useState([]);
   const [setName, setSetName] = useState('');
   const [reps, setReps] = useState(10);
+  const [repsInput, setRepsInput] = useState('10'); // string for editing
   const [distance, setDistance] = useState(100);
   const [stroke, setStroke] = useState('Freestyle');
   const [setType, setSetType] = useState('Swim');
@@ -756,19 +757,31 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Reps</label>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => setReps(Math.max(1, reps - 1))}
+                      onClick={() => { const v = Math.max(1, reps - 1); setReps(v); setRepsInput(String(v)); }}
                       className="w-9 h-11 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center text-slate-600 shrink-0"
                     >
                       <Minus size={16} />
                     </button>
                     <input
-                      type="number"
-                      value={reps}
-                      onChange={(e) => setReps(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value)))}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={repsInput}
+                      onChange={(e) => setRepsInput(e.target.value.replace(/[^0-9]/g, ''))}
+                      onBlur={() => {
+                        const parsed = parseInt(repsInput);
+                        if (!parsed || parsed < 1) {
+                          setReps(1);
+                          setRepsInput('1');
+                        } else {
+                          setReps(parsed);
+                          setRepsInput(String(parsed));
+                        }
+                      }}
                       className="w-full min-w-0 text-center text-xl font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl py-2 px-1"
                     />
                     <button
-                      onClick={() => setReps(reps + 1)}
+                      onClick={() => { const v = reps + 1; setReps(v); setRepsInput(String(v)); }}
                       className="w-9 h-11 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center text-slate-600 shrink-0"
                     >
                       <Plus size={16} />
@@ -849,9 +862,11 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
                 {useInterval && (
                   <div className="flex items-center gap-3">
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={targetIntervalInput}
-                      onChange={(e) => setTargetIntervalInput(e.target.value)}
+                      onChange={(e) => setTargetIntervalInput(e.target.value.replace(/[^0-9]/g, ''))}
                       onBlur={() => {
                         const parsed = parseInt(targetIntervalInput);
                         if (!parsed || parsed < 10) {
