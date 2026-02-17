@@ -15,7 +15,8 @@ export {
   ParentSidebar, 
   ParentMobileNav,
   Breadcrumb,
-  BackButton
+  BackButton,
+  ScheduleSubNav
 } from './navigation';
 
 // Feature gating components

@@ -22,6 +22,7 @@ import {
   Repeat, CalendarOff, RefreshCw, ChevronRight, Clock
 } from 'lucide-react';
 import { formatTimeOfDay } from './utils/dateUtils';
+import ScheduleSubNav from './components/navigation/ScheduleSubNav';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -860,7 +861,7 @@ function WeeklyOverviewGrid({ groups, staffMembers, assignments, practiceSchedul
 // ============================================
 // Main Component
 // ============================================
-export default function CoachAssignmentManager({ onBack }) {
+export default function CoachAssignmentManager({ onBack, onScheduleNavigate }) {
   const [loading, setLoading] = useState(true);
   const [staffMembers, setStaffMembers] = useState([]);
   const [assignments, setAssignments] = useState([]);
@@ -1132,21 +1133,11 @@ export default function CoachAssignmentManager({ onBack }) {
       {/* Header */}
       <div className="bg-white border-b border-slate-200 p-4 md:p-6 shrink-0">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            {onBack && (
-              <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500">
-                <ChevronLeft size={24} />
-              </button>
-            )}
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                <Users size={28} className="text-blue-600" />
-                Coach Assignments
-              </h1>
-              <p className="text-slate-500 text-sm">
-                Set recurring coaching schedules and manage per-day changes
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 mb-1">Schedule</h1>
+            <p className="text-slate-500 text-sm">
+              Set recurring coaching schedules and manage per-day changes
+            </p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1174,6 +1165,13 @@ export default function CoachAssignmentManager({ onBack }) {
             </button>
           </div>
         </div>
+
+        {/* Schedule Section Navigation */}
+        {onScheduleNavigate && (
+          <div className="mb-4">
+            <ScheduleSubNav activeSection="coaches" onNavigate={onScheduleNavigate} />
+          </div>
+        )}
 
         {/* View Toggle */}
         <div className="flex items-center gap-4">

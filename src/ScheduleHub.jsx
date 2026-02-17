@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { formatDateSafe, formatTimeOfDay, parseDateSafe } from './utils/dateUtils';
 import WorkoutPlanner from './WorkoutPlanner';
+import ScheduleSubNav from './components/navigation/ScheduleSubNav';
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const DAYS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -1237,36 +1238,16 @@ export default function ScheduleHub({
     <div className="p-4 md:p-8 space-y-6 overflow-y-auto h-full pb-24 md:pb-8">
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Schedule</h2>
-          <p className="text-slate-500 text-sm md:text-base">
-            {mainView === 'workouts' ? 'Create workouts for scheduled practices' : 'Manage meets, practices, and team events'}
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Schedule</h2>
+            <p className="text-slate-500 text-sm md:text-base">
+              {mainView === 'workouts' ? 'Create workouts for scheduled practices' : 'Manage meets, practices, and team events'}
+            </p>
+          </div>
         </div>
         
         <div className="flex items-center gap-2 md:gap-3">
-          {/* Main View Toggle */}
-          <div className="bg-slate-100 rounded-xl p-1 flex">
-            <button
-              onClick={() => setMainView('workouts')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                mainView === 'workouts' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <ClipboardList size={16} />
-              <span>Workouts</span>
-            </button>
-            <button
-              onClick={() => setMainView('calendar')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                mainView === 'calendar' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <Calendar size={16} />
-              <span>Calendar</span>
-            </button>
-          </div>
-          
           {/* Calendar View Mode Toggle - Only show in calendar mode */}
           {mainView === 'calendar' && (
             <div className="bg-slate-100 rounded-xl p-1 flex">
@@ -1392,6 +1373,24 @@ export default function ScheduleHub({
           </div>
         </div>
       </div>
+
+      {/* Schedule Section Navigation */}
+      <ScheduleSubNav
+        activeSection={mainView}
+        onNavigate={(section) => {
+          if (section === 'calendar' || section === 'workouts') {
+            setMainView(section);
+          } else if (section === 'practice-times') {
+            onManagePracticeSchedule?.();
+          } else if (section === 'coaches') {
+            onNavigate?.('coach-assignments');
+          } else if (section === 'meets') {
+            onNavigate?.('meets');
+          } else if (section === 'events') {
+            onNavigate?.('calendar');
+          }
+        }}
+      />
 
       {/* Workout Planner View */}
       {mainView === 'workouts' && (

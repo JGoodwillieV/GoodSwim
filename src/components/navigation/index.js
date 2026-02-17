@@ -5,4 +5,5 @@ export { default as MobileNav } from './MobileNav';
 export { default as ParentSidebar } from './ParentSidebar';
 export { default as ParentMobileNav } from './ParentMobileNav';
 export { default as Breadcrumb, BackButton } from './Breadcrumb';
+export { default as ScheduleSubNav } from './ScheduleSubNav';
 

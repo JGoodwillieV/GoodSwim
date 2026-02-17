@@ -11,6 +11,7 @@ import {
   ChevronDown, ChevronUp, FileText, Download, Upload
 } from 'lucide-react';
 import { formatTimeOfDay } from './utils/dateUtils';
+import ScheduleSubNav from './components/navigation/ScheduleSubNav';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -888,7 +889,7 @@ function TimeSlotCell({ slots, groupName, dayOfWeek, onEdit, onAdd, onDelete, on
 }
 
 // Main Component
-export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder, onManageCoachAssignments }) {
+export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder, onManageCoachAssignments, onScheduleNavigate }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [schedules, setSchedules] = useState([]);
@@ -1259,21 +1260,11 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
       {/* Header */}
       <div className="bg-white border-b border-slate-200 p-4 md:p-6 shrink-0">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            {onBack && (
-              <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500">
-                <ChevronLeft size={24} />
-              </button>
-            )}
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                <Calendar size={28} className="text-blue-600" />
-                Practice Schedule
-              </h1>
-              <p className="text-slate-500 text-sm">
-                Set recurring practice times for each training group
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 mb-1">Schedule</h1>
+            <p className="text-slate-500 text-sm">
+              Set recurring practice times for each training group
+            </p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1284,15 +1275,6 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
               <Settings size={16} />
               <span className="hidden md:inline">Season: {season.name || 'Set Season'}</span>
             </button>
-            {onManageCoachAssignments && (
-              <button
-                onClick={onManageCoachAssignments}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-50 border border-purple-200 text-purple-700 rounded-xl hover:bg-purple-100 transition text-sm font-medium"
-              >
-                <Users size={16} />
-                <span className="hidden md:inline">Coach Assignments</span>
-              </button>
-            )}
             <button
               onClick={() => setShowExceptionModal(true)}
               className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl hover:bg-amber-100 transition text-sm font-medium"
@@ -1314,6 +1296,13 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
             </button>
           </div>
         </div>
+
+        {/* Schedule Section Navigation */}
+        {onScheduleNavigate && (
+          <div className="mb-4">
+            <ScheduleSubNav activeSection="practice-times" onNavigate={onScheduleNavigate} />
+          </div>
+        )}
 
         {/* Season Info Bar */}
         {season.startDate && (

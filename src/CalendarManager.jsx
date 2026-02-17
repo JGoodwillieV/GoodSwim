@@ -12,6 +12,7 @@ import {
 
 // Import centralized utilities
 import { formatDateSafe, formatTimeOfDay } from './utils/dateUtils';
+import ScheduleSubNav from './components/navigation/ScheduleSubNav';
 
 // Alias for backward compatibility
 const formatDate = formatDateSafe;
@@ -655,7 +656,7 @@ function EventCard({ event, onEdit, onDelete }) {
 }
 
 // Main Calendar Manager Component
-export default function CalendarManager({ onBack }) {
+export default function CalendarManager({ onBack, onScheduleNavigate }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -829,25 +830,12 @@ export default function CalendarManager({ onBack }) {
     <div className="p-4 md:p-8 overflow-y-auto h-full pb-24 md:pb-8">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-4">
-            {onBack && (
-              <button 
-                onClick={onBack} 
-                className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"
-              >
-                <ChevronLeft size={24} />
-              </button>
-            )}
-            <div>
-              <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-                <Calendar size={28} />
-                Team Events
-              </h1>
-              <p className="text-slate-600 mt-1">
-                Create and manage team events like socials, office hours, and fundraisers.
-              </p>
-            </div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800 mb-1">Schedule</h1>
+            <p className="text-slate-600">
+              Create and manage team events like socials, office hours, and fundraisers.
+            </p>
           </div>
           <button
             onClick={() => {
@@ -860,6 +848,13 @@ export default function CalendarManager({ onBack }) {
             <span className="hidden sm:inline">New Event</span>
           </button>
         </div>
+
+        {/* Schedule Section Navigation */}
+        {onScheduleNavigate && (
+          <div className="mb-4">
+            <ScheduleSubNav activeSection="events" onNavigate={onScheduleNavigate} />
+          </div>
+        )}
 
         {/* Filter */}
         <div className="flex gap-2 mt-4">

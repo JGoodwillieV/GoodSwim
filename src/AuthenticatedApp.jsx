@@ -16,7 +16,8 @@ import {
   Dashboard,
   Roster,
   SwimmerProfile,
-  Breadcrumb
+  Breadcrumb,
+  ScheduleSubNav
 } from './components';
 
 // Feature Components
@@ -234,6 +235,23 @@ export default function App() {
     setView(v);
     if (v !== 'roster' && v !== 'view-analysis') {
       setSelectedSwimmer(null);
+    }
+  };
+
+  // Schedule sub-nav: maps section IDs to view navigation
+  const scheduleNavigate = (section) => {
+    const sectionMap = {
+      'calendar': 'schedule',
+      'workouts': 'schedule',
+      'practice-times': 'practice-schedule',
+      'coaches': 'coach-assignments',
+      'meets': 'meets',
+      'events': 'calendar',
+    };
+    const target = sectionMap[section];
+    if (target) {
+      setPreviousView('schedule');
+      navigateTo(target);
     }
   };
 
@@ -620,6 +638,7 @@ export default function App() {
               setPreviousView(null);
               setView(backTo);
             }}
+            onScheduleNavigate={scheduleNavigate}
           />
         )}
         
@@ -639,6 +658,7 @@ export default function App() {
               setPreviousView('practice-schedule');
               navigateTo('coach-assignments');
             }}
+            onScheduleNavigate={scheduleNavigate}
           />
         )}
         
@@ -649,35 +669,38 @@ export default function App() {
               setPreviousView(null);
               navigateTo(backTo);
             }}
+            onScheduleNavigate={scheduleNavigate}
           />
         )}
         
         {view === 'meets' && (
-          <div className="p-4 md:p-8 overflow-y-auto h-full pb-24 md:pb-8">
-            <Breadcrumb 
-              currentView="meets" 
-              previousView={previousView}
-              onNavigate={(v) => {
-                setPreviousView(null);
-                navigateTo(v);
-              }}
-            />
-            <MeetsManager />
+          <div className="overflow-y-auto h-full pb-24 md:pb-8">
+            <div className="p-4 md:p-8 pb-0 md:pb-0">
+              <div className="mb-6">
+                <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-1">Schedule</h2>
+                <p className="text-slate-500 text-sm md:text-base">Manage your swim meets</p>
+              </div>
+              <ScheduleSubNav activeSection="meets" onNavigate={scheduleNavigate} />
+            </div>
+            <div className="p-4 md:p-8 pt-4 md:pt-4">
+              <MeetsManager />
+            </div>
           </div>
         )}
         
         {/* meet-entries now redirects to meets - keeping for backward compatibility */}
         {view === 'meet-entries' && (
-          <div className="p-4 md:p-8 overflow-y-auto h-full pb-24 md:pb-8">
-            <Breadcrumb 
-              currentView="meets" 
-              previousView={previousView}
-              onNavigate={(v) => {
-                setPreviousView(null);
-                navigateTo(v);
-              }}
-            />
-            <MeetsManager />
+          <div className="overflow-y-auto h-full pb-24 md:pb-8">
+            <div className="p-4 md:p-8 pb-0 md:pb-0">
+              <div className="mb-6">
+                <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-1">Schedule</h2>
+                <p className="text-slate-500 text-sm md:text-base">Manage your swim meets</p>
+              </div>
+              <ScheduleSubNav activeSection="meets" onNavigate={scheduleNavigate} />
+            </div>
+            <div className="p-4 md:p-8 pt-4 md:pt-4">
+              <MeetsManager />
+            </div>
           </div>
         )}
 
