@@ -156,6 +156,10 @@ export async function parseMemberDirectoryPDF(file) {
   const rawLines = await extractLinesFromPDF(file);
   const lines = rawLines.filter(l => !isNoiseLine(l));
 
+  // DEBUG: Log extracted lines to console
+  console.log('[PDF Parser] Extracted lines:', rawLines.slice(0, 20));
+  console.log('[PDF Parser] Filtered lines:', lines.slice(0, 15));
+
   const results = [];
   let buffer = '';
 
@@ -191,6 +195,10 @@ export async function parseMemberDirectoryPDF(file) {
       .filter(m => m.idx >= 0);
 
     if (nameMatches.length === 0) return;
+
+    // DEBUG: Log name matches for troubleshooting
+    console.log('[PDF Parser] Buffer:', preDob);
+    console.log('[PDF Parser] Name matches:', nameMatches);
 
     // For SportsEngine Member Directory PDFs, the format is ALWAYS:
     // "Account Name" (parent) | "Member Name" (swimmer) | Preferred | Roster | DOB
