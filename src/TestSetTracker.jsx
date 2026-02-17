@@ -405,6 +405,7 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
         Object.entries(repTimes).forEach(([repNum, time]) => {
           if (time !== 'DNS') {
             const record = {
+              team_id: teamId,
               test_set_id: testSet.id,
               swimmer_id: swimmerId,
               rep_number: parseInt(repNum),
