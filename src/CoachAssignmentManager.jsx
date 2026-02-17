@@ -990,11 +990,12 @@ export default function CoachAssignmentManager({ onBack, onScheduleNavigate }) {
       const { data: { user } } = await supabase.auth.getUser();
 
       // Delete all existing assignments for this staff member
-      await supabase
+      const { error: deleteError } = await supabase
         .from('coach_group_assignments')
         .delete()
         .eq('coach_id', staff.id)
         .eq('team_id', currentTeamId);
+      if (deleteError) throw deleteError;
 
       // Build new assignment rows
       const newAssignments = [];
@@ -1040,7 +1041,7 @@ export default function CoachAssignmentManager({ onBack, onScheduleNavigate }) {
       setAssigningStaff(null);
     } catch (error) {
       console.error('Error saving assignments:', error);
-      alert('Failed to save assignments');
+      alert(`Failed to save assignments: ${error?.message || 'Unknown error'}`);
     }
   };
 
