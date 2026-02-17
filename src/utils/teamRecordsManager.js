@@ -206,25 +206,116 @@ export async function checkForRecordBreak(result) {
 }
 
 /**
- * Checks multiple results for record breaks
+ * Checks multiple results for record breaks (batched for performance)
+ * Instead of 2 queries per result, this fetches all swimmer info and all
+ * relevant team records in just 2 total queries, then checks locally.
  * @param {Array} results - Array of results to check
  * @returns {Promise<Array>} Array of record breaks found
  */
 export async function checkMultipleResults(results) {
-  console.log('📋 Checking', results.length, 'results for record breaks...');
+  console.log('📋 Checking', results.length, 'results for record breaks (batched)...');
+  
+  if (!results.length) return [];
+
+  // 1. Collect all unique swimmer IDs
+  const uniqueSwimmerIds = [...new Set(results.map(r => r.swimmer_id).filter(Boolean))];
+  
+  // 2. Batch fetch all swimmer info in ONE query
+  const { data: swimmerData, error: swimmerError } = await supabase
+    .from('swimmers')
+    .select('id, name, date_of_birth, gender, team_id')
+    .in('id', uniqueSwimmerIds);
+  
+  if (swimmerError) {
+    console.error('❌ Error batch-fetching swimmers:', swimmerError);
+    return [];
+  }
+  
+  const swimmerMap = {};
+  for (const s of (swimmerData || [])) {
+    swimmerMap[s.id] = s;
+  }
+
+  // 3. Determine team_id from results or swimmers
+  const teamId = results[0]?.team_id || swimmerData?.[0]?.team_id;
+  if (!teamId) {
+    console.error('❌ Could not determine team_id for record check');
+    return [];
+  }
+
+  // 4. Batch fetch ALL team records for this team in ONE query
+  const { data: allRecords, error: recordsError } = await supabase
+    .from('team_records')
+    .select('*')
+    .eq('team_id', teamId);
+  
+  if (recordsError) {
+    console.error('❌ Error batch-fetching team records:', recordsError);
+    return [];
+  }
+
+  // Build a lookup map: "event|age_group|gender|course" -> fastest record
+  const recordLookup = {};
+  for (const rec of (allRecords || [])) {
+    const key = `${rec.event}|${rec.age_group}|${rec.gender}|${rec.course}`;
+    const existing = recordLookup[key];
+    if (!existing || rec.time_seconds < existing.time_seconds) {
+      recordLookup[key] = rec;
+    }
+  }
+
+  // 5. Check each result locally (no more DB queries)
   const recordBreaks = [];
   
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
-    console.log(`\n[${i + 1}/${results.length}] Checking result:`, result.event, result.time);
-    const recordBreak = await checkForRecordBreak(result);
-    if (recordBreak) {
+    const swimmer = swimmerMap[result.swimmer_id];
+    if (!swimmer) continue;
+    
+    const course = result.course || 'SCY';
+    
+    // Calculate age at time of swim
+    if (!swimmer.date_of_birth) continue;
+    const swimDate = new Date(result.date);
+    const birthDate = new Date(swimmer.date_of_birth);
+    let age = swimDate.getFullYear() - birthDate.getFullYear();
+    const monthDiff = swimDate.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && swimDate.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    const eventName = extractEventName(result.event);
+    const timeSeconds = timeToSeconds(result.time);
+    if (timeSeconds >= 999999 || !eventName) continue;
+
+    const ageGroup = getAgeGroup(age);
+    const gender = normalizeGender(swimmer.gender);
+    if (!gender) continue;
+
+    const key = `${eventName}|${ageGroup}|${gender}|${course}`;
+    const currentRecord = recordLookup[key] || null;
+    const isNewRecord = !currentRecord || timeSeconds < currentRecord.time_seconds;
+
+    if (isNewRecord) {
+      const recordBreak = {
+        team_id: teamId,
+        swimmer_id: result.swimmer_id,
+        swimmer_name: swimmer.name,
+        event: eventName,
+        age_group: ageGroup,
+        gender: gender,
+        course: course,
+        time_seconds: timeSeconds,
+        time_display: secondsToTimeDisplay(timeSeconds),
+        date: result.date,
+        previous_record: currentRecord,
+        improvement: currentRecord ? currentRecord.time_seconds - timeSeconds : null
+      };
       recordBreaks.push(recordBreak);
-      console.log('  ✅ Added to record breaks list');
     }
   }
   
-  console.log('\n🏁 Record check complete. Total breaks:', recordBreaks.length);
+  console.log('🏁 Record check complete. Total breaks:', recordBreaks.length);
   
   // Deduplicate: Keep only the FASTEST time for each event/age/gender combo
   const deduped = deduplicateRecordBreaks(recordBreaks);

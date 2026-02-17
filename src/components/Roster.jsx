@@ -24,6 +24,7 @@ export default function Roster({
   const [isImporting, setIsImporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState(''); 
   const [importCourse, setImportCourse] = useState('SCY');
+  const [importProgress, setImportProgress] = useState(null);
   const fileInputRef = useRef(null);
 
   // Subscription & Feature Access
@@ -342,11 +343,13 @@ export default function Roster({
   };
 
   // --- IMPORT HANDLER (Supports CSV & Excel Rows) ---
-  const handleResultsImport = async (rows) => {
+  const handleResultsImport = async (rows, progressPrefix = '') => {
     const { teamId } = await getUserAndTeamContext();
     const entriesToInsert = [];
     const swimmerMap = {}; 
-    const swimmerGenderUpdates = {}; // Track gender updates for swimmers
+    const swimmerGenderUpdates = {};
+    
+    setImportProgress(prev => ({ ...prev, step: `${progressPrefix}Matching swimmers...` }));
     
     // Build Name Map (include full swimmer object for gender checking)
     swimmers.forEach(s => {
@@ -441,6 +444,7 @@ export default function Roster({
 
     if (entriesToInsert.length > 0) {
       // Duplicate Check
+      setImportProgress(prev => ({ ...prev, step: `${progressPrefix}Checking ${entriesToInsert.length} results for duplicates...` }));
       const uniqueSwimmerIds = [...new Set(entriesToInsert.map(e => e.swimmer_id))];
       const { data: existingData } = await supabase
         .from('results')
@@ -457,32 +461,31 @@ export default function Roster({
       );
 
       if (newEntries.length > 0) {
+        setImportProgress(prev => ({ ...prev, step: `${progressPrefix}Importing ${newEntries.length} new results...` }));
         const { error } = await supabase.from('results').insert(newEntries);
         
         if (error) {
           const msg = String(error?.message || 'Unknown error');
           if (msg.toLowerCase().includes('row-level security')) {
-            alert(`Permission error: your account doesn't have access to import results for this team.\n\nDetails: ${msg}`);
+            return { error: `Permission error: your account doesn't have access to import results for this team.\n\nDetails: ${msg}` };
           } else {
-            alert('Database error: ' + msg);
+            return { error: 'Database error: ' + msg };
           }
         } else { 
-          // Update swimmer genders if we found any
+          // Update swimmer genders if we found any (batched in parallel)
           const genderUpdateIds = Object.keys(swimmerGenderUpdates);
           let genderUpdateCount = 0;
           if (genderUpdateIds.length > 0) {
-            for (const swimmerId of genderUpdateIds) {
-              const { error: genderError } = await supabase
-                .from('swimmers')
-                .update({ gender: swimmerGenderUpdates[swimmerId] })
-                .eq('id', swimmerId);
-              
-              if (!genderError) {
-                genderUpdateCount++;
-              }
-            }
+            const genderResults = await Promise.all(
+              genderUpdateIds.map(swimmerId =>
+                supabase
+                  .from('swimmers')
+                  .update({ gender: swimmerGenderUpdates[swimmerId] })
+                  .eq('id', swimmerId)
+              )
+            );
+            genderUpdateCount = genderResults.filter(r => !r.error).length;
             
-            // Refresh swimmers list to reflect gender updates
             if (genderUpdateCount > 0) {
               setSwimmers(prev => prev.map(s => {
                 if (swimmerGenderUpdates[s.id]) {
@@ -494,149 +497,183 @@ export default function Roster({
           }
           
           // Check for team record breaks
-          console.log('🔍 Checking for team record breaks...');
+          setImportProgress(prev => ({ ...prev, step: `${progressPrefix}Checking for team record breaks...` }));
           
+          let breaks = [];
           try {
-            const breaks = await checkMultipleResults(newEntries);
-            
-            if (breaks && breaks.length > 0) {
-              console.log(`🎉 Found ${breaks.length} team record(s) broken!`, breaks);
-              setRecordBreaks(breaks);
+            breaks = await checkMultipleResults(newEntries) || [];
+            if (breaks.length > 0) {
+              setRecordBreaks(prev => [...(prev || []), ...breaks]);
               setShowRecordModal(true);
-              const genderNote = genderUpdateCount > 0 ? `\n\n📋 Updated gender for ${genderUpdateCount} swimmer(s).` : '';
-              alert(`Success! Imported ${newEntries.length} results.\n\n🎉 ${breaks.length} TEAM RECORD(S) BROKEN! Check the modal.${genderNote}`);
-            } else {
-              const genderNote = genderUpdateCount > 0 ? `\n\n📋 Updated gender for ${genderUpdateCount} swimmer(s).` : '';
-              alert(`Success! Imported ${newEntries.length} results. (${entriesToInsert.length - newEntries.length} skipped as duplicates)${genderNote}`);
             }
           } catch (err) {
-            console.error('❌ Error checking for record breaks:', err);
-            const genderNote = genderUpdateCount > 0 ? `\n\n📋 Updated gender for ${genderUpdateCount} swimmer(s).` : '';
-            alert(`Success! Imported ${newEntries.length} results.\n\nNote: Could not check for record breaks. Error: ${err.message}${genderNote}`);
+            console.error('Error checking for record breaks:', err);
           }
           
-          setShowImport(false); 
+          return { imported: newEntries.length, duplicates: entriesToInsert.length - newEntries.length, genderUpdates: genderUpdateCount, recordBreaks: breaks.length };
         }
       } else {
-        alert('No new results found. All entries were duplicates.');
-        setShowImport(false);
+        return { imported: 0, duplicates: entriesToInsert.length, genderUpdates: 0, recordBreaks: 0 };
       }
     } else {
-      alert('Found 0 valid matches.');
+      return { imported: 0, duplicates: 0, matched: 0, genderUpdates: 0, recordBreaks: 0 };
     }
   };
 
-  // --- FILE SELECTION & PARSING ---
-  const handleFileSelect = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setIsImporting(true);
-    
-    const isExcel = file.name.match(/\.(xls|xlsx)$/i);
-    const isPdf = file.name.match(/\.pdf$/i);
-    const reader = new FileReader();
-
-    reader.onload = async (event) => {
-      try {
-        // A. EXCEL FILE
-        if (isExcel) {
-          const data = new Uint8Array(event.target.result);
-          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-          
-          if (importType === 'results') {
-            await handleResultsImport(rows);
+  // Helper: read a single file and return parsed rows
+  const readFileToRows = (file) => {
+    return new Promise((resolve, reject) => {
+      const isExcel = file.name.match(/\.(xls|xlsx)$/i);
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        try {
+          if (isExcel) {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            resolve(XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }));
           } else {
-            alert('Excel import is currently only supported for Results. Use .sd3 or PDF for Roster.');
+            resolve(parseCSVWithQuotes(event.target.result));
           }
-        } 
-        // B. TEXT/CSV FILE
-        else {
-          const text = event.target.result;
-          if (importType === 'roster') {
-            // Check if SD3 import is allowed for this tier
-            if (!sd3Access.isUnlocked) {
-              alert(`Roster Import (SD3/PDF) requires ${sd3Access.requiredTierDisplay} plan. Please upgrade to use this feature.`);
-              setShowImport(false);
-              setIsImporting(false);
-              return;
-            }
-
-            const incomingSwimmersRaw = await parseSD3Roster(text);
-            await handleRosterUpsert(incomingSwimmersRaw);
-          } else { 
-            const rows = parseCSVWithQuotes(text);
-            await handleResultsImport(rows); 
-          }
+        } catch (err) {
+          reject(err);
         }
-      } catch (err) { 
-        console.error(err); 
-        alert('Error importing: ' + err.message); 
-      } finally { 
-        setIsImporting(false); 
-      }
-    };
+      };
+      reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+      
+      if (isExcel) reader.readAsArrayBuffer(file);
+      else reader.readAsText(file);
+    });
+  };
 
-    if (isExcel) reader.readAsArrayBuffer(file);
-    else if (isPdf) {
-      // PDF roster imports are handled outside FileReader for best results
-      try {
-        if (importType !== 'roster') {
-          alert('PDF import is currently only supported for Roster.');
-          return;
-        }
-
-        if (!sd3Access.isUnlocked) {
-          alert(`Roster PDF Import requires ${sd3Access.requiredTierDisplay} plan. Please upgrade to use this feature.`);
-          setShowImport(false);
-          return;
-        }
-
-        const { userId, teamId } = await getUserAndTeamContext();
-        const parsed = await parseMemberDirectoryPDF(file);
-
-        // Filter out non-swimmer groups commonly present in directories
-        const excluded = new Set(['coaches', 'board members']);
-        const incoming = parsed
-          .filter(p => p?.name)
-          .filter(p => !(p?.group_name && excluded.has(String(p.group_name).toLowerCase())))
-          .map((p) => ({
-            name: p.name,
-            group_name: p.group_name || 'Imported',
-            status: 'New',
-            efficiency_score: 70,
-            age: p.date_of_birth ? (() => {
-              // Parse date_of_birth as local date to avoid timezone issues
-              const [year, month, day] = p.date_of_birth.split('-').map(Number);
-              const dob = new Date(year, month - 1, day);
-              const today = new Date();
-              let age = today.getFullYear() - dob.getFullYear();
-              const m = today.getMonth() - dob.getMonth();
-              if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-              return age;
-            })() : null,
-            gender: null, // Not available in SportsEngine PDF
-            date_of_birth: p.date_of_birth || null,
-            usa_swimming_id: p.usa_swimming_id || null,
-            parent_email: p.parent_email || null,
-            parent_account_name: p.parent_account_name || null,
-            coach_id: userId,
-            team_id: teamId
-          }));
-
-        await handleRosterUpsert(incoming);
-      } catch (err) {
-        console.error(err);
-        alert('Error importing: ' + err.message);
-      } finally {
-        setIsImporting(false);
-      }
-    }
-    else reader.readAsText(file);
+  // --- FILE SELECTION & PARSING (supports multiple files) ---
+  const handleFileSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
     
-    e.target.value = null; 
+    setIsImporting(true);
+    setImportProgress({ totalFiles: files.length, currentFile: 0, step: 'Starting...' });
+
+    try {
+      // Roster imports (single file only)
+      if (importType === 'roster') {
+        const file = files[0];
+        const isPdf = file.name.match(/\.pdf$/i);
+        
+        if (isPdf) {
+          if (!sd3Access.isUnlocked) {
+            alert(`Roster PDF Import requires ${sd3Access.requiredTierDisplay} plan. Please upgrade to use this feature.`);
+            setShowImport(false);
+            return;
+          }
+          setImportProgress({ totalFiles: 1, currentFile: 1, step: 'Parsing PDF...' });
+          const { userId, teamId } = await getUserAndTeamContext();
+          const parsed = await parseMemberDirectoryPDF(file);
+          const excluded = new Set(['coaches', 'board members']);
+          const incoming = parsed
+            .filter(p => p?.name)
+            .filter(p => !(p?.group_name && excluded.has(String(p.group_name).toLowerCase())))
+            .map((p) => ({
+              name: p.name,
+              group_name: p.group_name || 'Imported',
+              status: 'New',
+              efficiency_score: 70,
+              age: p.date_of_birth ? (() => {
+                const [year, month, day] = p.date_of_birth.split('-').map(Number);
+                const dob = new Date(year, month - 1, day);
+                const today = new Date();
+                let age = today.getFullYear() - dob.getFullYear();
+                const m = today.getMonth() - dob.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+                return age;
+              })() : null,
+              gender: null,
+              date_of_birth: p.date_of_birth || null,
+              usa_swimming_id: p.usa_swimming_id || null,
+              parent_email: p.parent_email || null,
+              parent_account_name: p.parent_account_name || null,
+              coach_id: userId,
+              team_id: teamId
+            }));
+          await handleRosterUpsert(incoming);
+        } else {
+          if (!sd3Access.isUnlocked) {
+            alert(`Roster Import (SD3/PDF) requires ${sd3Access.requiredTierDisplay} plan. Please upgrade to use this feature.`);
+            setShowImport(false);
+            return;
+          }
+          setImportProgress({ totalFiles: 1, currentFile: 1, step: 'Parsing SD3...' });
+          const text = await file.text();
+          const incomingSwimmersRaw = await parseSD3Roster(text);
+          await handleRosterUpsert(incomingSwimmersRaw);
+        }
+        return;
+      }
+
+      // Results imports (supports multiple files)
+      const resultFiles = files.filter(f => f.name.match(/\.(csv|xls|xlsx)$/i));
+      if (!resultFiles.length) {
+        alert('No valid result files found. Please upload .csv, .xls, or .xlsx files.');
+        return;
+      }
+
+      let totalImported = 0;
+      let totalDuplicates = 0;
+      let totalRecordBreaks = 0;
+      let totalGenderUpdates = 0;
+      const errors = [];
+
+      for (let i = 0; i < resultFiles.length; i++) {
+        const file = resultFiles[i];
+        const fileLabel = resultFiles.length > 1 ? `[${i + 1}/${resultFiles.length}] ${file.name}: ` : '';
+        
+        setImportProgress({ 
+          totalFiles: resultFiles.length, 
+          currentFile: i + 1, 
+          fileName: file.name,
+          step: `${fileLabel}Reading file...` 
+        });
+
+        try {
+          const rows = await readFileToRows(file);
+          const result = await handleResultsImport(rows, fileLabel);
+          
+          if (result?.error) {
+            errors.push(`${file.name}: ${result.error}`);
+          } else if (result) {
+            totalImported += result.imported || 0;
+            totalDuplicates += result.duplicates || 0;
+            totalRecordBreaks += result.recordBreaks || 0;
+            totalGenderUpdates += result.genderUpdates || 0;
+          }
+        } catch (err) {
+          console.error(`Error processing ${file.name}:`, err);
+          errors.push(`${file.name}: ${err.message}`);
+        }
+      }
+
+      // Show final summary
+      setImportProgress(prev => ({ ...prev, step: 'Complete!' }));
+      
+      let summary = `Imported ${totalImported} results`;
+      if (totalDuplicates > 0) summary += ` (${totalDuplicates} duplicates skipped)`;
+      if (totalRecordBreaks > 0) summary += `\n\n${totalRecordBreaks} TEAM RECORD(S) BROKEN! Check the modal.`;
+      if (totalGenderUpdates > 0) summary += `\n\nUpdated gender for ${totalGenderUpdates} swimmer(s).`;
+      if (resultFiles.length > 1) summary = `Processed ${resultFiles.length} files.\n\n${summary}`;
+      if (errors.length > 0) summary += `\n\nErrors:\n${errors.join('\n')}`;
+      
+      alert(totalImported > 0 ? `Success! ${summary}` : (errors.length > 0 ? summary : 'No new results found. All entries were duplicates.'));
+      setShowImport(false);
+    } catch (err) {
+      console.error(err);
+      alert('Error importing: ' + err.message);
+    } finally {
+      setIsImporting(false);
+      setImportProgress(null);
+      e.target.value = null;
+    }
   };
 
   // SD3 Logic
@@ -905,39 +942,70 @@ export default function Roster({
               ref={fileInputRef} 
               onChange={handleFileSelect} 
               className="hidden" 
-              accept={importType === 'roster' ? '.sd3,.pdf' : '.csv,.xls,.xlsx'} 
+              accept={importType === 'roster' ? '.sd3,.pdf' : '.csv,.xls,.xlsx'}
+              multiple={importType === 'results'}
             />
             
-            <div 
-              onClick={() => {
-                // Block click if feature is locked
-                if (importType === 'roster' && !sd3Access.isUnlocked) {
-                  window.dispatchEvent(new CustomEvent('navigate', { detail: 'billing' }));
-                  return;
-                }
-                fileInputRef.current.click();
-              }} 
-              className={`border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center mb-6 group cursor-pointer transition-colors ${
-                importType === 'roster' && !sd3Access.isUnlocked
-                  ? 'border-slate-200 bg-slate-50 opacity-90'
-                  : importType === 'results' 
-                    ? 'border-yellow-300 hover:bg-yellow-50 bg-slate-50' 
-                    : 'border-slate-300 hover:bg-slate-100 hover:border-blue-400 bg-slate-50'
-              }`}
-            >
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform ${
-                importType === 'results' 
-                  ? 'bg-yellow-100 text-yellow-600' 
-                  : 'bg-blue-100 text-blue-600'
-              }`}>
-                <Icon name={importType === 'results' ? 'trophy' : 'file-up'} size={24} />
+            {isImporting && importProgress ? (
+              <div className="border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center text-center mb-6 border-blue-200 bg-blue-50/50">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4 bg-blue-100 text-blue-600">
+                  <Icon name="loader-2" size={24} className="animate-spin" />
+                </div>
+                
+                {importProgress.totalFiles > 1 && (
+                  <p className="text-sm font-semibold text-blue-700 mb-2">
+                    File {importProgress.currentFile} of {importProgress.totalFiles}
+                    {importProgress.fileName && <span className="font-normal text-blue-500"> — {importProgress.fileName}</span>}
+                  </p>
+                )}
+                
+                <p className="text-slate-700 font-medium mb-3">{importProgress.step}</p>
+                
+                {importProgress.totalFiles > 1 && (
+                  <div className="w-full max-w-xs">
+                    <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                        style={{ width: `${(importProgress.currentFile / importProgress.totalFiles) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-blue-400 mt-1">{Math.round((importProgress.currentFile / importProgress.totalFiles) * 100)}%</p>
+                  </div>
+                )}
               </div>
-              <p className="text-slate-800 font-bold text-lg mb-1">
-                {isImporting ? 'Processing...' : 
-                 (importType === 'roster' && !sd3Access.isUnlocked) ? 'Upgrade to Import' :
-                 'Drag & drop or click to upload'}
-              </p>
-            </div>
+            ) : (
+              <div 
+                onClick={() => {
+                  if (importType === 'roster' && !sd3Access.isUnlocked) {
+                    window.dispatchEvent(new CustomEvent('navigate', { detail: 'billing' }));
+                    return;
+                  }
+                  fileInputRef.current.click();
+                }} 
+                className={`border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center mb-6 group cursor-pointer transition-colors ${
+                  importType === 'roster' && !sd3Access.isUnlocked
+                    ? 'border-slate-200 bg-slate-50 opacity-90'
+                    : importType === 'results' 
+                      ? 'border-yellow-300 hover:bg-yellow-50 bg-slate-50' 
+                      : 'border-slate-300 hover:bg-slate-100 hover:border-blue-400 bg-slate-50'
+                }`}
+              >
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform ${
+                  importType === 'results' 
+                    ? 'bg-yellow-100 text-yellow-600' 
+                    : 'bg-blue-100 text-blue-600'
+                }`}>
+                  <Icon name={importType === 'results' ? 'trophy' : 'file-up'} size={24} />
+                </div>
+                <p className="text-slate-800 font-bold text-lg mb-1">
+                  {(importType === 'roster' && !sd3Access.isUnlocked) ? 'Upgrade to Import' :
+                   'Drag & drop or click to upload'}
+                </p>
+                {importType === 'results' && (
+                  <p className="text-slate-400 text-sm">You can select multiple files at once</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
