@@ -40,7 +40,13 @@ export default function SwimmerProfile({
   const [uploadingResultId, setUploadingResultId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [course, setCourse] = useState(swimmer?.preferred_course || 'SCY');
+  const [standardsAge, setStandardsAge] = useState(swimmer?.age || null);
   const videoInputRef = useRef(null);
+
+  // Reset standards age when swimmer changes
+  useEffect(() => {
+    setStandardsAge(swimmer?.age || null);
+  }, [swimmer?.id]);
 
   // Update course when swimmer changes (respect their preference)
   useEffect(() => {
@@ -233,35 +239,59 @@ export default function SwimmerProfile({
   return (
     <div className="p-4 md:p-8 space-y-8 overflow-y-auto h-full pb-24 md:pb-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500">
-            <Icon name="chevron-left" size={24}/>
-          </button>
-          <div>
-            <h2 className="text-3xl font-bold text-slate-900">{swimmer.name}</h2>
-            <div className="flex items-center gap-3 mt-1">
-              <p className="text-slate-500">
-                {swimmer.group_name || 'Unassigned'} • {swimmer.age || 'N/A'} Years Old
-              </p>
-              {/* Course Toggle */}
-              <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
-                {['SCY', 'LCM'].map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => handleCourseChange(c)}
-                    className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
-                      course === c
-                        ? 'bg-white text-blue-700 shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
+      <div className="space-y-4">
+        {/* Top row: name + controls */}
+        <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
+          <div className="flex items-center gap-4">
+            <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500">
+              <Icon name="chevron-left" size={24}/>
+            </button>
+            <div>
+              <h2 className="text-3xl font-bold text-slate-900">{swimmer.name}</h2>
+              <div className="flex items-center gap-3 mt-1">
+                <p className="text-slate-500">
+                  {swimmer.group_name || 'Unassigned'} • {swimmer.age || 'N/A'} Years Old
+                </p>
+                {/* Course Toggle */}
+                <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+                  {['SCY', 'LCM'].map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => handleCourseChange(c)}
+                      className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                        course === c
+                          ? 'bg-white text-blue-700 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
+
+          {/* View Standards For dropdown */}
+          {swimmer.age && (
+            <div className="flex items-center gap-2 shrink-0">
+              <label className="text-sm text-slate-500 whitespace-nowrap">View Standards For:</label>
+              <select
+                value={standardsAge ?? swimmer.age}
+                onChange={(e) => setStandardsAge(Number(e.target.value))}
+                className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+              >
+                {Array.from({ length: 19 - (swimmer.age || 6) + 1 }, (_, i) => (swimmer.age || 6) + i)
+                  .filter(a => a >= 6 && a <= 19)
+                  .map(a => (
+                    <option key={a} value={a}>
+                      Age {a}{a === swimmer.age ? ' (Current)' : ''}
+                    </option>
+                  ))
+                }
+              </select>
+            </div>
+          )}
         </div>
         
         {/* Tab Navigation */}
@@ -376,7 +406,7 @@ export default function SwimmerProfile({
                 eventName={selectedEvent}
                 bestTime={bestTimeOverall}
                 gender={swimmer.gender || 'M'} 
-                age={swimmer.age}
+                age={standardsAge ?? swimmer.age}
                 course={course}
               />
             )}
@@ -385,7 +415,7 @@ export default function SwimmerProfile({
           {/* Motivational Times Progress Chart */}
           <MotivationalTimesChart 
             swimmerId={swimmer.id}
-            age={swimmer.age}
+            age={standardsAge ?? swimmer.age}
             gender={swimmer.gender || 'M'}
             course={course}
           />
@@ -394,14 +424,14 @@ export default function SwimmerProfile({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <TrophyCase 
               swimmerId={swimmer.id}
-              age={swimmer.age}
+              age={standardsAge ?? swimmer.age}
               gender={swimmer.gender || 'M'}
               course={course}
             />
 
             <VersatilityChart 
               swimmerId={swimmer.id} 
-              age={swimmer.age} 
+              age={standardsAge ?? swimmer.age} 
               gender={swimmer.gender || 'M'}
               course={course}
             />
