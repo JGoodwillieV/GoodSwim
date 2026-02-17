@@ -150,15 +150,11 @@ export async function extractLinesFromPDF(file) {
 
 /**
  * Parse a SportsEngine-like "Member Directory" PDF into swimmer-like rows.
- * Returns: [{ name, group_name, date_of_birth }]
+ * Returns: [{ name, group_name, date_of_birth, usa_swimming_id, parent_email, parent_account_name }]
  */
 export async function parseMemberDirectoryPDF(file) {
   const rawLines = await extractLinesFromPDF(file);
   const lines = rawLines.filter(l => !isNoiseLine(l));
-
-  // DEBUG: Log extracted lines to console
-  console.log('[PDF Parser] Extracted lines:', rawLines.slice(0, 20));
-  console.log('[PDF Parser] Filtered lines:', lines.slice(0, 15));
 
   const results = [];
   let buffer = '';
@@ -170,21 +166,29 @@ export async function parseMemberDirectoryPDF(file) {
   // This is critical because the PDF has: "AccountLast, AccountFirst MemberLast, MemberFirst"
   // and we need to match these as TWO separate names, not one name with middle parts
   const nameRegex = /[A-Za-z][A-Za-z'\-.]+,\s*[A-Za-z][A-Za-z'\-.]+/g;
+  
+  // USS # (USA Swimming ID) - alphanumeric, typically 12-14 characters
+  const ussRegex = /\b([A-F0-9]{12,14})\b/i;
+  
+  // Email regex
+  const emailRegex = /\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/;
 
   const flushBuffer = (buf) => {
     const dobMatch = dobRegex.exec(buf);
     if (!dobMatch) return;
 
     const dobIdx = dobMatch.index ?? 0;
+    const dobEndIdx = dobIdx + dobMatch[0].length;
 
     // In this PDF format, "Account Name" (parent) and "Member Name" (swimmer) appear in sequence.
-    // Format: "Account Name" "Member Name" "Preferred" "Roster/Group" DOB ...
-    // Example: "Anderson, Kastine Anderson, Marielle CAT 2 8/10/16"
+    // Format: "Account Name" "Member Name" "Preferred" "Roster/Group" DOB USS# Address E-Mail Phone
+    // Example: "Anderson, Kastine Anderson, Marielle CAT 2 8/10/16 A30F8BB0F62D49 ..."
     //           ^-- parent         ^-- swimmer (we want this one)
-    // We want the MEMBER NAME (swimmer), which is the SECOND "Last, First" name in the row.
 
     // Get only the portion of buffer before the DOB for name matching
     const preDob = buf.slice(0, dobIdx);
+    // Get portion after DOB for USS# and email
+    const postDob = buf.slice(dobEndIdx);
     
     const nameMatches = [...preDob.matchAll(nameRegex)]
       .map(m => ({
@@ -208,35 +212,26 @@ export async function parseMemberDirectoryPDF(file) {
 
     if (filteredNameMatches.length === 0) return;
 
-    // DEBUG: Log name matches for troubleshooting
-    console.log('[PDF Parser] Buffer:', preDob);
-    console.log('[PDF Parser] Name matches (raw):', nameMatches);
-    console.log('[PDF Parser] Name matches (filtered):', filteredNameMatches);
-
     // For SportsEngine Member Directory PDFs, the format is ALWAYS:
-    // "Account Name" (parent) | "Member Name" (swimmer) | Preferred | Roster | DOB
+    // "Account Name" (parent) | "Member Name" (swimmer) | Preferred | Roster | DOB | USS# | ...
     // 
     // The buffer may contain leftover text from previous lines (addresses, etc.)
     // After filtering out address-like patterns, we want:
-    // - If 2+ names remain: take the LAST one (Member Name closest to DOB)
-    // - If 1 name remains: use that one
-    // 
-    // We take the LAST name because the buffer accumulates text, and the current
-    // record's names appear AFTER any leftover text from previous records.
-    // 
-    // Examples:
-    //   "Anderson, Kastine Anderson, Marielle CAT 2" → want "Anderson, Marielle" (last of 2)
-    //   "Richmond, VA 23225 Ashby, Brice Ashby, Reese CAT 1" → filter out "Richmond, VA", want "Ashby, Reese" (last of 2)
+    // - If 2+ names remain: LAST is Member Name (swimmer), SECOND-TO-LAST is Account Name (parent)
+    // - If 1 name remains: use that one as swimmer name, no parent account name
 
     let memberNameRaw = null;
     let memberMatchIdx = -1;
+    let parentAccountNameRaw = null;
 
     if (filteredNameMatches.length >= 2) {
       // Take the LAST name match - this is the Member Name (swimmer)
       // The second-to-last is the Account Name (parent)
       const lastMatch = filteredNameMatches[filteredNameMatches.length - 1];
+      const secondToLastMatch = filteredNameMatches[filteredNameMatches.length - 2];
       memberNameRaw = lastMatch.text.trim();
       memberMatchIdx = lastMatch.idx;
+      parentAccountNameRaw = secondToLastMatch.text.trim();
     } else if (filteredNameMatches.length === 1) {
       // Only one name found
       memberNameRaw = filteredNameMatches[0].text.trim();
@@ -246,8 +241,6 @@ export async function parseMemberDirectoryPDF(file) {
     if (!memberNameRaw || memberMatchIdx < 0) return;
 
     // Use the index from the regex match directly, not indexOf
-    // This is critical when the same last name appears in both Account and Member names
-    // (e.g., "Ashby, Brice Ashby, Reese" - indexOf("Ashby, Reese") would be wrong if it matched partial)
     const memberEnd = memberMatchIdx + memberNameRaw.length;
     if (dobIdx < memberEnd) return;
 
@@ -257,11 +250,27 @@ export async function parseMemberDirectoryPDF(file) {
 
     const name = lastCommaFirstToFirstLast(memberNameRaw);
     if (!name) return;
+    
+    // Extract USA Swimming ID (USS #) from text after DOB
+    const ussMatch = ussRegex.exec(postDob);
+    const usa_swimming_id = ussMatch ? ussMatch[1].toUpperCase() : null;
+    
+    // Extract email from text after DOB
+    const emailMatch = emailRegex.exec(postDob);
+    const parent_email = emailMatch ? emailMatch[1].toLowerCase() : null;
+    
+    // Convert parent account name from "Last, First" to "First Last"
+    const parent_account_name = parentAccountNameRaw 
+      ? lastCommaFirstToFirstLast(parentAccountNameRaw) 
+      : null;
 
     results.push({
       name,
       group_name,
-      date_of_birth
+      date_of_birth,
+      usa_swimming_id,
+      parent_email,
+      parent_account_name
     });
   };
 

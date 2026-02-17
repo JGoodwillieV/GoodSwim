@@ -279,6 +279,23 @@ export default function Roster({
     if (incoming.status && !existing.status) patch.status = incoming.status;
     if (typeof incoming.efficiency_score === 'number' && existing.efficiency_score == null) patch.efficiency_score = incoming.efficiency_score;
 
+    // USA Swimming ID: update if incoming provides one and existing is missing or different
+    if (incoming.usa_swimming_id) {
+      if (!existing.usa_swimming_id || existing.usa_swimming_id !== incoming.usa_swimming_id) {
+        patch.usa_swimming_id = incoming.usa_swimming_id;
+      }
+    }
+
+    // Parent email: update if incoming provides one and existing is missing
+    if (incoming.parent_email && !existing.parent_email) {
+      patch.parent_email = incoming.parent_email;
+    }
+
+    // Parent account name: update if incoming provides one and existing is missing
+    if (incoming.parent_account_name && !existing.parent_account_name) {
+      patch.parent_account_name = incoming.parent_account_name;
+    }
+
     const changedKeys = Object.keys(patch).filter(k => k !== 'id');
     return changedKeys.length > 0 ? patch : null;
   };
@@ -539,15 +556,20 @@ export default function Roster({
             status: 'New',
             efficiency_score: 70,
             age: p.date_of_birth ? (() => {
-              const dob = new Date(p.date_of_birth);
+              // Parse date_of_birth as local date to avoid timezone issues
+              const [year, month, day] = p.date_of_birth.split('-').map(Number);
+              const dob = new Date(year, month - 1, day);
               const today = new Date();
               let age = today.getFullYear() - dob.getFullYear();
               const m = today.getMonth() - dob.getMonth();
               if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
               return age;
             })() : null,
-            gender: null,
+            gender: null, // Not available in SportsEngine PDF
             date_of_birth: p.date_of_birth || null,
+            usa_swimming_id: p.usa_swimming_id || null,
+            parent_email: p.parent_email || null,
+            parent_account_name: p.parent_account_name || null,
             coach_id: userId,
             team_id: teamId
           }));
@@ -740,11 +762,12 @@ export default function Roster({
                   {s.age || '-'}
                 </td>
                 <td className="px-6 py-4 text-slate-600">
-                  {s.date_of_birth ? new Date(s.date_of_birth).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: '2-digit', 
-                    day: '2-digit' 
-                  }) : '-'}
+                  {s.date_of_birth ? (() => {
+                    // Parse as local date to avoid timezone shift
+                    // date_of_birth is stored as YYYY-MM-DD, parse parts directly
+                    const [year, month, day] = s.date_of_birth.split('-').map(Number);
+                    return `${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}/${year}`;
+                  })() : '-'}
                 </td>
                 <td className="px-6 py-4 text-right">
                   <button className="text-slate-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
