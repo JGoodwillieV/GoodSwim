@@ -194,35 +194,53 @@ export async function parseMemberDirectoryPDF(file) {
       }))
       .filter(m => m.idx >= 0);
 
-    if (nameMatches.length === 0) return;
+    // Filter out false positives that look like "Last, First" but are actually addresses
+    // e.g., "Richmond, VA" or "Glen, Allen" - these have state abbreviations or known city names
+    const stateAbbreviations = /^(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)$/i;
+    const filteredNameMatches = nameMatches.filter(m => {
+      const parts = m.text.split(',').map(s => s.trim());
+      if (parts.length !== 2) return true; // keep it, not a simple "X, Y" pattern
+      const afterComma = parts[1].split(/\s+/)[0]; // first word after comma
+      // Exclude if the part after the comma is a state abbreviation
+      if (stateAbbreviations.test(afterComma)) return false;
+      return true;
+    });
+
+    if (filteredNameMatches.length === 0) return;
 
     // DEBUG: Log name matches for troubleshooting
     console.log('[PDF Parser] Buffer:', preDob);
-    console.log('[PDF Parser] Name matches:', nameMatches);
+    console.log('[PDF Parser] Name matches (raw):', nameMatches);
+    console.log('[PDF Parser] Name matches (filtered):', filteredNameMatches);
 
     // For SportsEngine Member Directory PDFs, the format is ALWAYS:
     // "Account Name" (parent) | "Member Name" (swimmer) | Preferred | Roster | DOB
     // 
-    // The SECOND "Last, First" name is always the swimmer (Member Name).
-    // If there's only one name, use that one.
+    // The buffer may contain leftover text from previous lines (addresses, etc.)
+    // After filtering out address-like patterns, we want:
+    // - If 2+ names remain: take the LAST one (Member Name closest to DOB)
+    // - If 1 name remains: use that one
+    // 
+    // We take the LAST name because the buffer accumulates text, and the current
+    // record's names appear AFTER any leftover text from previous records.
     // 
     // Examples:
-    //   "Anderson, Kastine Anderson, Marielle CAT 2 8/10/16" → want "Anderson, Marielle"
-    //   "Neal, MaryKate Bessellieu, Deacon CAT 3 10/24/13"   → want "Bessellieu, Deacon"
-    //   "Andrews, Harrison Andrews, Harrison Coaches 6/6/97" → want "Andrews, Harrison" (same person is coach)
-    //   "Ashby, Brice Ashby, Reese CAT 1 2/25/19"           → want "Ashby, Reese"
+    //   "Anderson, Kastine Anderson, Marielle CAT 2" → want "Anderson, Marielle" (last of 2)
+    //   "Richmond, VA 23225 Ashby, Brice Ashby, Reese CAT 1" → filter out "Richmond, VA", want "Ashby, Reese" (last of 2)
 
     let memberNameRaw = null;
     let memberMatchIdx = -1;
 
-    if (nameMatches.length >= 2) {
-      // Standard case: Account Name + Member Name → take the SECOND one (index 1)
-      memberNameRaw = nameMatches[1].text.trim();
-      memberMatchIdx = nameMatches[1].idx;
-    } else if (nameMatches.length === 1) {
-      // Only one name found (unusual, but handle it)
-      memberNameRaw = nameMatches[0].text.trim();
-      memberMatchIdx = nameMatches[0].idx;
+    if (filteredNameMatches.length >= 2) {
+      // Take the LAST name match - this is the Member Name (swimmer)
+      // The second-to-last is the Account Name (parent)
+      const lastMatch = filteredNameMatches[filteredNameMatches.length - 1];
+      memberNameRaw = lastMatch.text.trim();
+      memberMatchIdx = lastMatch.idx;
+    } else if (filteredNameMatches.length === 1) {
+      // Only one name found
+      memberNameRaw = filteredNameMatches[0].text.trim();
+      memberMatchIdx = filteredNameMatches[0].idx;
     }
 
     if (!memberNameRaw || memberMatchIdx < 0) return;
