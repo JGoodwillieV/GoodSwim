@@ -895,6 +895,7 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
   const [schedules, setSchedules] = useState([]);
   const [exceptions, setExceptions] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [teamId, setTeamId] = useState(null);
   
   // Season settings - default to current school year
   const [season, setSeason] = useState(() => {
@@ -926,13 +927,34 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
     loadData();
   }, []);
 
+  const ensureTeamId = async () => {
+    if (teamId) return teamId;
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
+    if (!user) throw new Error('Not signed in');
+
+    const { data: teamMember, error } = await supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) throw error;
+    if (!teamMember?.team_id) throw new Error('No team association found');
+    setTeamId(teamMember.team_id);
+    return teamMember.team_id;
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
+      const currentTeamId = await ensureTeamId();
+
       // Load schedules
       const { data: schedulesData, error: schedulesError } = await supabase
         .from('practice_schedules')
         .select('*')
+        .eq('team_id', currentTeamId)
         .order('display_order', { ascending: true })
         .order('group_name', { ascending: true })
         .order('day_of_week', { ascending: true })
@@ -972,6 +994,7 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
       const { data: exceptionsData, error: exceptionsError } = await supabase
         .from('practice_schedule_exceptions')
         .select('*')
+        .eq('team_id', currentTeamId)
         .order('exception_date', { ascending: true });
 
       if (exceptionsError) {
@@ -1023,8 +1046,10 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const currentTeamId = await ensureTeamId();
 
       const slotData = {
+        team_id: currentTeamId,
         group_name: selectedGroup,
         day_of_week: selectedDay,
         activity_type: formData.activity_type,
@@ -1035,7 +1060,6 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
         season_start_date: season.startDate,
         season_end_date: season.endDate,
         updated_at: new Date().toISOString()
-        // Note: created_by omitted to avoid auth.users permission issues
       };
 
       console.log('Saving slot data:', slotData);
@@ -1055,9 +1079,10 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
         console.log('Updated:', data);
       } else {
         // Insert new
+        const insertData = { ...slotData, created_by: user?.id || null };
         const { data, error } = await supabase
           .from('practice_schedules')
-          .insert([slotData])
+          .insert([insertData])
           .select();
 
         if (error) {
@@ -1113,6 +1138,7 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
   // Handle copying day schedule to other days
   const handleCopyDay = async (sourceGroup, sourceDay, targetDays) => {
     try {
+      const currentTeamId = await ensureTeamId();
       const sourceSlotsData = getSlotsForGroupDay(sourceGroup, sourceDay);
       
       if (sourceSlotsData.length === 0) {
@@ -1138,6 +1164,7 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
 
         // Now insert copies of source slots for target day
         const newSlots = sourceSlotsData.map(slot => ({
+          team_id: currentTeamId,
           group_name: sourceGroup,
           day_of_week: targetDay,
           activity_type: slot.activity_type,
@@ -1173,6 +1200,7 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
   const handleSaveException = async (formData) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      const currentTeamId = await ensureTeamId();
 
       // Generate dates between start and end
       const startDate = new Date(formData.startDate);
@@ -1183,13 +1211,14 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
       
       while (currentDate <= endDate) {
         exceptionsToInsert.push({
+          team_id: currentTeamId,
           exception_date: currentDate.toISOString().split('T')[0],
           group_name: formData.groupName || null,
           exception_type: formData.exceptionType,
           new_start_time: formData.newStartTime || null,
           new_end_time: formData.newEndTime || null,
-          reason: formData.reason
-          // Note: created_by omitted to avoid auth.users permission issues
+          reason: formData.reason,
+          created_by: user?.id || null
         });
         currentDate.setDate(currentDate.getDate() + 1);
       }
@@ -1215,13 +1244,14 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
     // Update all existing schedules with new season dates
     if (schedules.length > 0) {
       try {
+        const currentTeamId = await ensureTeamId();
         const { error } = await supabase
           .from('practice_schedules')
           .update({
             season_start_date: seasonData.startDate,
             season_end_date: seasonData.endDate
           })
-          .gte('created_at', '1900-01-01'); // Update all
+          .eq('team_id', currentTeamId);
 
         if (error) throw error;
         await loadData();

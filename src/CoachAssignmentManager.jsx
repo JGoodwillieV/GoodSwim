@@ -868,6 +868,7 @@ export default function CoachAssignmentManager({ onBack, onScheduleNavigate }) {
   const [groups, setGroups] = useState([]);
   const [practiceSchedules, setPracticeSchedules] = useState([]);
   const [overrides, setOverrides] = useState([]);
+  const [teamId, setTeamId] = useState(null);
 
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
@@ -891,29 +892,53 @@ export default function CoachAssignmentManager({ onBack, onScheduleNavigate }) {
     loadData();
   }, []);
 
+  const ensureTeamId = async () => {
+    if (teamId) return teamId;
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
+    if (!user) throw new Error('Not signed in');
+
+    const { data: teamMember, error } = await supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) throw error;
+    if (!teamMember?.team_id) throw new Error('No team association found');
+    setTeamId(teamMember.team_id);
+    return teamMember.team_id;
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
+      const currentTeamId = await ensureTeamId();
+
       const { data: staffData } = await supabase
         .from('staff_members')
         .select('*')
+        .eq('team_id', currentTeamId)
         .eq('is_active', true)
         .order('name');
 
       const { data: assignmentsData } = await supabase
         .from('coach_group_assignments')
         .select('*')
+        .eq('team_id', currentTeamId)
         .or(`end_date.is.null,end_date.gte.${new Date().toISOString().split('T')[0]}`);
 
       const { data: schedulesData } = await supabase
         .from('practice_schedules')
         .select('*')
+        .eq('team_id', currentTeamId)
         .order('group_name')
         .order('day_of_week');
 
       const { data: overridesData } = await supabase
         .from('coach_assignment_overrides')
         .select('*')
+        .eq('team_id', currentTeamId)
         .gte('override_date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
         .order('override_date');
 
@@ -934,16 +959,18 @@ export default function CoachAssignmentManager({ onBack, onScheduleNavigate }) {
   // Save staff member
   const handleSaveStaff = async (staffData) => {
     try {
+      const currentTeamId = await ensureTeamId();
       if (editingStaff) {
         const { error } = await supabase
           .from('staff_members')
           .update({ ...staffData, updated_at: new Date().toISOString() })
-          .eq('id', editingStaff.id);
+          .eq('id', editingStaff.id)
+          .eq('team_id', currentTeamId);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('staff_members')
-          .insert([staffData]);
+          .insert([{ ...staffData, team_id: currentTeamId }]);
         if (error) throw error;
       }
 
@@ -959,11 +986,15 @@ export default function CoachAssignmentManager({ onBack, onScheduleNavigate }) {
   // Save recurring assignments (enhanced with day_of_week)
   const handleSaveAssignments = async (staff, assignmentData) => {
     try {
+      const currentTeamId = await ensureTeamId();
+      const { data: { user } } = await supabase.auth.getUser();
+
       // Delete all existing assignments for this staff member
       await supabase
         .from('coach_group_assignments')
         .delete()
-        .eq('coach_id', staff.id);
+        .eq('coach_id', staff.id)
+        .eq('team_id', currentTeamId);
 
       // Build new assignment rows
       const newAssignments = [];
@@ -971,21 +1002,27 @@ export default function CoachAssignmentManager({ onBack, onScheduleNavigate }) {
         if (allDays || selectedDays.size === 0) {
           // "All days" = single row with day_of_week = null
           newAssignments.push({
+            team_id: currentTeamId,
             coach_id: staff.id,
             coach_name: staff.name,
             group_name,
             day_of_week: null,
-            effective_date: new Date().toISOString().split('T')[0]
+            effective_date: new Date().toISOString().split('T')[0],
+            created_by: user?.id || null,
+            updated_at: new Date().toISOString()
           });
         } else {
           // Specific days = one row per day
           selectedDays.forEach(day => {
             newAssignments.push({
+              team_id: currentTeamId,
               coach_id: staff.id,
               coach_name: staff.name,
               group_name,
               day_of_week: day,
-              effective_date: new Date().toISOString().split('T')[0]
+              effective_date: new Date().toISOString().split('T')[0],
+              created_by: user?.id || null,
+              updated_at: new Date().toISOString()
             });
           });
         }
@@ -1010,13 +1047,18 @@ export default function CoachAssignmentManager({ onBack, onScheduleNavigate }) {
   // Save override
   const handleSaveOverride = async (formData) => {
     try {
+      const currentTeamId = await ensureTeamId();
+      const { data: { user } } = await supabase.auth.getUser();
+
       const overrideData = {
+        team_id: currentTeamId,
         override_date: formData.override_date,
         group_name: formData.group_name,
         override_type: formData.override_type,
         original_coach_id: formData.original_coach_id || null,
         replacement_coach_id: formData.replacement_coach_id || null,
-        reason: formData.reason || null
+        reason: formData.reason || null,
+        created_by: user?.id || null
       };
 
       const { error } = await supabase
@@ -1038,15 +1080,18 @@ export default function CoachAssignmentManager({ onBack, onScheduleNavigate }) {
     if (!confirm(`Remove ${staff.name} from staff list?`)) return;
 
     try {
+      const currentTeamId = await ensureTeamId();
       await supabase
         .from('coach_group_assignments')
         .delete()
-        .eq('coach_id', staff.id);
+        .eq('coach_id', staff.id)
+        .eq('team_id', currentTeamId);
 
       const { error } = await supabase
         .from('staff_members')
         .update({ is_active: false })
-        .eq('id', staff.id);
+        .eq('id', staff.id)
+        .eq('team_id', currentTeamId);
 
       if (error) throw error;
       await loadData();
