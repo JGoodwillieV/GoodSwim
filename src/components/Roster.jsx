@@ -502,15 +502,11 @@ export default function Roster({
           let breaks = [];
           try {
             breaks = await checkMultipleResults(newEntries) || [];
-            if (breaks.length > 0) {
-              setRecordBreaks(prev => [...(prev || []), ...breaks]);
-              setShowRecordModal(true);
-            }
           } catch (err) {
             console.error('Error checking for record breaks:', err);
           }
           
-          return { imported: newEntries.length, duplicates: entriesToInsert.length - newEntries.length, genderUpdates: genderUpdateCount, recordBreaks: breaks.length };
+          return { imported: newEntries.length, duplicates: entriesToInsert.length - newEntries.length, genderUpdates: genderUpdateCount, recordBreaks: breaks };
         }
       } else {
         return { imported: 0, duplicates: entriesToInsert.length, genderUpdates: 0, recordBreaks: 0 };
@@ -621,8 +617,8 @@ export default function Roster({
 
       let totalImported = 0;
       let totalDuplicates = 0;
-      let totalRecordBreaks = 0;
       let totalGenderUpdates = 0;
+      const allRecordBreaks = [];
       const errors = [];
 
       for (let i = 0; i < resultFiles.length; i++) {
@@ -645,8 +641,10 @@ export default function Roster({
           } else if (result) {
             totalImported += result.imported || 0;
             totalDuplicates += result.duplicates || 0;
-            totalRecordBreaks += result.recordBreaks || 0;
             totalGenderUpdates += result.genderUpdates || 0;
+            if (result.recordBreaks?.length) {
+              allRecordBreaks.push(...result.recordBreaks);
+            }
           }
         } catch (err) {
           console.error(`Error processing ${file.name}:`, err);
@@ -654,12 +652,18 @@ export default function Roster({
         }
       }
 
+      // Show record modal only after ALL files are done
+      if (allRecordBreaks.length > 0) {
+        setRecordBreaks(allRecordBreaks);
+        setShowRecordModal(true);
+      }
+
       // Show final summary
       setImportProgress(prev => ({ ...prev, step: 'Complete!' }));
       
       let summary = `Imported ${totalImported} results`;
       if (totalDuplicates > 0) summary += ` (${totalDuplicates} duplicates skipped)`;
-      if (totalRecordBreaks > 0) summary += `\n\n${totalRecordBreaks} TEAM RECORD(S) BROKEN! Check the modal.`;
+      if (allRecordBreaks.length > 0) summary += `\n\n${allRecordBreaks.length} TEAM RECORD(S) BROKEN! Check the modal.`;
       if (totalGenderUpdates > 0) summary += `\n\nUpdated gender for ${totalGenderUpdates} swimmer(s).`;
       if (resultFiles.length > 1) summary = `Processed ${resultFiles.length} files.\n\n${summary}`;
       if (errors.length > 0) summary += `\n\nErrors:\n${errors.join('\n')}`;
