@@ -140,14 +140,39 @@ export async function parseMemberDirectoryPDF(file) {
     const bufLower = buf.toLowerCase();
     const dobIdx = dobMatch.index ?? bufLower.indexOf(dobMatch[0].toLowerCase());
 
-    // In this PDF format, "Account Name" (parent) appears before "Member Name" (swimmer).
-    // Rather than assuming order, pick the LAST "Last, First ..." name chunk before the DOB.
+    // In this PDF format, "Account Name" (parent) and "Member Name" (swimmer) can both appear.
+    // We want the swimmer, which is typically the name closest to DOB and followed by the group label.
+    const groupHintRegex = /\b(CAT\s*\d+|Coaches|Board\s+Members|Tropical\s+Storm)\b/i;
+
     const nameMatches = [...buf.matchAll(nameRegex)]
-      .map(m => ({ text: m[0], idx: typeof m.index === 'number' ? m.index : -1 }))
-      .filter(m => m.idx >= 0 && (dobIdx < 0 || m.idx < dobIdx));
+      .map(m => ({
+        text: m[0],
+        idx: typeof m.index === 'number' ? m.index : -1,
+        len: String(m[0] || '').length
+      }))
+      .filter(m => m.idx >= 0);
 
     if (nameMatches.length === 0) return;
-    const memberNameRaw = nameMatches[nameMatches.length - 1].text.trim();
+
+    // Score candidates: prefer names that occur BEFORE DOB, with smallest gap to DOB,
+    // and where the text between name and DOB looks like it contains a group label.
+    const scored = nameMatches
+      .map((m) => {
+        const end = m.idx + m.len;
+        const gap = (dobIdx >= 0 && end <= dobIdx) ? (dobIdx - end) : Number.POSITIVE_INFINITY;
+        const between = (dobIdx >= 0 && end <= dobIdx)
+          ? buf.slice(end, dobIdx).replace(/\s+/g, ' ').trim()
+          : '';
+        const hasGroupHint = between ? groupHintRegex.test(between) : false;
+        // Hard preference for group-hint matches; then closeness to DOB.
+        const score = (hasGroupHint ? 0 : 1000000) + gap;
+        return { ...m, gap, hasGroupHint, score };
+      })
+      .sort((a, b) => a.score - b.score);
+
+    // Pick best match; if none are before DOB, fall back to the last name in buffer.
+    const best = scored[0];
+    const memberNameRaw = (best && Number.isFinite(best.gap)) ? best.text.trim() : nameMatches[nameMatches.length - 1].text.trim();
 
     const memberIdx = bufLower.indexOf(memberNameRaw.toLowerCase());
     if (memberIdx < 0) return;
