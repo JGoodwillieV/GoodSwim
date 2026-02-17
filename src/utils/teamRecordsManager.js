@@ -101,12 +101,18 @@ export async function checkForRecordBreak(result) {
     // 1. Get swimmer info
     const { data: swimmer, error: swimmerError } = await supabase
       .from('swimmers')
-      .select('name, date_of_birth, gender')
+      .select('name, date_of_birth, gender, team_id')
       .eq('id', result.swimmer_id)
       .single();
     
     if (swimmerError || !swimmer) {
       console.error('  ❌ Error fetching swimmer:', swimmerError);
+      return null;
+    }
+
+    const teamId = result.team_id || swimmer.team_id || null;
+    if (!teamId) {
+      console.error('  ❌ Missing team_id for record check:', { result, swimmer });
       return null;
     }
     
@@ -148,10 +154,13 @@ export async function checkForRecordBreak(result) {
     const { data: currentRecord, error: recordError } = await supabase
       .from('team_records')
       .select('*')
+      .eq('team_id', teamId)
       .eq('event', eventName)
       .eq('age_group', ageGroup)
       .eq('gender', gender)
       .eq('course', course)
+      .order('time_seconds', { ascending: true })
+      .limit(1)
       .maybeSingle(); // Use maybeSingle to avoid error if no record exists
     
     if (recordError) {
@@ -171,6 +180,7 @@ export async function checkForRecordBreak(result) {
     
     if (isNewRecord) {
       const recordBreak = {
+        team_id: teamId,
         swimmer_id: result.swimmer_id,
         swimmer_name: swimmer.name,
         event: eventName,
@@ -235,7 +245,7 @@ function deduplicateRecordBreaks(recordBreaks) {
   const map = new Map();
   
   for (const record of recordBreaks) {
-    const key = `${record.event}|${record.age_group}|${record.gender}`;
+    const key = `${record.team_id}|${record.course || 'SCY'}|${record.event}|${record.age_group}|${record.gender}`;
     const existing = map.get(key);
     
     if (!existing || record.time_seconds < existing.time_seconds) {
@@ -258,8 +268,14 @@ function deduplicateRecordBreaks(recordBreaks) {
 export async function updateTeamRecord(recordBreak) {
   try {
     const course = recordBreak.course || 'SCY';
+    const teamId = recordBreak.team_id || null;
+    if (!teamId) {
+      console.error('Error updating team record: missing team_id', recordBreak);
+      return false;
+    }
     
     const recordData = {
+      team_id: teamId,
       event: recordBreak.event,
       age_group: recordBreak.age_group,
       gender: recordBreak.gender,
@@ -273,6 +289,7 @@ export async function updateTeamRecord(recordBreak) {
     
     // 1. Log to record history FIRST (before updating current record)
     const historyData = {
+      team_id: teamId,
       event: recordBreak.event,
       age_group: recordBreak.age_group,
       gender: recordBreak.gender,
@@ -308,9 +325,11 @@ export async function updateTeamRecord(recordBreak) {
         .update({ 
           held_until: new Date().toISOString()
         })
+        .eq('team_id', teamId)
         .eq('event', recordBreak.event)
         .eq('age_group', recordBreak.age_group)
         .eq('gender', recordBreak.gender)
+        .eq('course', course)
         .eq('swimmer_name', recordBreak.previous_record.swimmer_name)
         .eq('time_seconds', recordBreak.previous_record.time_seconds)
         .is('held_until', null); // Only update current record holder
@@ -320,10 +339,13 @@ export async function updateTeamRecord(recordBreak) {
     const { data: existing } = await supabase
       .from('team_records')
       .select('id')
+      .eq('team_id', teamId)
       .eq('event', recordBreak.event)
       .eq('age_group', recordBreak.age_group)
       .eq('gender', recordBreak.gender)
       .eq('course', course)
+      .order('time_seconds', { ascending: true })
+      .limit(1)
       .maybeSingle();
     
     // 4. Update or insert current team record
