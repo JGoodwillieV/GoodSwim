@@ -131,17 +131,20 @@ export async function parseMemberDirectoryPDF(file) {
 
   // Example DOB: 8/10/16
   const dobRegex = /\b(\d{1,2})\/(\d{1,2})\/(\d{2})\b/;
-  const nameRegex = /[A-Za-z][A-Za-z'\-.]+,\s*[A-Za-z][A-Za-z'\-.]+(?:\s+[A-Za-z][A-Za-z'\-.]+)*/g;
+  // Match "Last, First" names - more restrictive to avoid capturing too much
+  // Allows: Last, First or Last, First Middle (but stops at group keywords)
+  const nameRegex = /[A-Za-z][A-Za-z'\-.]+,\s*[A-Za-z][A-Za-z'\-.]+(?:\s+[A-Za-z][A-Za-z'\-.]+)?/g;
 
   const flushBuffer = (buf) => {
     const dobMatch = dobRegex.exec(buf);
     if (!dobMatch) return;
 
-    const bufLower = buf.toLowerCase();
-    const dobIdx = dobMatch.index ?? bufLower.indexOf(dobMatch[0].toLowerCase());
+    const dobIdx = dobMatch.index ?? 0;
 
-    // In this PDF format, "Account Name" (parent) and "Member Name" (swimmer) can both appear.
-    // We want the swimmer, which is typically the name closest to DOB and followed by the group label.
+    // In this PDF format, "Account Name" (parent) and "Member Name" (swimmer) appear in sequence.
+    // Format: "Account Name" "Member Name" "Preferred" "Roster/Group" DOB ...
+    // We want the MEMBER NAME (swimmer), which is the SECOND "Last, First" name in the row,
+    // and it's immediately followed by the group/roster label (CAT, Coaches, etc.)
     const groupHintRegex = /\b(CAT\s*\d+|Coaches|Board\s+Members|Tropical\s+Storm)\b/i;
 
     const nameMatches = [...buf.matchAll(nameRegex)]
@@ -150,34 +153,57 @@ export async function parseMemberDirectoryPDF(file) {
         idx: typeof m.index === 'number' ? m.index : -1,
         len: String(m[0] || '').length
       }))
-      .filter(m => m.idx >= 0);
+      .filter(m => m.idx >= 0 && m.idx < dobIdx); // Only names before DOB
 
     if (nameMatches.length === 0) return;
 
-    // Score candidates: prefer names that occur BEFORE DOB, with smallest gap to DOB,
-    // and where the text between name and DOB looks like it contains a group label.
-    const scored = nameMatches
-      .map((m) => {
-        const end = m.idx + m.len;
-        const gap = (dobIdx >= 0 && end <= dobIdx) ? (dobIdx - end) : Number.POSITIVE_INFINITY;
-        const between = (dobIdx >= 0 && end <= dobIdx)
-          ? buf.slice(end, dobIdx).replace(/\s+/g, ' ').trim()
-          : '';
-        const hasGroupHint = between ? groupHintRegex.test(between) : false;
-        // Hard preference for group-hint matches; then closeness to DOB.
-        const score = (hasGroupHint ? 0 : 1000000) + gap;
-        return { ...m, gap, hasGroupHint, score };
-      })
-      .sort((a, b) => a.score - b.score);
+    // For SportsEngine Member Directory PDFs:
+    // - First name match = Account Name (parent)
+    // - Second name match = Member Name (swimmer) - THIS IS WHAT WE WANT
+    // 
+    // The member name is followed by optional "Preferred" name, then the group label.
+    // We identify the correct name by finding the one where the text IMMEDIATELY after it
+    // contains the group label (after stripping out any "preferred" nickname).
 
-    // Pick best match; if none are before DOB, fall back to the last name in buffer.
-    const best = scored[0];
-    const memberNameRaw = (best && Number.isFinite(best.gap)) ? best.text.trim() : nameMatches[nameMatches.length - 1].text.trim();
+    let memberNameRaw = null;
+    let bestScore = Number.POSITIVE_INFINITY;
 
-    const memberIdx = bufLower.indexOf(memberNameRaw.toLowerCase());
+    for (const match of nameMatches) {
+      const end = match.idx + match.len;
+      const between = buf.slice(end, dobIdx).replace(/\s+/g, ' ').trim();
+      
+      if (!groupHintRegex.test(between)) continue;
+      
+      // Find where the group hint starts in the "between" text
+      const groupMatch = groupHintRegex.exec(between);
+      if (!groupMatch) continue;
+      
+      // The "gap" is how many characters until the group label appears
+      // The swimmer's name should have the smallest gap (group appears right after name or preferred name)
+      const gapToGroup = groupMatch.index;
+      
+      // Prefer names that are closer to the group label
+      if (gapToGroup < bestScore) {
+        bestScore = gapToGroup;
+        memberNameRaw = match.text.trim();
+      }
+    }
+
+    // Fallback: if no name has a group hint directly after it, use the last name before DOB
+    // (In standard format, this would be the Member Name)
+    if (!memberNameRaw && nameMatches.length > 0) {
+      // Prefer the second name if there are two (Account, Member pattern)
+      memberNameRaw = nameMatches.length >= 2 
+        ? nameMatches[1].text.trim() 
+        : nameMatches[nameMatches.length - 1].text.trim();
+    }
+
+    if (!memberNameRaw) return;
+
+    const memberIdx = buf.toLowerCase().indexOf(memberNameRaw.toLowerCase());
     if (memberIdx < 0) return;
     const memberEnd = memberIdx + memberNameRaw.length;
-    if (dobIdx < 0 || dobIdx < memberEnd) return;
+    if (dobIdx < memberEnd) return;
 
     const tail = buf.slice(memberEnd, dobIdx).replace(/\s+/g, ' ').trim();
     const group_name = deriveGroupName(tail) || null;
