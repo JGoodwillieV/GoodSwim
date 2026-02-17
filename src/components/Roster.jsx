@@ -346,15 +346,16 @@ export default function Roster({
     const { teamId } = await getUserAndTeamContext();
     const entriesToInsert = [];
     const swimmerMap = {}; 
+    const swimmerGenderUpdates = {}; // Track gender updates for swimmers
     
-    // Build Name Map
+    // Build Name Map (include full swimmer object for gender checking)
     swimmers.forEach(s => {
       if (s?.team_id && s.team_id !== teamId) return;
       const parts = s.name.toLowerCase().trim().split(' ');
       const first = parts[0];
       const last = parts[parts.length - 1];
-      swimmerMap[`${last}, ${first}`] = s.id;
-      swimmerMap[`${last},${first}`] = s.id;
+      swimmerMap[`${last}, ${first}`] = { id: s.id, gender: s.gender };
+      swimmerMap[`${last},${first}`] = { id: s.id, gender: s.gender };
     });
 
     // Skip header (i=1)
@@ -371,18 +372,30 @@ export default function Roster({
       if (!nameCell) continue;
 
       let rawName = String(nameCell).split('\n')[0].replace(/['"]/g, '').trim().toLowerCase();
-      let targetId = null;
+      let swimmerInfo = null;
       
       if (rawName.includes(',')) {
         const p = rawName.split(',');
         const last = p[0].trim();
         const firstChunk = p[1].trim().split(' ')[0]; 
         const key = `${last}, ${firstChunk}`;
-        if (swimmerMap[key]) targetId = swimmerMap[key];
+        if (swimmerMap[key]) swimmerInfo = swimmerMap[key];
       }
 
-      if (targetId) {
+      if (swimmerInfo) {
+        const targetId = swimmerInfo.id;
         let cleanEvent = String(eventCell).replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+        
+        // Extract gender from event cell (e.g., "Male (9-10) 50 Free" or "Female (11-12) 100 Fly")
+        // Only update gender if swimmer doesn't already have one set
+        if (!swimmerInfo.gender && !swimmerGenderUpdates[targetId]) {
+          const eventLower = cleanEvent.toLowerCase();
+          if (eventLower.startsWith('male') || eventLower.includes(' male ') || eventLower.includes('boys')) {
+            swimmerGenderUpdates[targetId] = 'M';
+          } else if (eventLower.startsWith('female') || eventLower.includes(' female ') || eventLower.includes('girls')) {
+            swimmerGenderUpdates[targetId] = 'F';
+          }
+        }
         
         // Handle Date (Excel Object vs CSV String)
         let cleanDate = new Date().toISOString().split('T')[0];
@@ -454,6 +467,32 @@ export default function Roster({
             alert('Database error: ' + msg);
           }
         } else { 
+          // Update swimmer genders if we found any
+          const genderUpdateIds = Object.keys(swimmerGenderUpdates);
+          let genderUpdateCount = 0;
+          if (genderUpdateIds.length > 0) {
+            for (const swimmerId of genderUpdateIds) {
+              const { error: genderError } = await supabase
+                .from('swimmers')
+                .update({ gender: swimmerGenderUpdates[swimmerId] })
+                .eq('id', swimmerId);
+              
+              if (!genderError) {
+                genderUpdateCount++;
+              }
+            }
+            
+            // Refresh swimmers list to reflect gender updates
+            if (genderUpdateCount > 0) {
+              setSwimmers(prev => prev.map(s => {
+                if (swimmerGenderUpdates[s.id]) {
+                  return { ...s, gender: swimmerGenderUpdates[s.id] };
+                }
+                return s;
+              }));
+            }
+          }
+          
           // Check for team record breaks
           console.log('🔍 Checking for team record breaks...');
           
@@ -464,13 +503,16 @@ export default function Roster({
               console.log(`🎉 Found ${breaks.length} team record(s) broken!`, breaks);
               setRecordBreaks(breaks);
               setShowRecordModal(true);
-              alert(`Success! Imported ${newEntries.length} results.\n\n🎉 ${breaks.length} TEAM RECORD(S) BROKEN! Check the modal.`);
+              const genderNote = genderUpdateCount > 0 ? `\n\n📋 Updated gender for ${genderUpdateCount} swimmer(s).` : '';
+              alert(`Success! Imported ${newEntries.length} results.\n\n🎉 ${breaks.length} TEAM RECORD(S) BROKEN! Check the modal.${genderNote}`);
             } else {
-              alert(`Success! Imported ${newEntries.length} results. (${entriesToInsert.length - newEntries.length} skipped as duplicates)`);
+              const genderNote = genderUpdateCount > 0 ? `\n\n📋 Updated gender for ${genderUpdateCount} swimmer(s).` : '';
+              alert(`Success! Imported ${newEntries.length} results. (${entriesToInsert.length - newEntries.length} skipped as duplicates)${genderNote}`);
             }
           } catch (err) {
             console.error('❌ Error checking for record breaks:', err);
-            alert(`Success! Imported ${newEntries.length} results.\n\nNote: Could not check for record breaks. Error: ${err.message}`);
+            const genderNote = genderUpdateCount > 0 ? `\n\n📋 Updated gender for ${genderUpdateCount} swimmer(s).` : '';
+            alert(`Success! Imported ${newEntries.length} results.\n\nNote: Could not check for record breaks. Error: ${err.message}${genderNote}`);
           }
           
           setShowImport(false); 
