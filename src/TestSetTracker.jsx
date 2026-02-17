@@ -32,6 +32,7 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
   const [stroke, setStroke] = useState('Freestyle');
   const [setType, setSetType] = useState('Swim');
   const [targetInterval, setTargetInterval] = useState(90); // seconds
+  const [targetIntervalInput, setTargetIntervalInput] = useState('90'); // string for editing
   const [useInterval, setUseInterval] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   
@@ -50,6 +51,8 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
   const [currentRep, setCurrentRep] = useState(1);
   const [masterClock, setMasterClock] = useState(0);
   const [repStartTime, setRepStartTime] = useState(0);
+  const [repStartTimes, setRepStartTimes] = useState({}); // { repNumber: startTimeMs } - history of all rep start times
+  const [swimmerPendingRep, setSwimmerPendingRep] = useState({}); // { swimmerId: repNumber } - which rep each swimmer is on
   const [results, setResults] = useState({}); // { swimmerId: { 1: timeMs, 2: timeMs, ... } }
   const [lastTap, setLastTap] = useState(null); // For undo functionality
   const [flashingCard, setFlashingCard] = useState(null);
@@ -109,7 +112,7 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
     // Beep at interval
     if (repElapsed >= intervalMs && repElapsed < intervalMs + 100) {
       playBeep();
-      // Auto-advance to next rep
+      // Auto-advance to next rep — swimmers still swimming stay on their current rep
       if (currentRep < reps) {
         advanceRep();
       }
@@ -131,11 +134,14 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
   const handleSwimmerTap = useCallback((swimmerId) => {
     if (!isRunning) return;
     
-    // Check if already recorded for this rep
-    if (results[swimmerId]?.[currentRep] !== undefined) return;
+    // Use the swimmer's pending rep (they may be behind the global rep)
+    const swimmerRep = swimmerPendingRep[swimmerId] || currentRep;
     
-    // Calculate time based on swimmer's individual start time
-    const swimmerStartTime = swimmerStartTimes[swimmerId]?.[currentRep] || repStartTime;
+    // Check if already recorded for this swimmer's current rep
+    if (results[swimmerId]?.[swimmerRep] !== undefined) return;
+    
+    // Calculate time based on swimmer's start time for their specific rep
+    const swimmerStartTime = swimmerStartTimes[swimmerId]?.[swimmerRep] || repStartTimes[swimmerRep] || repStartTime;
     const currentTime = masterClock - swimmerStartTime;
     
     // Record time
@@ -143,31 +149,66 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
       ...prev,
       [swimmerId]: {
         ...prev[swimmerId],
-        [currentRep]: currentTime
+        [swimmerRep]: currentTime
       }
     }));
     
+    // If swimmer is behind, catch them up to the current rep
+    if (swimmerRep < currentRep) {
+      setSwimmerPendingRep(prev => ({
+        ...prev,
+        [swimmerId]: currentRep
+      }));
+      
+      // Set their start time for the current rep if using lanes
+      if (useLanes) {
+        let lanePosition = 0;
+        Object.entries(laneConfig).forEach(([laneNum, swimmers]) => {
+          const idx = swimmers.findIndex(s => s.id === swimmerId);
+          if (idx >= 0) lanePosition = idx;
+        });
+        
+        setSwimmerStartTimes(prev => ({
+          ...prev,
+          [swimmerId]: {
+            ...prev[swimmerId],
+            [currentRep]: (repStartTimes[currentRep] || repStartTime) + (lanePosition * laneStagger * 1000)
+          }
+        }));
+      }
+    }
+    
     // Store for undo
-    setLastTap({ swimmerId, rep: currentRep, time: currentTime });
+    setLastTap({ swimmerId, rep: swimmerRep, time: currentTime });
     
     // Flash animation
     setFlashingCard(swimmerId);
     setTimeout(() => setFlashingCard(null), 300);
     
-  }, [isRunning, masterClock, repStartTime, currentRep, results, swimmerStartTimes]);
+  }, [isRunning, masterClock, repStartTime, repStartTimes, currentRep, results, swimmerStartTimes, swimmerPendingRep, useLanes, laneConfig, laneStagger]);
 
   // Handle missed rep (long press)
   const handleMissedRep = useCallback((swimmerId) => {
     if (!isRunning) return;
     
+    const swimmerRep = swimmerPendingRep[swimmerId] || currentRep;
+    
     setResults(prev => ({
       ...prev,
       [swimmerId]: {
         ...prev[swimmerId],
-        [currentRep]: 'DNS'
+        [swimmerRep]: 'DNS'
       }
     }));
-  }, [isRunning, currentRep]);
+    
+    // If behind, catch them up to the current rep
+    if (swimmerRep < currentRep) {
+      setSwimmerPendingRep(prev => ({
+        ...prev,
+        [swimmerId]: currentRep
+      }));
+    }
+  }, [isRunning, currentRep, swimmerPendingRep]);
 
   // Undo last tap
   const handleUndo = () => {
@@ -178,6 +219,15 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
       delete updated[lastTap.swimmerId][lastTap.rep];
       return updated;
     });
+    
+    // If the swimmer was behind and got caught up on tap, revert them back
+    if (lastTap.rep < currentRep) {
+      setSwimmerPendingRep(prev => ({
+        ...prev,
+        [lastTap.swimmerId]: lastTap.rep
+      }));
+    }
+    
     setLastTap(null);
   };
 
@@ -186,6 +236,12 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
     setIsRunning(true);
     const startTime = masterClock;
     setRepStartTime(startTime);
+    setRepStartTimes({ [currentRep]: startTime });
+    
+    // Initialize all swimmers to rep 1
+    const initialPendingRep = {};
+    selectedSwimmers.forEach(s => { initialPendingRep[s.id] = 1; });
+    setSwimmerPendingRep(initialPendingRep);
     
     // Set individual start times for first rep if using lanes
     if (useLanes) {
@@ -217,17 +273,37 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
     setCurrentRep(nextRep);
     const newRepStart = masterClock;
     setRepStartTime(newRepStart);
+    setRepStartTimes(prev => ({ ...prev, [nextRep]: newRepStart }));
     
-    // Set individual start times for each swimmer if using lanes
+    // Determine which swimmers have finished their current rep and can advance
+    const advancingSwimmers = new Set();
+    selectedSwimmers.forEach(s => {
+      const pendingRep = swimmerPendingRep[s.id] || currentRep;
+      if (results[s.id]?.[pendingRep] !== undefined) {
+        advancingSwimmers.add(s.id);
+      }
+    });
+    
+    // Advance finished swimmers to the next rep; leave others on their current rep
+    setSwimmerPendingRep(prev => {
+      const updated = { ...prev };
+      advancingSwimmers.forEach(id => {
+        updated[id] = nextRep;
+      });
+      return updated;
+    });
+    
+    // Set individual start times for advancing swimmers if using lanes
     if (useLanes) {
       const newStartTimes = { ...swimmerStartTimes };
       Object.entries(laneConfig).forEach(([laneNum, swimmers]) => {
         swimmers.forEach((swimmer, index) => {
-          if (!newStartTimes[swimmer.id]) {
-            newStartTimes[swimmer.id] = {};
+          if (advancingSwimmers.has(swimmer.id)) {
+            if (!newStartTimes[swimmer.id]) {
+              newStartTimes[swimmer.id] = {};
+            }
+            newStartTimes[swimmer.id][nextRep] = newRepStart + (index * laneStagger * 1000);
           }
-          // Each swimmer starts laneStagger seconds after the previous one
-          newStartTimes[swimmer.id][nextRep] = newRepStart + (index * laneStagger * 1000);
         });
       });
       setSwimmerStartTimes(newStartTimes);
@@ -246,7 +322,18 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
       });
       return updated;
     });
-    setRepStartTime(masterClock);
+    const newRepStart = masterClock;
+    setRepStartTime(newRepStart);
+    setRepStartTimes(prev => ({ ...prev, [currentRep]: newRepStart }));
+    
+    // Bring all swimmers to the current rep (reset any behind swimmers)
+    setSwimmerPendingRep(prev => {
+      const updated = { ...prev };
+      selectedSwimmers.forEach(s => {
+        updated[s.id] = currentRep;
+      });
+      return updated;
+    });
   };
 
   // Finish set
@@ -758,8 +845,18 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
                   <div className="flex items-center gap-3">
                     <input
                       type="number"
-                      value={targetInterval}
-                      onChange={(e) => setTargetInterval(Math.max(10, parseInt(e.target.value) || 60))}
+                      value={targetIntervalInput}
+                      onChange={(e) => setTargetIntervalInput(e.target.value)}
+                      onBlur={() => {
+                        const parsed = parseInt(targetIntervalInput);
+                        if (!parsed || parsed < 10) {
+                          setTargetInterval(10);
+                          setTargetIntervalInput('10');
+                        } else {
+                          setTargetInterval(parsed);
+                          setTargetIntervalInput(String(parsed));
+                        }
+                      }}
                       className="w-24 p-2 bg-white border border-slate-200 rounded-lg text-center font-bold text-slate-800"
                     />
                     <span className="text-slate-500">seconds per rep</span>
@@ -1043,20 +1140,25 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
                   <div className="flex items-center justify-between mb-3 px-2">
                     <span className="font-bold text-white text-lg">Lane {laneNum}</span>
                     <span className="text-xs text-slate-400">
-                      {laneConfig[laneNum].filter(s => results[s.id]?.[currentRep] !== undefined).length} / {laneConfig[laneNum].length} finished
+                      {laneConfig[laneNum].filter(s => {
+                        const sRep = swimmerPendingRep[s.id] || currentRep;
+                        return results[s.id]?.[sRep] !== undefined;
+                      }).length} / {laneConfig[laneNum].length} finished
                     </span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                     {laneConfig[laneNum].map((swimmer, lanePosition) => {
-                      const thisRepTime = results[swimmer.id]?.[currentRep];
-                      const lastRepTime = currentRep > 1 ? results[swimmer.id]?.[currentRep - 1] : null;
+                      const swimmerRep = swimmerPendingRep[swimmer.id] || currentRep;
+                      const isBehind = swimmerRep < currentRep;
+                      const thisRepTime = results[swimmer.id]?.[swimmerRep];
+                      const lastRepTime = swimmerRep > 1 ? results[swimmer.id]?.[swimmerRep - 1] : null;
                       const isRecorded = thisRepTime !== undefined;
                       const isDNS = thisRepTime === 'DNS';
                       const isFlashing = flashingCard === swimmer.id;
                       
-                      // Get swimmer's individual start time
-                      const swimmerStartTime = swimmerStartTimes[swimmer.id]?.[currentRep] || repStartTime;
-                      const timeSinceStart = masterClock - swimmerStartTime;
+                      // Get swimmer's individual start time for their current rep
+                      const swimmerStart = swimmerStartTimes[swimmer.id]?.[swimmerRep] || repStartTimes[swimmerRep] || repStartTime;
+                      const timeSinceStart = masterClock - swimmerStart;
                       
                       // Calculate diff from last rep
                       let diff = null;
@@ -1073,11 +1175,13 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
                           className={`
                             relative p-3 rounded-xl text-left transition-all transform
                             ${isFlashing ? 'scale-95 bg-emerald-500' : ''}
-                            ${isRecorded && !isFlashing
-                              ? isDNS 
-                                ? 'bg-slate-700 opacity-50' 
-                                : 'bg-slate-700 border-2 border-emerald-500'
-                              : 'bg-slate-800 hover:bg-slate-700 active:scale-95'
+                            ${isBehind && !isRecorded && !isFlashing
+                              ? 'bg-amber-900/60 border-2 border-amber-500 hover:bg-amber-900/80 active:scale-95'
+                              : isRecorded && !isFlashing
+                                ? isDNS 
+                                  ? 'bg-slate-700 opacity-50' 
+                                  : 'bg-slate-700 border-2 border-emerald-500'
+                                : 'bg-slate-800 hover:bg-slate-700 active:scale-95'
                             }
                             ${!isRunning ? 'opacity-50' : ''}
                           `}
@@ -1090,11 +1194,16 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
                           {/* Swimmer Name */}
                           <div className="font-bold text-base mb-1 truncate pl-7">{swimmer.name}</div>
                           
+                          {/* Behind indicator */}
+                          {isBehind && !isRecorded && (
+                            <div className="text-xs text-amber-400 font-bold mb-0.5">Still on Rep {swimmerRep}</div>
+                          )}
+                          
                           {/* Current Rep Time */}
                           <div className={`text-xl font-mono font-bold ${
                             isRecorded 
                               ? isDNS ? 'text-slate-500' : 'text-emerald-400' 
-                              : timeSinceStart < 0 ? 'text-slate-500' : 'text-slate-400'
+                              : isBehind ? 'text-amber-400' : timeSinceStart < 0 ? 'text-slate-500' : 'text-slate-400'
                           }`}>
                             {isDNS ? 'DNS' : isRecorded ? formatTime(thisRepTime) : timeSinceStart < 0 ? 'Wait...' : formatTime(timeSinceStart)}
                           </div>
@@ -1109,7 +1218,7 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
                           )}
 
                           {/* Start offset indicator */}
-                          {!isRecorded && lanePosition > 0 && (
+                          {!isRecorded && !isBehind && lanePosition > 0 && (
                             <div className="text-xs text-cyan-400 mt-0.5">
                               +{lanePosition * laneStagger}s start
                             </div>
@@ -1132,11 +1241,17 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
             // Standard grid layout
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {selectedSwimmers.map(swimmer => {
-                const thisRepTime = results[swimmer.id]?.[currentRep];
-                const lastRepTime = currentRep > 1 ? results[swimmer.id]?.[currentRep - 1] : null;
+                const swimmerRep = swimmerPendingRep[swimmer.id] || currentRep;
+                const isBehind = swimmerRep < currentRep;
+                const thisRepTime = results[swimmer.id]?.[swimmerRep];
+                const lastRepTime = swimmerRep > 1 ? results[swimmer.id]?.[swimmerRep - 1] : null;
                 const isRecorded = thisRepTime !== undefined;
                 const isDNS = thisRepTime === 'DNS';
                 const isFlashing = flashingCard === swimmer.id;
+                
+                // Use this swimmer's rep start time for their running timer
+                const swimmerRepStart = repStartTimes[swimmerRep] || repStartTime;
+                const swimmerRepTime = masterClock - swimmerRepStart;
                 
                 // Calculate diff from last rep
                 let diff = null;
@@ -1153,25 +1268,32 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
                     className={`
                       relative p-4 rounded-2xl text-left transition-all transform
                       ${isFlashing ? 'scale-95 bg-emerald-500' : ''}
-                      ${isRecorded && !isFlashing
-                        ? isDNS 
-                          ? 'bg-slate-700 opacity-50' 
-                          : 'bg-slate-700 border-2 border-emerald-500'
-                        : 'bg-slate-800 hover:bg-slate-700 active:scale-95'
+                      ${isBehind && !isRecorded && !isFlashing
+                        ? 'bg-amber-900/60 border-2 border-amber-500 hover:bg-amber-900/80 active:scale-95'
+                        : isRecorded && !isFlashing
+                          ? isDNS 
+                            ? 'bg-slate-700 opacity-50' 
+                            : 'bg-slate-700 border-2 border-emerald-500'
+                          : 'bg-slate-800 hover:bg-slate-700 active:scale-95'
                       }
                       ${!isRunning ? 'opacity-50' : ''}
                     `}
                   >
                     {/* Swimmer Name */}
-                    <div className="font-bold text-lg mb-2 truncate">{swimmer.name}</div>
+                    <div className="font-bold text-lg mb-1 truncate">{swimmer.name}</div>
+                    
+                    {/* Behind indicator */}
+                    {isBehind && !isRecorded && (
+                      <div className="text-xs text-amber-400 font-bold mb-1">Still on Rep {swimmerRep}</div>
+                    )}
                     
                     {/* Current Rep Time */}
                     <div className={`text-2xl font-mono font-bold ${
                       isRecorded 
                         ? isDNS ? 'text-slate-500' : 'text-emerald-400' 
-                        : 'text-slate-400'
+                        : isBehind ? 'text-amber-400' : 'text-slate-400'
                     }`}>
-                      {isDNS ? 'DNS' : isRecorded ? formatTime(thisRepTime) : formatTime(repTime)}
+                      {isDNS ? 'DNS' : isRecorded ? formatTime(thisRepTime) : formatTime(swimmerRepTime)}
                     </div>
 
                     {/* Diff indicator */}
