@@ -103,7 +103,7 @@ export default function Roster({
 
   const getUserAndTeamContext = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.id) throw new Error('You must be logged in to import a roster.');
+    if (!user?.id) throw new Error('You must be logged in to import.');
 
     const { data: teamMember, error } = await supabase
       .from('team_members')
@@ -343,11 +343,13 @@ export default function Roster({
 
   // --- IMPORT HANDLER (Supports CSV & Excel Rows) ---
   const handleResultsImport = async (rows) => {
+    const { teamId } = await getUserAndTeamContext();
     const entriesToInsert = [];
     const swimmerMap = {}; 
     
     // Build Name Map
     swimmers.forEach(s => {
+      if (s?.team_id && s.team_id !== teamId) return;
       const parts = s.name.toLowerCase().trim().split(' ');
       const first = parts[0];
       const last = parts[parts.length - 1];
@@ -401,6 +403,7 @@ export default function Roster({
 
         if (isValidTime(prelimTime)) {
           entriesToInsert.push({ 
+            team_id: teamId,
             swimmer_id: targetId, 
             event: `${cleanEvent} (Prelim)`, 
             time: String(prelimTime), 
@@ -411,6 +414,7 @@ export default function Roster({
         }
         if (isValidTime(finalsTime)) {
           entriesToInsert.push({ 
+            team_id: teamId,
             swimmer_id: targetId, 
             event: `${cleanEvent} (Finals)`, 
             time: String(finalsTime), 
@@ -428,6 +432,7 @@ export default function Roster({
       const { data: existingData } = await supabase
         .from('results')
         .select('swimmer_id, event, time, date')
+        .eq('team_id', teamId)
         .in('swimmer_id', uniqueSwimmerIds);
 
       const existingSignatures = new Set(
@@ -442,7 +447,12 @@ export default function Roster({
         const { error } = await supabase.from('results').insert(newEntries);
         
         if (error) {
-          alert('Database error: ' + error.message);
+          const msg = String(error?.message || 'Unknown error');
+          if (msg.toLowerCase().includes('row-level security')) {
+            alert(`Permission error: your account doesn't have access to import results for this team.\n\nDetails: ${msg}`);
+          } else {
+            alert('Database error: ' + msg);
+          }
         } else { 
           // Check for team record breaks
           console.log('🔍 Checking for team record breaks...');
