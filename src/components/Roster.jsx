@@ -61,6 +61,92 @@ export default function Roster({
     return age;
   };
 
+  const dobMmddyyyyToIso = (dobStr) => {
+    if (!dobStr || dobStr.length !== 8) return null;
+    const mm = dobStr.substring(0, 2);
+    const dd = dobStr.substring(2, 4);
+    const yyyy = dobStr.substring(4, 8);
+    if (!/^\d{2}$/.test(mm) || !/^\d{2}$/.test(dd) || !/^\d{4}$/.test(yyyy)) return null;
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const normalizeSwimmerNameKey = (name) => {
+    if (!name) return '';
+    let n = String(name).trim();
+    // Convert "Last, First ..." to "First Last" before normalizing
+    if (n.includes(',')) {
+      const parts = n.split(',').map(p => p.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        const first = parts[1].split(/\s+/)[0];
+        const last = parts[0];
+        n = `${first} ${last}`;
+      }
+    }
+    return n
+      .toLowerCase()
+      .replace(/['".]/g, '')
+      .replace(/[^a-z0-9\s-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const mergeSwimmersById = (prev, nextRows) => {
+    const byId = new Map(prev.map(s => [s.id, s]));
+    nextRows.forEach((row) => {
+      if (!row?.id) return;
+      const existing = byId.get(row.id) || {};
+      byId.set(row.id, { ...existing, ...row });
+    });
+    return Array.from(byId.values());
+  };
+
+  const buildRosterUpdatePatch = (existing, incoming) => {
+    if (!existing?.id || !incoming) return null;
+    const patch = { id: existing.id };
+
+    // Update name if import provides a cleaned formatting (but avoid blank)
+    if (incoming.name && incoming.name.trim() && incoming.name.trim() !== (existing.name || '').trim()) {
+      patch.name = incoming.name.trim();
+    }
+
+    // Group: only overwrite when incoming is meaningful OR existing is empty/unassigned/imported
+    const incomingGroup = incoming.group_name ? String(incoming.group_name).trim() : '';
+    const existingGroup = existing.group_name ? String(existing.group_name).trim() : '';
+    if (incomingGroup) {
+      const incomingIsDefault = incomingGroup.toLowerCase() === 'imported';
+      const existingIsEmptyOrDefault =
+        !existingGroup ||
+        existingGroup.toLowerCase() === 'unassigned' ||
+        existingGroup.toLowerCase() === 'imported';
+      if ((!incomingIsDefault && incomingGroup !== existingGroup) || (incomingIsDefault && existingIsEmptyOrDefault && incomingGroup !== existingGroup)) {
+        patch.group_name = incomingGroup;
+      }
+    }
+
+    // Only fill in missing demographic data, or update when changed and import provides a value
+    if (incoming.gender && incoming.gender !== existing.gender) {
+      // Only set gender if missing, or if existing is invalid/empty
+      if (!existing.gender) patch.gender = incoming.gender;
+    }
+
+    if (typeof incoming.age === 'number' && Number.isFinite(incoming.age) && incoming.age > 0) {
+      if (existing.age == null || existing.age !== incoming.age) patch.age = incoming.age;
+    }
+
+    if (incoming.date_of_birth) {
+      if (!existing.date_of_birth || String(existing.date_of_birth).slice(0, 10) !== String(incoming.date_of_birth).slice(0, 10)) {
+        patch.date_of_birth = incoming.date_of_birth;
+      }
+    }
+
+    // Only set status/efficiency_score if missing (don't overwrite coach edits)
+    if (incoming.status && !existing.status) patch.status = incoming.status;
+    if (typeof incoming.efficiency_score === 'number' && existing.efficiency_score == null) patch.efficiency_score = incoming.efficiency_score;
+
+    const changedKeys = Object.keys(patch).filter(k => k !== 'id');
+    return changedKeys.length > 0 ? patch : null;
+  };
+
   // CSV Parser
   const parseCSVWithQuotes = (text) => {
     const rows = [];
@@ -272,37 +358,124 @@ export default function Roster({
               return;
             }
 
-            let newSwimmersData = await parseSD3Roster(text);
+            const incomingSwimmersRaw = await parseSD3Roster(text);
             
-            // Enforce swimmer limit for trial users
-            if (maxSwimmers !== null && newSwimmersData.length > 0) {
-              const currentCount = swimmers.length;
-              const availableSlots = Math.max(0, maxSwimmers - currentCount);
-              
-              if (availableSlots === 0) {
-                alert(`You've reached your swimmer limit (${maxSwimmers}). Please upgrade to add more swimmers.`);
-                setShowImport(false);
-                setIsImporting(false);
+            // Deduplicate within the import file (by normalized name)
+            const incomingByKey = new Map();
+            incomingSwimmersRaw.forEach((s) => {
+              const key = normalizeSwimmerNameKey(s?.name);
+              if (!key) return;
+              if (!incomingByKey.has(key)) {
+                incomingByKey.set(key, s);
                 return;
               }
-              
-              if (newSwimmersData.length > availableSlots) {
-                // Truncate to available slots
-                const originalCount = newSwimmersData.length;
-                newSwimmersData = newSwimmersData.slice(0, availableSlots);
-                alert(`Your plan allows ${maxSwimmers} swimmers. Importing first ${availableSlots} of ${originalCount} swimmers. Upgrade for unlimited swimmers.`);
+              const prev = incomingByKey.get(key);
+              // Merge: keep the most informative values (prefer non-empty, prefer non-default group)
+              const prevGroup = prev?.group_name ? String(prev.group_name).trim() : '';
+              const nextGroup = s?.group_name ? String(s.group_name).trim() : '';
+              const chooseGroup = () => {
+                const prevIsDefault = prevGroup.toLowerCase() === 'imported';
+                const nextIsDefault = nextGroup.toLowerCase() === 'imported';
+                if (nextGroup && !nextIsDefault) return nextGroup;
+                if (prevGroup && !prevIsDefault) return prevGroup;
+                return nextGroup || prevGroup || 'Imported';
+              };
+              incomingByKey.set(key, {
+                ...prev,
+                ...s,
+                group_name: chooseGroup(),
+                age: (typeof s?.age === 'number' ? s.age : prev?.age) ?? null,
+                gender: s?.gender || prev?.gender || 'M',
+                date_of_birth: s?.date_of_birth || prev?.date_of_birth || null
+              });
+            });
+
+            const incomingSwimmers = Array.from(incomingByKey.values());
+
+            // Match against existing swimmers (by normalized name within this team)
+            const teamId = incomingSwimmers[0]?.team_id || null;
+            const existingByKey = new Map();
+            swimmers.forEach((s) => {
+              if (teamId && s?.team_id && s.team_id !== teamId) return;
+              const key = normalizeSwimmerNameKey(s?.name);
+              if (!key) return;
+              if (!existingByKey.has(key)) existingByKey.set(key, s);
+            });
+
+            const toInsert = [];
+            const toUpdatePatches = [];
+            incomingSwimmers.forEach((incoming) => {
+              const key = normalizeSwimmerNameKey(incoming?.name);
+              if (!key) return;
+              const existing = existingByKey.get(key);
+              if (!existing) {
+                toInsert.push(incoming);
+                return;
+              }
+              const patch = buildRosterUpdatePatch(existing, incoming);
+              if (patch) toUpdatePatches.push(patch);
+            });
+
+            // Enforce swimmer limit for trial users (limit only applies to NEW inserts, not updates)
+            let skippedNewDueToLimit = 0;
+            if (maxSwimmers !== null && toInsert.length > 0) {
+              const currentCount = swimmers.length;
+              const availableSlots = Math.max(0, maxSwimmers - currentCount);
+              if (availableSlots === 0) {
+                skippedNewDueToLimit = toInsert.length;
+                toInsert.splice(0);
+
+                // Allow updates even if no slots remain
+                if (toUpdatePatches.length === 0) {
+                  alert(`You've reached your swimmer limit (${maxSwimmers}). Please upgrade to add more swimmers.`);
+                  setShowImport(false);
+                  setIsImporting(false);
+                  return;
+                }
+              } else if (toInsert.length > availableSlots) {
+                const originalCount = toInsert.length;
+                skippedNewDueToLimit = Math.max(0, originalCount - availableSlots);
+                toInsert.splice(availableSlots);
               }
             }
 
-            if (newSwimmersData.length > 0) {
-              const { data, error } = await supabase.from('swimmers').insert(newSwimmersData).select();
-              if (error) throw error;
-              setSwimmers(prev => [...prev, ...data]);
-              alert(`Successfully imported ${data.length} swimmers!`);
-              setShowImport(false);
-            } else { 
-              alert('No valid roster records found.'); 
+            if (toInsert.length === 0 && toUpdatePatches.length === 0) {
+              alert('No valid roster records found.');
+              return;
             }
+
+            let updatedRows = [];
+            let insertedRows = [];
+
+            if (toUpdatePatches.length > 0) {
+              const { data, error } = await supabase.from('swimmers').upsert(toUpdatePatches).select();
+              if (error) throw error;
+              updatedRows = data || [];
+            }
+
+            if (toInsert.length > 0) {
+              const { data, error } = await supabase.from('swimmers').insert(toInsert).select();
+              if (error) throw error;
+              insertedRows = data || [];
+            }
+
+            if (updatedRows.length > 0 || insertedRows.length > 0) {
+              setSwimmers(prev => mergeSwimmersById(prev, [...updatedRows, ...insertedRows]));
+            }
+
+            const addedCount = insertedRows.length;
+            const updatedCount = updatedRows.length;
+            const skippedNote = skippedNewDueToLimit > 0
+              ? ` (Skipped ${skippedNewDueToLimit} new swimmer${skippedNewDueToLimit === 1 ? '' : 's'} due to plan limit.)`
+              : '';
+            if (addedCount > 0 && updatedCount > 0) {
+              alert(`Roster import complete: ${addedCount} added, ${updatedCount} updated.${skippedNote}`);
+            } else if (addedCount > 0) {
+              alert(`Successfully imported ${addedCount} new swimmer${addedCount === 1 ? '' : 's'}!${skippedNote}`);
+            } else {
+              alert(`Roster import complete: ${updatedCount} updated.${skippedNote}`);
+            }
+            setShowImport(false);
           } else { 
             const rows = parseCSVWithQuotes(text);
             await handleResultsImport(rows); 
@@ -346,6 +519,7 @@ export default function Roster({
         let cleanName = '';
         let age = null;
         let gender = 'M';
+        let date_of_birth = null;
         const match = line.match(d0Regex);
         
         if (match && match[1]) {
@@ -361,7 +535,9 @@ export default function Roster({
         
         if (cleanName) {
           cleanName = cleanName.replace(/\s[A-Z0-9]{6,}$/i, '').trim();
-          age = calculateAge(line.substring(55, 63).trim());
+          const dobStr = line.substring(55, 63).trim();
+          age = calculateAge(dobStr);
+          date_of_birth = dobMmddyyyyToIso(dobStr);
           const genderMatch = line.match(/\d{8}\s*\d{1,2}([MF])/);
           if (genderMatch) gender = genderMatch[1];
 
@@ -385,6 +561,7 @@ export default function Roster({
             efficiency_score: 70, 
             age, 
             gender, 
+            date_of_birth,
             coach_id: user.id,
             team_id: teamMember.team_id
           });
