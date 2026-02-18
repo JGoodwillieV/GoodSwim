@@ -91,6 +91,19 @@ export default function PracticeQuickEntry({ practiceId, practice, onBack, onSwi
 
   const saveParsedPractice = async (sets) => {
     try {
+      // Get team_id from the parent practice
+      const { data: practiceRow, error: practiceError } = await supabase
+        .from('practices')
+        .select('team_id')
+        .eq('id', practiceId)
+        .single();
+
+      if (practiceError || !practiceRow?.team_id) {
+        throw new Error('Could not determine team_id from practice');
+      }
+
+      const teamId = practiceRow.team_id;
+
       // Delete existing sets and items
       const { error: deleteError } = await supabase
         .from('practice_sets')
@@ -104,6 +117,7 @@ export default function PracticeQuickEntry({ practiceId, practice, onBack, onSwi
         const { items, ...setData } = set;
         const newSet = {
           practice_id: practiceId,
+          team_id: teamId,
           ...setData
         };
 
