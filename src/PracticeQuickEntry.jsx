@@ -133,7 +133,8 @@ export default function PracticeQuickEntry({ practiceId, practice, onBack, onSwi
         if (items && items.length > 0) {
           const itemsToInsert = items.map(item => ({
             ...item,
-            set_id: setInsertData.id
+            set_id: setInsertData.id,
+            team_id: teamId
           }));
 
           const { error: itemsError } = await supabase
