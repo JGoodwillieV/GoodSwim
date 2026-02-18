@@ -2604,10 +2604,29 @@ const TimelineTab = ({ meet, onRefresh }) => {
         sessionDateMap[s.session_number] = s.session_date;
       });
       
-      // Process all events (timed finals meets only have "finals" rounds)
-      const timelineEvents = parsed.events || [];
+      // For prelims/finals meets, prefer prelims entries (those have the initial schedule).
+      // For timed finals meets, all events come through as "finals" and should be processed.
+      const allEvents = parsed.events || [];
+      const eventsByNumber = {};
+      for (const evt of allEvents) {
+        const num = evt.eventNumber;
+        if (!eventsByNumber[num]) eventsByNumber[num] = [];
+        eventsByNumber[num].push(evt);
+      }
+
+      const timelineEvents = [];
+      for (const [, entries] of Object.entries(eventsByNumber)) {
+        if (entries.length === 1) {
+          // Only one entry (timed finals or single round) — always use it
+          timelineEvents.push(entries[0]);
+        } else {
+          // Multiple entries (prelims + finals) — prefer prelims
+          const prelimsEntry = entries.find(e => e.roundType === 'prelims');
+          timelineEvents.push(prelimsEntry || entries[0]);
+        }
+      }
       
-      console.log(`Processing ${timelineEvents.length} events from timeline`);
+      console.log(`Processing ${timelineEvents.length} events from timeline (${allEvents.length} total parsed, duplicates resolved)`);
       
       // Update meet_events with timeline data
       let eventsUpdated = 0;
