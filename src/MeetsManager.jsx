@@ -2825,12 +2825,13 @@ const HeatSheetTab = ({ meet, onRefresh }) => {
   };
 
   const handleHeatSheetUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
     
     setUploading(true);
     try {
-      const parsed = await parseHeatSheetPDF(file);
+      console.log(`Processing ${files.length} heat sheet PDF(s)...`);
+      const parsed = await parseHeatSheetPDF(files);
       
       console.log('Parsed heat sheet:', parsed);
       console.log(`Found ${parsed.entries.length} total entries in heat sheet`);
@@ -2972,13 +2973,13 @@ const HeatSheetTab = ({ meet, onRefresh }) => {
               Heat Sheet / Meet Program
             </div>
             <p className="text-sm text-violet-600 mt-1">
-              Upload the psych sheet or heat sheet to add heat/lane assignments
+              Upload one or more heat sheet PDFs to add heat/lane assignments
             </p>
           </div>
           <label className={`flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg cursor-pointer hover:bg-violet-700 ${uploading ? 'opacity-50' : ''}`}>
             {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-            {uploading ? 'Processing...' : 'Upload Heat Sheet'}
-            <input type="file" accept=".pdf" onChange={handleHeatSheetUpload} className="hidden" disabled={uploading} />
+            {uploading ? 'Processing...' : 'Upload Heat Sheet(s)'}
+            <input type="file" accept=".pdf" multiple onChange={handleHeatSheetUpload} className="hidden" disabled={uploading} />
           </label>
         </div>
         {meet.heat_sheet_pdf_url && (
