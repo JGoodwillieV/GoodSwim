@@ -86,48 +86,64 @@ const AUTO_ADVANCE_MS = 5000;
 
 function FeatureStepper() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
   const timerRef = useRef(null);
-  const progressRef = useRef(null);
 
-  const resetTimer = useCallback(() => {
+  const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % FEATURE_STEPS.length);
     }, AUTO_ADVANCE_MS);
   }, []);
 
+  const stopTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
-    resetTimer();
-    return () => clearInterval(timerRef.current);
-  }, [resetTimer]);
+    if (!paused) startTimer();
+    else stopTimer();
+    return () => stopTimer();
+  }, [paused, startTimer, stopTimer]);
 
   const handleStepClick = (index) => {
     setActiveIndex(index);
-    resetTimer();
+    setPaused(true);
+  };
+
+  const togglePause = () => {
+    setPaused((p) => {
+      if (p) {
+        setActiveIndex((prev) => (prev + 1) % FEATURE_STEPS.length);
+      }
+      return !p;
+    });
   };
 
   const step = FEATURE_STEPS[activeIndex];
 
   return (
-    <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-start">
+    <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-start">
       {/* Left: numbered stepper */}
-      <div className="flex-1 min-w-0">
-        <ol className="relative space-y-2">
+      <div className="w-full lg:w-[420px] flex-shrink-0">
+        <ol className="relative space-y-1">
           {FEATURE_STEPS.map((s, i) => {
             const isActive = i === activeIndex;
             return (
               <li
                 key={i}
                 onClick={() => handleStepClick(i)}
-                className={`flex items-start gap-5 cursor-pointer rounded-xl px-5 py-4 transition-all duration-300 ${
+                className={`flex items-start gap-4 cursor-pointer rounded-xl px-4 py-3.5 transition-all duration-300 ${
                   isActive
                     ? 'bg-white shadow-lg shadow-teal-500/10 border border-teal-100'
-                    : 'hover:bg-white/60'
+                    : 'border border-transparent hover:bg-white/60'
                 }`}
               >
-                {/* number badge */}
                 <span
-                  className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-colors duration-300 mt-0.5 ${
+                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors duration-300 mt-0.5 ${
                     isActive
                       ? 'bg-teal-600 text-white'
                       : 'bg-slate-200 text-slate-500'
@@ -136,35 +152,33 @@ function FeatureStepper() {
                   {i + 1}
                 </span>
 
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <h3
-                    className={`font-bold text-lg transition-colors duration-300 ${
+                    className={`font-bold transition-colors duration-300 ${
                       isActive ? 'text-slate-900' : 'text-slate-500'
                     }`}
                   >
                     {s.title}
                   </h3>
 
-                  {/* description + progress bar — only visible when active */}
                   <div
                     className={`grid transition-all duration-500 ${
-                      isActive ? 'grid-rows-[1fr] opacity-100 mt-1.5' : 'grid-rows-[0fr] opacity-0'
+                      isActive ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'
                     }`}
                   >
                     <div className="overflow-hidden">
-                      <p className="text-slate-600 text-sm leading-relaxed mb-3">
+                      <p className="text-slate-600 text-sm leading-relaxed mb-2.5">
                         {s.description}
                       </p>
-                      {/* auto-advance progress bar */}
                       <div className="h-1 w-full rounded-full bg-slate-100 overflow-hidden">
                         <div
-                          key={`progress-${activeIndex}-${i}`}
+                          key={`progress-${activeIndex}-${i}-${paused}`}
                           className="h-full rounded-full bg-teal-500"
                           style={{
-                            animation: isActive
+                            animation: isActive && !paused
                               ? `stepper-progress ${AUTO_ADVANCE_MS}ms linear forwards`
                               : 'none',
-                            width: isActive ? '0%' : '0%',
+                            width: isActive && paused ? '100%' : '0%',
                           }}
                         />
                       </div>
@@ -176,6 +190,27 @@ function FeatureStepper() {
           })}
         </ol>
 
+        {/* Pause / Play control */}
+        <button
+          onClick={togglePause}
+          className="mt-4 ml-4 flex items-center gap-2 text-sm text-slate-500 hover:text-teal-600 transition-colors"
+        >
+          {paused ? (
+            <>
+              <Play size={14} className="fill-current" />
+              <span>Resume</span>
+            </>
+          ) : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <rect x="5" y="3" width="5" height="18" rx="1" />
+                <rect x="14" y="3" width="5" height="18" rx="1" />
+              </svg>
+              <span>Pause</span>
+            </>
+          )}
+        </button>
+
         <style>{`
           @keyframes stepper-progress {
             from { width: 0%; }
@@ -185,16 +220,16 @@ function FeatureStepper() {
       </div>
 
       {/* Right: screenshot area */}
-      <div className="flex-1 min-w-0 w-full">
-        <div className="relative rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-xl shadow-slate-200/50 aspect-[4/3]">
+      <div className="flex-1 min-w-0 w-full lg:sticky lg:top-24">
+        <div className="relative rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-xl shadow-slate-200/50">
           {step.screenshot ? (
             <img
               src={step.screenshot}
               alt={step.title}
-              className="w-full h-full object-cover transition-opacity duration-500"
+              className="w-full h-auto object-contain transition-opacity duration-500"
             />
           ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 text-slate-400">
+            <div className="flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 text-slate-400 aspect-[16/10]">
               <Smartphone size={48} className="mb-3 opacity-40" />
               <span className="text-sm font-medium">{step.title} — screenshot coming soon</span>
             </div>
