@@ -2600,26 +2600,19 @@ const TimelineTab = ({ meet, onRefresh }) => {
         .eq('meet_id', meet.id);
       
       const sessionDateMap = {};
-      const prelimsSessionNumbers = new Set();
       (sessionsData || []).forEach(s => {
         sessionDateMap[s.session_number] = s.session_date;
-        // Track prelims sessions
-        if (s.session_name?.toLowerCase().includes('prelim')) {
-          prelimsSessionNumbers.add(s.session_number);
-        }
       });
       
-      // Filter to only prelims events (skip finals)
-      const prelimsEvents = parsed.events?.filter(evt => 
-        prelimsSessionNumbers.has(evt.sessionNumber)
-      ) || [];
+      // Process all events (timed finals meets only have "finals" rounds)
+      const timelineEvents = parsed.events || [];
       
-      console.log(`Processing ${prelimsEvents.length} prelims events (skipping ${(parsed.events?.length || 0) - prelimsEvents.length} finals events)`);
+      console.log(`Processing ${timelineEvents.length} events from timeline`);
       
       // Update meet_events with timeline data
       let eventsUpdated = 0;
-      if (prelimsEvents.length > 0) {
-        for (const evt of prelimsEvents) {
+      if (timelineEvents.length > 0) {
+        for (const evt of timelineEvents) {
           const time24h = convertTo24Hour(evt.estimatedStartTime);
           const sessionDate = sessionDateMap[evt.sessionNumber] || meet.start_date;
           
@@ -2650,9 +2643,8 @@ const TimelineTab = ({ meet, onRefresh }) => {
       }
       
       // Update meet_entries with estimated start times and session numbers from events
-      // Only process prelims events
       let entriesUpdated = 0;
-      for (const evt of prelimsEvents) {
+      for (const evt of timelineEvents) {
         if (evt.estimatedStartTime) {
           const time24h = convertTo24Hour(evt.estimatedStartTime);
           const sessionDate = sessionDateMap[evt.sessionNumber] || meet.start_date;
@@ -2678,9 +2670,8 @@ const TimelineTab = ({ meet, onRefresh }) => {
         timeline_pdf_url: 'uploaded'
       }).eq('id', meet.id);
       
-      const prelimsSessions = parsed.sessions?.filter(s => s.name?.toLowerCase().includes('prelim')) || [];
-      const totalEvents = parsed.events?.length || 0;
-      alert(`Timeline uploaded!\n• ${prelimsSessions.length} prelims sessions\n• ${eventsUpdated} events updated with start times\n• ${entriesUpdated} entries updated\n• Skipped ${totalEvents - prelimsEvents.length} finals events`);
+      const totalSessions = parsed.sessions?.length || 0;
+      alert(`Timeline uploaded!\n• ${totalSessions} sessions processed\n• ${eventsUpdated} events updated with start times\n• ${entriesUpdated} entries updated`);
       loadTimeline();
       onRefresh();
     } catch (error) {
