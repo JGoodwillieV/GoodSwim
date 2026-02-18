@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Waves, Timer, Trophy, Video, Users, Calendar, FileText, 
@@ -45,6 +45,162 @@ function FeatureCard({ icon: Icon, title, description, color, delay = 0 }) {
       </div>
       <h3 className="text-lg font-bold text-slate-800 mb-2">{title}</h3>
       <p className="text-slate-600 text-sm leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
+const FEATURE_STEPS = [
+  {
+    title: 'Visual Practice Builder',
+    description: 'Create beautiful practice plans with sets, equipment, and focus areas. Share directly with swimmers and print deck cards.',
+    screenshot: null,
+  },
+  {
+    title: 'AI Video Analysis',
+    description: 'Upload underwater or deck footage and get instant AI-powered stroke analysis with actionable feedback for every swimmer.',
+    screenshot: null,
+  },
+  {
+    title: 'Meet Management',
+    description: 'Import meet info, manage entries, track commitments, and auto-generate event recommendations — all in one place.',
+    screenshot: null,
+  },
+  {
+    title: 'Test Set Tracker',
+    description: 'Run live test sets with multi-lane support, automatic timing, and instant comparison to previous results.',
+    screenshot: null,
+  },
+  {
+    title: 'Powerful Reports & Analytics',
+    description: 'Big Movers, Close Calls, Team Records, Relay Generators — reports that actually help you coach better.',
+    screenshot: null,
+  },
+  {
+    title: 'Parent Portal & Communication',
+    description: 'Keep parents informed with schedules, meet info, announcements, and swimmer progress — without endless emails.',
+    screenshot: null,
+  },
+];
+
+const AUTO_ADVANCE_MS = 5000;
+
+function FeatureStepper() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const timerRef = useRef(null);
+  const progressRef = useRef(null);
+
+  const resetTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % FEATURE_STEPS.length);
+    }, AUTO_ADVANCE_MS);
+  }, []);
+
+  useEffect(() => {
+    resetTimer();
+    return () => clearInterval(timerRef.current);
+  }, [resetTimer]);
+
+  const handleStepClick = (index) => {
+    setActiveIndex(index);
+    resetTimer();
+  };
+
+  const step = FEATURE_STEPS[activeIndex];
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-start">
+      {/* Left: numbered stepper */}
+      <div className="flex-1 min-w-0">
+        <ol className="relative space-y-2">
+          {FEATURE_STEPS.map((s, i) => {
+            const isActive = i === activeIndex;
+            return (
+              <li
+                key={i}
+                onClick={() => handleStepClick(i)}
+                className={`flex items-start gap-5 cursor-pointer rounded-xl px-5 py-4 transition-all duration-300 ${
+                  isActive
+                    ? 'bg-white shadow-lg shadow-teal-500/10 border border-teal-100'
+                    : 'hover:bg-white/60'
+                }`}
+              >
+                {/* number badge */}
+                <span
+                  className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-colors duration-300 mt-0.5 ${
+                    isActive
+                      ? 'bg-teal-600 text-white'
+                      : 'bg-slate-200 text-slate-500'
+                  }`}
+                >
+                  {i + 1}
+                </span>
+
+                <div className="min-w-0">
+                  <h3
+                    className={`font-bold text-lg transition-colors duration-300 ${
+                      isActive ? 'text-slate-900' : 'text-slate-500'
+                    }`}
+                  >
+                    {s.title}
+                  </h3>
+
+                  {/* description + progress bar — only visible when active */}
+                  <div
+                    className={`grid transition-all duration-500 ${
+                      isActive ? 'grid-rows-[1fr] opacity-100 mt-1.5' : 'grid-rows-[0fr] opacity-0'
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <p className="text-slate-600 text-sm leading-relaxed mb-3">
+                        {s.description}
+                      </p>
+                      {/* auto-advance progress bar */}
+                      <div className="h-1 w-full rounded-full bg-slate-100 overflow-hidden">
+                        <div
+                          key={`progress-${activeIndex}-${i}`}
+                          className="h-full rounded-full bg-teal-500"
+                          style={{
+                            animation: isActive
+                              ? `stepper-progress ${AUTO_ADVANCE_MS}ms linear forwards`
+                              : 'none',
+                            width: isActive ? '0%' : '0%',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+
+        <style>{`
+          @keyframes stepper-progress {
+            from { width: 0%; }
+            to   { width: 100%; }
+          }
+        `}</style>
+      </div>
+
+      {/* Right: screenshot area */}
+      <div className="flex-1 min-w-0 w-full">
+        <div className="relative rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-xl shadow-slate-200/50 aspect-[4/3]">
+          {step.screenshot ? (
+            <img
+              src={step.screenshot}
+              alt={step.title}
+              className="w-full h-full object-cover transition-opacity duration-500"
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 text-slate-400">
+              <Smartphone size={48} className="mb-3 opacity-40" />
+              <span className="text-sm font-medium">{step.title} — screenshot coming soon</span>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -345,7 +501,7 @@ export default function LandingPage() {
         <AnimatedWaves />
       </header>
 
-      {/* Feature Grid */}
+      {/* Feature Stepper */}
       <section id="features" className="relative py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -358,71 +514,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <FeatureCard 
-              icon={Waves}
-              title="Visual Practice Builder"
-              description="Create beautiful practice plans with sets, equipment, and focus areas. Share directly with swimmers and print deck cards."
-              color="bg-gradient-to-br from-teal-500 to-teal-600"
-              delay={0}
-            />
-            <FeatureCard 
-              icon={Video}
-              title="AI Video Analysis"
-              description="Upload underwater or deck footage and get instant AI-powered stroke analysis with actionable feedback."
-              color="bg-gradient-to-br from-purple-500 to-purple-600"
-              delay={100}
-            />
-            <FeatureCard 
-              icon={Trophy}
-              title="Trophy Case & Standards"
-              description="Track achievements from B times to Nationals. Swimmers see their progress toward their next milestone."
-              color="bg-gradient-to-br from-amber-500 to-orange-500"
-              delay={200}
-            />
-            <FeatureCard 
-              icon={Calendar}
-              title="Meet Management"
-              description="Import meet info PDFs, manage entries, track commitments, and auto-generate event recommendations."
-              color="bg-gradient-to-br from-emerald-500 to-emerald-600"
-              delay={300}
-            />
-            <FeatureCard 
-              icon={Timer}
-              title="Test Set Tracker"
-              description="Run live test sets with multi-lane support, automatic timing, and instant comparison to previous results."
-              color="bg-gradient-to-br from-cyan-500 to-cyan-600"
-              delay={400}
-            />
-            <FeatureCard 
-              icon={FileText}
-              title="Powerful Reports"
-              description="Big Movers, Close Calls, Team Records, Relay Generators — reports that actually help you coach better."
-              color="bg-gradient-to-br from-rose-500 to-rose-600"
-              delay={500}
-            />
-            <FeatureCard 
-              icon={Users}
-              title="Parent Portal"
-              description="Keep parents informed with schedules, meet info, announcements, and swimmer progress — without endless emails."
-              color="bg-gradient-to-br from-blue-500 to-indigo-600"
-              delay={600}
-            />
-            <FeatureCard 
-              icon={MessageSquare}
-              title="Team Communications"
-              description="Send targeted announcements to specific groups. Parents get instant access through their own dashboard."
-              color="bg-gradient-to-br from-pink-500 to-pink-600"
-              delay={700}
-            />
-            <FeatureCard 
-              icon={BarChart3}
-              title="Progress Tracking"
-              description="Visualize improvement over time with charts, PB tracking, and historical performance data."
-              color="bg-gradient-to-br from-teal-500 to-teal-600"
-              delay={800}
-            />
-          </div>
+          <FeatureStepper />
         </div>
       </section>
 
