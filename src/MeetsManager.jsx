@@ -224,10 +224,22 @@ const MeetFormModal = ({ meet, onSave, onClose }) => {
           .eq('id', meet.id);
         if (error) throw error;
       } else {
+        // Get team_id for new meet
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: teamMember } = await supabase
+          .from('team_members')
+          .select('team_id')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (!teamMember?.team_id) {
+          throw new Error('No team association found for your account.');
+        }
+
         // Insert new
         const { data, error } = await supabase
           .from('meets')
-          .insert({ ...meetData, status: 'draft' })
+          .insert({ ...meetData, team_id: teamMember.team_id, created_by: user.id, status: 'draft' })
           .select()
           .single();
         if (error) throw error;
@@ -253,6 +265,7 @@ const MeetFormModal = ({ meet, onSave, onClose }) => {
           
           const eventsToInsert = uniqueEvents.map(evt => ({
             meet_id: data.id,
+            team_id: teamMember.team_id,
             event_number: evt.eventNumber,
             event_name: evt.eventName || `${evt.gender || ''} ${evt.ageGroup || ''} ${evt.distance || ''} ${evt.stroke || ''}`.trim(),
             age_group: evt.ageGroup,
