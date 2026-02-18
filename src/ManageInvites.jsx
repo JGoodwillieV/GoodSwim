@@ -10,7 +10,7 @@ import {
 import InviteParentModal from './InviteParentModal';
 
 // App URL - change this when you get a real domain
-const APP_URL = 'https://storm-tracker-nine.vercel.app';
+const APP_URL = 'https://www.goodswim.io';
 
 export default function ManageInvites({ swimmers = [], onBack }) {
   const [invites, setInvites] = useState([]);

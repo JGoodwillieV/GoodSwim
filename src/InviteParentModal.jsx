@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 // App URL - change this when you get a real domain
-const APP_URL = 'https://storm-tracker-nine.vercel.app';
+const APP_URL = 'https://www.goodswim.io';
 
 export default function InviteParentModal({ onClose, swimmers = [] }) {
   const [step, setStep] = useState('select'); // select, confirm, success
