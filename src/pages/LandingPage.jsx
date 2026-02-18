@@ -56,9 +56,9 @@ const FEATURE_STEPS = [
     screenshot: '/screenshots/scheduling.png',
   },
   {
-    title: 'AI Video Analysis',
-    description: 'Upload underwater or deck footage and get instant AI-powered stroke analysis with actionable feedback for every swimmer.',
-    screenshot: null,
+    title: 'Swimmer Profiles',
+    description: 'Every swimmer gets a rich profile with personal best tracking, time standards progress, meet results history, test set data, and more — all in one place.',
+    video: '/screenshots/swimmer-profile.webm',
   },
   {
     title: 'Meet Management',
@@ -87,7 +87,9 @@ const AUTO_ADVANCE_MS = 5000;
 function FeatureStepper() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [videoPlaying, setVideoPlaying] = useState(false);
   const timerRef = useRef(null);
+  const videoRef = useRef(null);
 
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -104,10 +106,18 @@ function FeatureStepper() {
   }, []);
 
   useEffect(() => {
-    if (!paused) startTimer();
+    if (!paused && !videoPlaying) startTimer();
     else stopTimer();
     return () => stopTimer();
-  }, [paused, startTimer, stopTimer]);
+  }, [paused, videoPlaying, startTimer, stopTimer]);
+
+  useEffect(() => {
+    setVideoPlaying(false);
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  }, [activeIndex]);
 
   const handleStepClick = (index) => {
     setActiveIndex(index);
@@ -121,6 +131,14 @@ function FeatureStepper() {
       }
       return !p;
     });
+  };
+
+  const handlePlayVideo = () => {
+    setVideoPlaying(true);
+    setPaused(true);
+    if (videoRef.current) {
+      videoRef.current.play();
+    }
   };
 
   const step = FEATURE_STEPS[activeIndex];
@@ -175,10 +193,10 @@ function FeatureStepper() {
                           key={`progress-${activeIndex}-${i}-${paused}`}
                           className="h-full rounded-full bg-teal-500"
                           style={{
-                            animation: isActive && !paused
+                            animation: isActive && !paused && !videoPlaying
                               ? `stepper-progress ${AUTO_ADVANCE_MS}ms linear forwards`
                               : 'none',
-                            width: isActive && paused ? '100%' : '0%',
+                            width: isActive && (paused || videoPlaying) ? '100%' : '0%',
                           }}
                         />
                       </div>
@@ -190,7 +208,6 @@ function FeatureStepper() {
           })}
         </ol>
 
-        {/* Pause / Play control */}
         <button
           onClick={togglePause}
           className="mt-4 ml-4 flex items-center gap-2 text-sm text-slate-500 hover:text-teal-600 transition-colors"
@@ -219,14 +236,34 @@ function FeatureStepper() {
         `}</style>
       </div>
 
-      {/* Right: screenshot area */}
+      {/* Right: media area */}
       <div className="flex-1 min-w-0 w-full lg:sticky lg:top-24">
         <div className="relative rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-xl shadow-slate-200/50">
-          {step.screenshot ? (
+          {step.video ? (
+            <div className="relative">
+              <video
+                ref={videoRef}
+                src={step.video}
+                className="w-full h-auto"
+                onEnded={() => setVideoPlaying(false)}
+                playsInline
+              />
+              {!videoPlaying && (
+                <button
+                  onClick={handlePlayVideo}
+                  className="absolute inset-0 flex items-center justify-center bg-slate-900/30 hover:bg-slate-900/40 transition-colors group"
+                >
+                  <div className="w-16 h-16 rounded-full bg-white/90 group-hover:bg-white flex items-center justify-center shadow-lg transition-all group-hover:scale-110">
+                    <Play size={28} className="text-teal-600 fill-teal-600 ml-1" />
+                  </div>
+                </button>
+              )}
+            </div>
+          ) : step.screenshot ? (
             <img
               src={step.screenshot}
               alt={step.title}
-              className="w-full h-auto object-contain transition-opacity duration-500"
+              className="w-full h-auto object-contain"
             />
           ) : (
             <div className="flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 text-slate-400 aspect-[16/10]">
