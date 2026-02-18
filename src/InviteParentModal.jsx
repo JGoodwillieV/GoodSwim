@@ -110,6 +110,7 @@ export default function InviteParentModal({ onClose, swimmers = [] }) {
       const { data, error: insertError } = await supabase
         .from('parent_invites')
         .insert({
+          team_id: selectedSwimmers[0].team_id,
           email: email.trim().toLowerCase(),
           account_name: accountName.trim() || null,
           swimmer_ids: selectedSwimmers.map(s => s.id),

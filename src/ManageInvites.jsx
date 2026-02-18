@@ -100,6 +100,7 @@ export default function ManageInvites({ swimmers = [], onBack }) {
       const { error } = await supabase
         .from('parent_invites')
         .insert({
+          team_id: invite.team_id,
           email: invite.email,
           account_name: invite.account_name,
           swimmer_ids: invite.swimmer_ids,
