@@ -68,7 +68,7 @@ const FEATURE_STEPS = [
   {
     title: 'Test Set Tracker',
     description: 'Run live test sets with multi-lane support, automatic timing, and instant comparison to previous results.',
-    screenshot: null,
+    screenshot: '/screenshots/test-set-tracker.png',
   },
   {
     title: 'Powerful Reports & Analytics',
