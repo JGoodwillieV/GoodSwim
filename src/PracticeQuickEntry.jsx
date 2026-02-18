@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Zap, Grid3X3, Save, AlertCircle, Check } from 'lucide-react';
+import { ChevronLeft, Zap, Grid3X3, Save, AlertCircle, Check, Sparkles } from 'lucide-react';
 import { supabase } from './supabase';
-
-// Quick Entry Mode - Fast typing interface for coaches
-// Parse text like: "4x100 Free @1:30 easy" into structured data
 
 export default function PracticeQuickEntry({ practiceId, practice, onBack, onSwitchToBuilder }) {
   const [textContent, setTextContent] = useState('');
@@ -62,70 +59,25 @@ export default function PracticeQuickEntry({ practiceId, practice, onBack, onSwi
   const parseTextToPractice = async () => {
     setParsing(true);
     setParseErrors([]);
-    const errors = [];
 
     try {
-      const lines = textContent.split('\n').filter(line => line.trim());
-      const sets = [];
-      let currentSet = null;
-      let setIndex = 0;
+      const { data, error: fnError } = await supabase.functions.invoke('parse-practice', {
+        body: { text: textContent }
+      });
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        
-        // Check if it's a set header (starts with ##)
-        if (line.startsWith('##')) {
-          if (currentSet && currentSet.items.length > 0) {
-            sets.push(currentSet);
-            setIndex++;
-          }
-          
-          const setName = line.replace(/^##\s*/, '').trim();
-          const setType = detectSetType(setName);
-          
-          currentSet = {
-            name: setName,
-            set_type: setType,
-            order_index: setIndex,
-            items: []
-          };
-          continue;
-        }
-
-        // Skip empty lines
-        if (!line) continue;
-
-        // If no set started, create a default one
-        if (!currentSet) {
-          currentSet = {
-            name: 'Set',
-            set_type: 'main_set',
-            order_index: setIndex,
-            items: []
-          };
-        }
-
-        // Parse item line
-        try {
-          const item = parseItemLine(line, currentSet.items.length);
-          currentSet.items.push(item);
-        } catch (err) {
-          errors.push(`Line ${i + 1}: ${err.message}`);
-        }
+      if (fnError) {
+        throw new Error(fnError.message || 'Failed to reach AI parser');
       }
 
-      // Add last set
-      if (currentSet && currentSet.items.length > 0) {
-        sets.push(currentSet);
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
-      if (errors.length > 0) {
-        setParseErrors(errors);
-        setParsing(false);
-        return;
+      const sets = data?.sets;
+      if (!sets || sets.length === 0) {
+        throw new Error('AI could not parse any sets from the text. Try adding more detail.');
       }
 
-      // Save to database
       await saveParsedPractice(sets);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -182,128 +134,6 @@ export default function PracticeQuickEntry({ practiceId, practice, onBack, onSwi
     }
   };
 
-  const detectSetType = (name) => {
-    const nameLower = name.toLowerCase();
-    if (nameLower.includes('warmup') || nameLower.includes('warm up')) return 'warmup';
-    if (nameLower.includes('pre-set') || nameLower.includes('preset')) return 'pre_set';
-    if (nameLower.includes('test')) return 'test_set';
-    if (nameLower.includes('cooldown') || nameLower.includes('cool down')) return 'cooldown';
-    if (nameLower.includes('dryland') || nameLower.includes('dry land')) return 'dryland';
-    return 'main_set';
-  };
-
-  const parseItemLine = (line, orderIndex) => {
-    // Format: 4x100 Free @1:30 - descend 1-4 (moderate) [fins, paddles]
-    
-    // Extract equipment (in brackets)
-    let equipment = [];
-    const equipmentMatch = line.match(/\[([^\]]+)\]/);
-    if (equipmentMatch) {
-      const rawEquipment = equipmentMatch[1].split(',').map(e => e.trim().toLowerCase());
-      // Validate equipment (must match valid options)
-      const validEquipment = ['fins', 'paddles', 'snorkel', 'kickboard', 'pull_buoy', 'band'];
-      const invalidEquipment = rawEquipment.filter(eq => !validEquipment.includes(eq));
-      if (invalidEquipment.length > 0) {
-        throw new Error(`Unknown equipment: "${invalidEquipment.join(', ')}". Use: fins, paddles, snorkel, kickboard, pull_buoy, band`);
-      }
-      equipment = rawEquipment;
-      line = line.replace(/\[([^\]]+)\]/, '').trim();
-    }
-
-    // Extract intensity (in parentheses)
-    let intensity = null;
-    const intensityMatch = line.match(/\(([^)]+)\)/);
-    if (intensityMatch) {
-      const rawIntensity = intensityMatch[1].trim().toLowerCase().replace(/\s+/g, '_');
-      // Validate intensity values (must match DB or be null)
-      const validIntensities = ['easy', 'moderate', 'fast', 'sprint', 'race_pace'];
-      if (validIntensities.includes(rawIntensity)) {
-        intensity = rawIntensity;
-      } else {
-        throw new Error(`Unknown intensity: "${intensityMatch[1]}". Use: easy, moderate, fast, sprint, race_pace`);
-      }
-      line = line.replace(/\([^)]+\)/, '').trim();
-    }
-
-    // Extract description (after dash)
-    let description = '';
-    const descMatch = line.match(/\s*-\s*(.+?)$/);
-    if (descMatch) {
-      description = descMatch[1].trim();
-      line = line.replace(/\s*-\s*.+$/, '').trim();
-    }
-
-    // Extract interval (after @)
-    let interval = '';
-    const intervalMatch = line.match(/@([^\s]+)/);
-    if (intervalMatch) {
-      interval = intervalMatch[1].trim();
-      line = line.replace(/@[^\s]+/, '').trim();
-    }
-
-    // Parse reps x distance stroke
-    // Formats: "4x100 Free", "4 x 100 Free", "100 Free" (defaults to 1x)
-    const repDistMatch = line.match(/^(\d+)\s*[xX×]\s*(\d+)\s+(.+)$/);
-    const singleDistMatch = line.match(/^(\d+)\s+(.+)$/);
-
-    let reps, distance, stroke;
-
-    if (repDistMatch) {
-      reps = parseInt(repDistMatch[1]);
-      distance = parseInt(repDistMatch[2]);
-      stroke = repDistMatch[3].trim().toLowerCase();
-    } else if (singleDistMatch) {
-      reps = 1;
-      distance = parseInt(singleDistMatch[1]);
-      stroke = singleDistMatch[2].trim().toLowerCase();
-    } else {
-      throw new Error(`Could not parse: "${line}". Format: "4x100 Free @1:30"`);
-    }
-
-    // Normalize and validate stroke (DB constraint requires exact values)
-    const strokeLower = stroke.toLowerCase();
-    
-    // Map variations to valid DB values
-    const strokeMap = {
-      'free': 'free',
-      'freestyle': 'free',
-      'fr': 'free',
-      'back': 'back',
-      'backstroke': 'back',
-      'bk': 'back',
-      'breast': 'breast',
-      'breaststroke': 'breast',
-      'br': 'breast',
-      'fly': 'fly',
-      'butterfly': 'fly',
-      'fl': 'fly',
-      'im': 'IM',  // Must be uppercase for DB
-      'choice': 'choice',
-      'drill': 'drill',
-      'dr': 'drill',
-      'kick': 'kick',
-      'ki': 'kick'
-    };
-    
-    if (strokeMap[strokeLower]) {
-      stroke = strokeMap[strokeLower];
-    } else {
-      throw new Error(`Unknown stroke: "${stroke}". Use: free, back, breast, fly, IM, choice, drill, kick`);
-    }
-
-    return {
-      order_index: orderIndex,
-      reps,
-      distance,
-      stroke,
-      interval: interval || null,
-      description: description || null,
-      equipment,
-      intensity,
-      notes: null
-    };
-  };
-
   const insertTemplate = (template) => {
     const cursorPos = document.getElementById('quick-entry-textarea')?.selectionStart || textContent.length;
     const before = textContent.substring(0, cursorPos);
@@ -324,8 +154,12 @@ export default function PracticeQuickEntry({ practiceId, practice, onBack, onSwi
               <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
                 <Zap className="text-yellow-500" size={24} />
                 Quick Entry Mode
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">
+                  <Sparkles size={12} />
+                  AI Powered
+                </span>
               </h2>
-              <p className="text-sm text-slate-500">Type fast like a doc - we'll parse it for you!</p>
+              <p className="text-sm text-slate-500">Type however you want — AI will figure out the structure</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -342,7 +176,7 @@ export default function PracticeQuickEntry({ practiceId, practice, onBack, onSwi
               className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:bg-slate-300"
             >
               {parsing ? (
-                <>Processing...</>
+                <><Sparkles size={16} className="animate-spin" /> AI Parsing...</>
               ) : saved ? (
                 <>
                   <Check size={16} />
@@ -350,7 +184,7 @@ export default function PracticeQuickEntry({ practiceId, practice, onBack, onSwi
                 </>
               ) : (
                 <>
-                  <Save size={16} />
+                  <Sparkles size={16} />
                   Parse & Save
                 </>
               )}
@@ -391,13 +225,14 @@ export default function PracticeQuickEntry({ practiceId, practice, onBack, onSwi
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Text Editor */}
         <div className="flex-1 flex flex-col border-r border-slate-200">
-          <div className="p-4 bg-slate-50 border-b border-slate-200">
-            <h3 className="font-bold text-slate-800 mb-2">Type Your Practice</h3>
+          <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-b border-slate-200">
+            <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
+              <Sparkles size={16} className="text-purple-600" />
+              Type Your Practice — Any Format
+            </h3>
             <div className="text-sm text-slate-600 space-y-1">
-              <p>• Start sets with <code className="bg-slate-200 px-1 rounded">## SET NAME</code></p>
-              <p>• Format items: <code className="bg-slate-200 px-1 rounded">4x100 Free @1:30 - descend (moderate) [fins]</code></p>
-              <p>• Strokes: free, back, breast, fly, IM, choice, drill, kick</p>
-              <p className="text-xs text-orange-600 font-medium">⚠️ Must match valid values or you'll get an error!</p>
+              <p>AI understands natural language — just type how you normally would.</p>
+              <p className="text-xs text-purple-600 font-medium">No strict formatting required. Write it like you'd text it to an assistant coach.</p>
             </div>
           </div>
           
@@ -406,21 +241,25 @@ export default function PracticeQuickEntry({ practiceId, practice, onBack, onSwi
             value={textContent}
             onChange={(e) => setTextContent(e.target.value)}
             className="flex-1 p-6 font-mono text-base resize-none focus:outline-none"
-            placeholder={`Type your practice here...
+            placeholder={`Type your practice however you want — AI will parse it...
 
-Example:
+Examples of what works:
 
-## WARMUP
-4x100 Free @1:30 - easy
-4x50 Choice @:50 - drill/swim
+Warmup
+400 free easy
+4x100 IM on 1:45
 
-## MAIN SET
-3x200 Free @2:45 - descend 1-3
-4x50 Free @:45 - FAST (sprint)
-1x100 Easy - recovery
+Main set
+6x200 free descend 1-3 on 2:45
+8x50 sprint fly on the :50 with fins
+broken 200 - 4x50 fast free, 10 sec rest
 
-## COOLDOWN
-4x100 Choice - stretching
+Cooldown
+200 easy choice
+
+Or even more casual:
+"Start with a 400 warmup, then do some 200 free descending,
+throw in some kick with a board, and cool down easy"
 `}
             spellCheck={false}
           />
@@ -428,14 +267,17 @@ Example:
 
         {/* Right: Instructions & Examples */}
         <div className="w-96 bg-slate-50 p-6 overflow-y-auto">
-          <h3 className="font-bold text-slate-900 mb-4">Quick Reference</h3>
+          <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <Sparkles size={16} className="text-purple-600" />
+            AI Quick Reference
+          </h3>
 
           {/* Parse Errors */}
           {parseErrors.length > 0 && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
               <div className="flex items-start gap-2 mb-2">
                 <AlertCircle size={18} className="text-red-600 mt-0.5" />
-                <h4 className="font-bold text-red-900">Parse Errors</h4>
+                <h4 className="font-bold text-red-900">Error</h4>
               </div>
               <div className="text-sm text-red-800 space-y-1">
                 {parseErrors.map((error, idx) => (
@@ -445,80 +287,56 @@ Example:
             </div>
           )}
 
-          {/* Format Guide */}
           <div className="space-y-4">
-            <div>
-              <h4 className="font-medium text-slate-900 mb-2">Set Headers</h4>
-              <code className="block bg-white p-2 rounded text-sm border">
-                ## WARMUP<br/>
-                ## MAIN SET<br/>
-                ## TEST SET<br/>
-                ## COOLDOWN
-              </code>
-            </div>
-
-            <div>
-              <h4 className="font-medium text-slate-900 mb-2">Basic Items</h4>
-              <code className="block bg-white p-2 rounded text-sm border">
-                4x100 Free @1:30<br/>
-                8x50 Back @:50<br/>
-                200 IM
-              </code>
-            </div>
-
-            <div>
-              <h4 className="font-medium text-slate-900 mb-2">With Description</h4>
-              <code className="block bg-white p-2 rounded text-sm border">
-                4x100 Free @1:30 - descend 1-4<br/>
-                6x50 Fly @:55 - build each
-              </code>
-            </div>
-
-            <div>
-              <h4 className="font-medium text-slate-900 mb-2">With Intensity</h4>
-              <code className="block bg-white p-2 rounded text-sm border">
-                4x50 Free @:45 (sprint)<br/>
-                200 Free (easy)<br/>
-                8x25 Free (race_pace)
-              </code>
-              <p className="text-xs text-slate-500 mt-1">
-                Options: easy, moderate, fast, sprint, race_pace
+            <div className="p-3 bg-purple-50 border border-purple-100 rounded-lg">
+              <h4 className="font-medium text-purple-900 mb-1">How It Works</h4>
+              <p className="text-sm text-purple-700">
+                Type your practice in any format. AI reads it like an assistant coach would and converts it into structured sets and items.
               </p>
             </div>
 
             <div>
-              <h4 className="font-medium text-slate-900 mb-2">With Equipment</h4>
+              <h4 className="font-medium text-slate-900 mb-2">Structured Format</h4>
               <code className="block bg-white p-2 rounded text-sm border">
-                4x100 Free @1:30 [fins]<br/>
-                6x50 Free [paddles, snorkel]
-              </code>
-              <p className="text-xs text-slate-500 mt-1">
-                Options: fins, paddles, snorkel, kickboard, pull_buoy, band
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-medium text-slate-900 mb-2">Complete Example</h4>
-              <code className="block bg-white p-2 rounded text-sm border">
-                4x100 Free @1:30 - descend (moderate) [fins]
+                Warmup<br/>
+                4x100 Free on 1:30 easy<br/>
+                4x50 Choice drill/swim<br/>
+                <br/>
+                Main Set<br/>
+                3x200 Free descend 1-3 on 2:45<br/>
+                4x50 Fly sprint with fins
               </code>
             </div>
 
             <div>
-              <h4 className="font-medium text-slate-900 mb-2">Strokes (any case works)</h4>
-              <div className="text-sm text-slate-600">
-                <p>• free (or freestyle, fr)</p>
-                <p>• back (or backstroke, bk)</p>
-                <p>• breast (or breaststroke, br)</p>
-                <p>• fly (or butterfly, fl)</p>
-                <p>• IM (or im)</p>
-                <p>• choice</p>
-                <p>• drill (or dr)</p>
-                <p>• kick (or ki)</p>
+              <h4 className="font-medium text-slate-900 mb-2">Casual / Natural Language</h4>
+              <code className="block bg-white p-2 rounded text-sm border text-xs">
+                Start with 400 easy free, then 4x100 IM<br/>
+                on the 1:45. Main set is 6x200 free<br/>
+                descending, then some fast 50s fly<br/>
+                with fins. Cool down 200 easy.
+              </code>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-slate-900 mb-2">AI Understands</h4>
+              <div className="text-sm text-slate-600 space-y-1">
+                <p>• Any stroke name or abbreviation</p>
+                <p>• Intervals like "on 1:30" or "@:45" or "30 sec rest"</p>
+                <p>• Equipment: fins, paddles, snorkel, kickboard, pull buoy, band</p>
+                <p>• Intensity: easy, moderate, fast, sprint, race pace</p>
+                <p>• Set groupings even without headers</p>
               </div>
-              <p className="text-xs text-slate-500 mt-2">
-                💡 All variations work! Type "Free", "free", "Freestyle", or "fr"
-              </p>
+            </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg">
+              <h4 className="font-medium text-amber-900 mb-1">Tips</h4>
+              <div className="text-sm text-amber-800 space-y-1">
+                <p>• More detail = better results</p>
+                <p>• Mention "warmup" or "cooldown" so AI groups sets correctly</p>
+                <p>• Include distances for best accuracy</p>
+                <p>• You can still use the structured ## format if you prefer</p>
+              </div>
             </div>
           </div>
         </div>
@@ -526,8 +344,9 @@ Example:
 
       {/* Footer */}
       <div className="bg-slate-50 border-t border-slate-200 p-4 text-center text-sm text-slate-500 shrink-0">
-        💡 <strong>Pro Tip:</strong> Type naturally like you would in a doc. Click "Parse & Save" when done. 
-        Then switch to Builder view to see the structured format or make fine adjustments.
+        <Sparkles size={14} className="inline text-purple-500 mr-1" />
+        <strong>AI Powered:</strong> Type your practice in any format — structured, casual, or shorthand.
+        Click "Parse & Save" and AI converts it into sets and items. Switch to Builder to fine-tune.
       </div>
     </div>
   );
