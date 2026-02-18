@@ -51,9 +51,9 @@ function FeatureCard({ icon: Icon, title, description, color, delay = 0 }) {
 
 const FEATURE_STEPS = [
   {
-    title: 'Visual Practice Builder',
-    description: 'Create beautiful practice plans with sets, equipment, and focus areas. Share directly with swimmers and print deck cards.',
-    screenshot: null,
+    title: 'Scheduling & Workout Planner',
+    description: 'Manage practice times, assign workouts to groups, track coach assignments, and plan meets — all from one powerful scheduling hub.',
+    screenshot: '/screenshots/scheduling.png',
   },
   {
     title: 'AI Video Analysis',
