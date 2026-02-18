@@ -156,7 +156,10 @@ const CloseCallsReport = ({ onBack }) => {
   const [ageGroup, setAgeGroup] = useState('all');
   const [gender, setGender] = useState('all');
   const [selectedStandard, setSelectedStandard] = useState('');
+  const [course, setCourse] = useState('SCY');
+  const [filterBy, setFilterBy] = useState('seconds'); // 'seconds' or 'percent'
   const [withinSeconds, setWithinSeconds] = useState(3);
+  const [withinPercent, setWithinPercent] = useState(5);
   
   // Data State
   const [loading, setLoading] = useState(false);
@@ -226,14 +229,15 @@ const CloseCallsReport = ({ onBack }) => {
       setProgressMsg('Loading swimmers...');
       const { data: swimmers } = await supabase.from('swimmers').select('*');
 
-      // 2. Fetch Standards for selected cut
+      // 2. Fetch Standards for selected cut, filtered by course
       setProgressMsg('Loading time standards...');
       const { data: standards } = await supabase
         .from('time_standards')
         .select('*')
-        .eq('name', selectedStandard);
+        .eq('name', selectedStandard)
+        .eq('course', course);
 
-      // 3. Fetch ALL results (paginated)
+      // 3. Fetch ALL results (paginated), filtered by course
       let allResults = [];
       let page = 0;
       let keepFetching = true;
@@ -243,6 +247,7 @@ const CloseCallsReport = ({ onBack }) => {
         const { data: batch, error } = await supabase
           .from('results')
           .select('swimmer_id, event, time, date, course')
+          .eq('course', course)
           .order('id', { ascending: true })
           .range(page * 1000, (page + 1) * 1000 - 1);
         
@@ -321,12 +326,15 @@ const CloseCallsReport = ({ onBack }) => {
           const myBest = bestTimes[key];
 
           if (myBest) {
-            // Ensure time_seconds is parsed as a number (it may be stored as string in DB)
             const stdTimeSeconds = parseFloat(std.time_seconds);
             const diff = myBest.val - stdTimeSeconds;
+            const pctDiff = stdTimeSeconds > 0 ? (diff / stdTimeSeconds) * 100 : 0;
             
-            // Only include if SLOWER than the cut (positive diff) and within threshold
-            if (diff > 0 && diff <= withinSeconds) {
+            const withinThreshold = filterBy === 'seconds'
+              ? (diff > 0 && diff <= withinSeconds)
+              : (diff > 0 && pctDiff <= withinPercent);
+            
+            if (withinThreshold) {
               closeCalls.push({
                 swimmerId: swimmer.id,
                 swimmerName: swimmer.name,
@@ -341,7 +349,9 @@ const CloseCallsReport = ({ onBack }) => {
                 cutTime: std.time_string || secondsToTime(stdTimeSeconds),
                 cutTimeSeconds: stdTimeSeconds,
                 diff: diff,
-                diffStr: diff.toFixed(2)
+                diffStr: diff.toFixed(2),
+                pctDiff: pctDiff,
+                pctDiffStr: pctDiff.toFixed(1)
               });
             }
           }
@@ -416,9 +426,26 @@ const CloseCallsReport = ({ onBack }) => {
         <button onClick={onBack} className="flex items-center gap-1 text-blue-600 font-bold text-sm hover:underline">
           <ArrowRight className="rotate-180" size={16}/> Back to Reports
         </button>
-        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-          <Target className="text-orange-500" size={24} /> Close Calls Report
-        </h2>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center bg-slate-100 rounded-lg p-1">
+            {['SCY', 'LCM'].map((c) => (
+              <button
+                key={c}
+                onClick={() => setCourse(c)}
+                className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${
+                  course === c
+                    ? 'bg-white text-blue-700 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <Target className="text-orange-500" size={24} /> Close Calls Report
+          </h2>
+        </div>
       </div>
 
       {/* Filters Panel */}
@@ -427,7 +454,7 @@ const CloseCallsReport = ({ onBack }) => {
           <Filter size={18} className="text-slate-400" /> Report Filters
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Age Group */}
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Age Group</label>
@@ -474,13 +501,39 @@ const CloseCallsReport = ({ onBack }) => {
             </select>
           </div>
 
+          {/* Filter By Toggle */}
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Filter By</label>
+            <div className="flex bg-slate-100 rounded-lg p-1">
+              {[
+                { key: 'seconds', label: 'Seconds' },
+                { key: 'percent', label: 'Percent' }
+              ].map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => setFilterBy(opt.key)}
+                  className={`flex-1 px-3 py-1.5 rounded-md text-sm font-bold transition-all ${
+                    filterBy === opt.key
+                      ? 'bg-orange-500 text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
           {/* Within Seconds */}
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Within</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Within Seconds</label>
             <select 
               value={withinSeconds} 
               onChange={e => setWithinSeconds(parseFloat(e.target.value))}
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={filterBy !== 'seconds'}
+              className={`w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${filterBy !== 'seconds' ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <option value={0.5}>0.5 seconds</option>
               <option value={1}>1 second</option>
@@ -490,6 +543,28 @@ const CloseCallsReport = ({ onBack }) => {
               <option value={10}>10 seconds</option>
             </select>
           </div>
+
+          {/* Within Percent */}
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Within Percent</label>
+            <div className="relative">
+              <input
+                type="number"
+                value={filterBy === 'percent' ? withinPercent : ''}
+                onChange={e => setWithinPercent(parseFloat(e.target.value) || 0)}
+                placeholder="e.g., 5"
+                disabled={filterBy !== 'percent'}
+                className={`w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-8 ${filterBy !== 'percent' ? 'opacity-50 cursor-not-allowed' : ''}`}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">%</span>
+            </div>
+            {filterBy === 'percent' && (
+              <p className="text-[10px] text-slate-400 mt-1">Enter a value like 5 for "within 5%"</p>
+            )}
+          </div>
+
+          {/* Spacer */}
+          <div></div>
 
           {/* Generate Button */}
           <div className="flex items-end">
@@ -552,7 +627,7 @@ const CloseCallsReport = ({ onBack }) => {
               <Target size={48} className="mx-auto text-slate-300 mb-4" />
               <h3 className="font-bold text-slate-700 text-lg mb-2">No Close Calls Found</h3>
               <p className="text-slate-500 text-sm">
-                No swimmers are within {withinSeconds} second{withinSeconds !== 1 ? 's' : ''} of a {selectedStandard} cut with the selected filters.
+                No swimmers are within {filterBy === 'seconds' ? `${withinSeconds} second${withinSeconds !== 1 ? 's' : ''}` : `${withinPercent}%`} of a {selectedStandard} cut ({course}) with the selected filters.
               </p>
             </div>
           ) : (
@@ -625,7 +700,8 @@ const CloseCallsReport = ({ onBack }) => {
                                       : 'bg-slate-100 text-slate-600 border border-slate-200'
                               }
                             `}>
-                              -{evt.diffStr}s
+                              +{evt.diffStr}s
+                              {filterBy === 'percent' && <span className="block text-[10px] font-medium opacity-75">{evt.pctDiffStr}%</span>}
                             </div>
                           </div>
                         </div>
@@ -646,8 +722,9 @@ const CloseCallsReport = ({ onBack }) => {
           </div>
           <h3 className="font-bold text-slate-800 text-xl mb-2">Find Your Close Calls</h3>
           <p className="text-slate-600 max-w-md mx-auto">
-            Select filters above to find swimmers who are within striking distance of achieving a time standard. 
-            Great for identifying who needs just a little more work to hit their next cut!
+            Select filters above to find swimmers who are within striking distance of achieving a time standard. You can filter by
+            {' '}<strong>seconds</strong> (e.g., within 3 seconds) or by <strong>percentage</strong> (e.g., within
+            5%) - percentage is great for comparing across different events!
           </p>
         </div>
       )}
@@ -662,6 +739,7 @@ const QualifiersReport = ({ onBack }) => {
   const [progressMsg, setProgressMsg] = useState("");
   const [standardNames, setStandardNames] = useState([]);
   const [selectedStandard, setSelectedStandard] = useState("");
+  const [course, setCourse] = useState('SCY');
   const [rows, setRows] = useState([]);
   const [showQualifiersOnly, setShowQualifiersOnly] = useState(true);
 
@@ -717,9 +795,9 @@ const QualifiersReport = ({ onBack }) => {
       setRows([]);
 
       const { data: swimmers } = await supabase.from('swimmers').select('*');
-      const { data: cuts } = await supabase.from('time_standards').select('*').eq('name', selectedStandard);
+      const { data: cuts } = await supabase.from('time_standards').select('*').eq('name', selectedStandard).eq('course', course);
 
-      // Fetch ALL results
+      // Fetch ALL results filtered by course
       let allResults = [];
       let page = 0;
       let keepFetching = true;
@@ -728,7 +806,8 @@ const QualifiersReport = ({ onBack }) => {
           setProgressMsg(`Fetching results ${page * 1000} - ${(page + 1) * 1000}...`);
           const { data: batch, error } = await supabase
             .from('results')
-            .select('swimmer_id, event, time, date')
+            .select('swimmer_id, event, time, date, course')
+            .eq('course', course)
             .order('id', { ascending: true }) 
             .range(page * 1000, (page + 1) * 1000 - 1);
           
@@ -826,7 +905,7 @@ const QualifiersReport = ({ onBack }) => {
     };
 
     runReport();
-  }, [selectedStandard]);
+  }, [selectedStandard, course]);
 
   const displayedRows = showQualifiersOnly ? rows.filter(r => r.isQualified) : rows;
 
@@ -840,10 +919,27 @@ const QualifiersReport = ({ onBack }) => {
               
               {/* Controls - stack on mobile, inline on desktop */}
               <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mt-3">
-                <label className="flex items-center gap-2 text-sm font-bold text-slate-600 cursor-pointer select-none whitespace-nowrap">
-                    <input type="checkbox" checked={showQualifiersOnly} onChange={() => setShowQualifiersOnly(!showQualifiersOnly)} className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"/>
-                    Show Qualifiers Only
-                </label>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm font-bold text-slate-600 cursor-pointer select-none whitespace-nowrap">
+                      <input type="checkbox" checked={showQualifiersOnly} onChange={() => setShowQualifiersOnly(!showQualifiersOnly)} className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"/>
+                      Show Qualifiers Only
+                  </label>
+                  <div className="flex items-center bg-slate-100 rounded-lg p-1">
+                    {['SCY', 'LCM'].map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => setCourse(c)}
+                        className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${
+                          course === c
+                            ? 'bg-white text-blue-700 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <select value={selectedStandard} onChange={(e) => setSelectedStandard(e.target.value)} className="bg-slate-50 border border-slate-300 p-2 rounded-lg text-sm font-bold text-slate-800 w-full sm:w-auto min-w-[200px]">
                     {standardNames.map(name => <option key={name} value={name}>{name} Standard</option>)}
                 </select>
@@ -919,6 +1015,7 @@ const RelayGenerator = ({ onBack }) => {
     const [ageGroup, setAgeGroup] = useState('11-12');
     const [gender, setGender] = useState('M');
     const [relayType, setRelayType] = useState('200 Free');
+    const [course, setCourse] = useState('SCY');
     const [relays, setRelays] = useState([]);
     const [loading, setLoading] = useState(false);
     const [progressMsg, setProgressMsg] = useState("");
@@ -934,7 +1031,7 @@ const RelayGenerator = ({ onBack }) => {
         let keepFetching = true;
         while (keepFetching) {
             setProgressMsg(`Scanning results batch ${page + 1}...`);
-            const { data: batch } = await supabase.from('results').select('swimmer_id, event, time, course').order('id').range(page*2000, (page+1)*2000-1);
+            const { data: batch } = await supabase.from('results').select('swimmer_id, event, time, course').eq('course', course).order('id').range(page*2000, (page+1)*2000-1);
             if (!batch || batch.length === 0) keepFetching = false;
             else {
                 allResults = [...allResults, ...batch];
@@ -1049,6 +1146,24 @@ const RelayGenerator = ({ onBack }) => {
                 
                 <div className="flex flex-wrap gap-4 items-end">
                     <div className="flex flex-col">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase">Course</label>
+                        <div className="flex items-center bg-slate-100 rounded-lg p-1">
+                          {['SCY', 'LCM'].map((c) => (
+                            <button
+                              key={c}
+                              onClick={() => setCourse(c)}
+                              className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${
+                                course === c
+                                  ? 'bg-white text-blue-700 shadow-sm'
+                                  : 'text-slate-500 hover:text-slate-700'
+                              }`}
+                            >
+                              {c}
+                            </button>
+                          ))}
+                        </div>
+                    </div>
+                    <div className="flex flex-col">
                         <label className="text-[10px] font-bold text-slate-400 uppercase">Age Group</label>
                         <select value={ageGroup} onChange={e=>setAgeGroup(e.target.value)} className="font-bold bg-slate-50 border rounded p-2 text-sm">
                             <option value="10&U">10 & Under</option>
@@ -1116,6 +1231,7 @@ const TeamRecordsReport = ({ onBack }) => {
   const [loading, setLoading] = useState(false);
   const [progressMsg, setProgressMsg] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [course, setCourse] = useState('SCY');
   const [recordData, setRecordData] = useState(null);
 
   // Initialize date range to capture all recent records
@@ -1154,10 +1270,11 @@ const TeamRecordsReport = ({ onBack }) => {
     setProgressMsg('Loading record history...');
 
     try {
-      // 1. Fetch record history within date range (filter by swim date, not when it was logged)
+      // 1. Fetch record history within date range, filtered by course
       const { data: recordHistory, error: historyError } = await supabase
         .from('record_history')
         .select('*')
+        .eq('course', course)
         .gte('date', dateRange.start)
         .lte('date', dateRange.end)
         .order('date', { ascending: false });
@@ -1176,11 +1293,12 @@ const TeamRecordsReport = ({ onBack }) => {
 
       console.log(`Found ${recordHistory?.length || 0} record breaks in date range`);
 
-      // 2. Fetch current team records to calculate longest-held
+      // 2. Fetch current team records filtered by course
       setProgressMsg('Analyzing current records...');
       const { data: currentRecords, error: recordsError } = await supabase
         .from('team_records')
-        .select('*');
+        .select('*')
+        .eq('course', course);
 
       if (recordsError) throw recordsError;
 
@@ -1309,9 +1427,26 @@ const TeamRecordsReport = ({ onBack }) => {
         <button onClick={onBack} className="flex items-center gap-1 text-blue-600 font-bold text-sm hover:underline">
           <ArrowRight className="rotate-180" size={16}/> Back to Reports
         </button>
-        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-          <Award className="text-amber-500" size={24} /> Team Records Report
-        </h2>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center bg-slate-100 rounded-lg p-1">
+            {['SCY', 'LCM'].map((c) => (
+              <button
+                key={c}
+                onClick={() => setCourse(c)}
+                className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${
+                  course === c
+                    ? 'bg-white text-blue-700 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <Award className="text-amber-500" size={24} /> Team Records Report
+          </h2>
+        </div>
       </div>
 
       {/* Date Range Filter */}
@@ -2717,6 +2852,7 @@ const TeamFunnelReport = ({ onBack }) => {
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [viewMode, setViewMode] = useState('all'); // 'all', 'boys', 'girls'
   const [ageGroup, setAgeGroup] = useState('all');
+  const [course, setCourse] = useState('SCY');
 
   // Standard hierarchy (from highest to lowest) - Motivational times only
   const STANDARD_HIERARCHY = [
@@ -2730,7 +2866,7 @@ const TeamFunnelReport = ({ onBack }) => {
 
   useEffect(() => {
     generateFunnel();
-  }, [viewMode, ageGroup]);
+  }, [viewMode, ageGroup, course]);
 
   const generateFunnel = async () => {
     setLoading(true);
@@ -2740,14 +2876,15 @@ const TeamFunnelReport = ({ onBack }) => {
       // 1. Fetch swimmers
       const { data: swimmers } = await supabase.from('swimmers').select('*');
 
-      // 2. Fetch all motivational standards
+      // 2. Fetch all motivational standards filtered by course
       setProgressMsg('Loading time standards...');
       const { data: standards } = await supabase
         .from('time_standards')
         .select('*')
-        .in('name', ['B', 'BB', 'A', 'AA', 'AAA', 'AAAA']);
+        .in('name', ['B', 'BB', 'A', 'AA', 'AAA', 'AAAA'])
+        .eq('course', course);
 
-      // 3. Fetch all results (paginated)
+      // 3. Fetch all results (paginated), filtered by course
       let allResults = [];
       let page = 0;
       let keepFetching = true;
@@ -2757,6 +2894,7 @@ const TeamFunnelReport = ({ onBack }) => {
         const { data: batch, error } = await supabase
           .from('results')
           .select('swimmer_id, event, time, course')
+          .eq('course', course)
           .order('id', { ascending: true })
           .range(page * 1000, (page + 1) * 1000 - 1);
 
@@ -2921,6 +3059,25 @@ const TeamFunnelReport = ({ onBack }) => {
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-center">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-slate-600">Course:</span>
+          <div className="flex items-center bg-slate-100 rounded-lg p-1">
+            {['SCY', 'LCM'].map((c) => (
+              <button
+                key={c}
+                onClick={() => setCourse(c)}
+                className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${
+                  course === c
+                    ? 'bg-white text-blue-700 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-slate-600">View:</span>
           <div className="flex bg-slate-100 rounded-lg p-1">
