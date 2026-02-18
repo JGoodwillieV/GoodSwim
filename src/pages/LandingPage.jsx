@@ -73,7 +73,7 @@ const FEATURE_STEPS = [
   {
     title: 'Powerful Reports & Analytics',
     description: 'Big Movers, Close Calls, Team Records, Relay Generators — reports that actually help you coach better.',
-    screenshot: null,
+    screenshot: '/screenshots/reports.png',
   },
   {
     title: 'Parent Portal & Communication',
