@@ -423,25 +423,12 @@ function ExceptionModal({ isOpen, onClose, onSave, groups }) {
 }
 
 // Group Management Modal
-function GroupModal({ isOpen, onClose, onSave, existingGroups }) {
+function GroupModal({ isOpen, onClose, onSave, existingGroups, rosterGroups }) {
   const [groupName, setGroupName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Preset groups based on the PDF
-  const presetGroups = [
-    'Tropical Storms',
-    'CAT 1 Early',
-    'CAT 1 Late',
-    'CAT 2 Early',
-    'CAT 2 Late',
-    'CAT 3',
-    'CAT 4 Orange',
-    'CAT 4 Silver',
-    'CAT 5 Orange',
-    'CAT 5 Silver'
-  ];
-
-  const availablePresets = presetGroups.filter(g => !existingGroups.includes(g));
+  // Use roster groups for quick add presets (groups from the Team roster)
+  const availablePresets = (rosterGroups || []).filter(g => !existingGroups.includes(g));
 
   if (!isOpen) return null;
 
@@ -490,9 +477,9 @@ function GroupModal({ isOpen, onClose, onSave, existingGroups }) {
 
           {availablePresets.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Quick Add</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Quick Add from Roster</label>
               <div className="flex flex-wrap gap-2">
-                {availablePresets.slice(0, 6).map(preset => (
+                {availablePresets.slice(0, 8).map(preset => (
                   <button
                     key={preset}
                     type="button"
@@ -503,6 +490,11 @@ function GroupModal({ isOpen, onClose, onSave, existingGroups }) {
                   </button>
                 ))}
               </div>
+              {availablePresets.length > 8 && (
+                <p className="text-xs text-slate-500 mt-2">
+                  +{availablePresets.length - 8} more groups in roster
+                </p>
+              )}
             </div>
           )}
 
@@ -895,6 +887,7 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
   const [schedules, setSchedules] = useState([]);
   const [exceptions, setExceptions] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [rosterGroups, setRosterGroups] = useState([]);
   const [teamId, setTeamId] = useState(null);
   
   // Season settings - default to current school year
@@ -1001,6 +994,21 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
         console.error('Error loading exceptions:', exceptionsError);
       } else {
         setExceptions(exceptionsData || []);
+      }
+
+      // Load roster groups from swimmers table
+      const { data: swimmersData, error: swimmersError } = await supabase
+        .from('swimmers')
+        .select('group_name')
+        .not('group_name', 'is', null);
+
+      if (swimmersError) {
+        console.error('Error loading roster groups:', swimmersError);
+      } else {
+        const uniqueRosterGroups = [...new Set((swimmersData || []).map(s => s.group_name))]
+          .filter(g => g && g.toLowerCase() !== 'imported' && g.toLowerCase() !== 'unassigned')
+          .sort();
+        setRosterGroups(uniqueRosterGroups);
       }
 
     } catch (error) {
@@ -1237,6 +1245,24 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
     }
   };
 
+  // Handle deleting an exception
+  const handleDeleteException = async (exception) => {
+    if (!confirm(`Delete this exception for ${new Date(exception.exception_date + 'T00:00:00').toLocaleDateString()}?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('practice_schedule_exceptions')
+        .delete()
+        .eq('id', exception.id);
+
+      if (error) throw error;
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting exception:', error);
+      alert('Failed to delete exception');
+    }
+  };
+
   // Handle season update
   const handleSaveSeason = async (seasonData) => {
     setSeason(seasonData);
@@ -1441,7 +1467,7 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
               {exceptions.slice(0, 9).map(exception => (
                 <div
                   key={exception.id}
-                  className={`p-3 rounded-lg border ${
+                  className={`group relative p-3 rounded-lg border ${
                     exception.exception_type === 'canceled' 
                       ? 'bg-red-50 border-red-200' 
                       : exception.exception_type === 'modified'
@@ -1449,6 +1475,13 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
                         : 'bg-green-50 border-green-200'
                   }`}
                 >
+                  <button
+                    onClick={() => handleDeleteException(exception)}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-sm hover:bg-red-600"
+                    title="Delete exception"
+                  >
+                    <X size={14} />
+                  </button>
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-bold text-sm">
                       {new Date(exception.exception_date + 'T00:00:00').toLocaleDateString('en-US', { 
@@ -1505,6 +1538,7 @@ export default function PracticeScheduleManager({ onBack, onOpenPracticeBuilder,
         onClose={() => setShowGroupModal(false)}
         onSave={handleAddGroup}
         existingGroups={groups}
+        rosterGroups={rosterGroups}
       />
 
       <SeasonModal
