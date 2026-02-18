@@ -2572,6 +2572,7 @@ const TimelineTab = ({ meet, onRefresh }) => {
           
           const sessionData = {
             meet_id: meet.id,
+            team_id: meet.team_id,
             session_number: session.sessionNumber,
             session_name: session.name,
             session_date: sessionDate,
