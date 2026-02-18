@@ -1,13 +1,15 @@
 // src/InviteLanding.jsx
 // Landing page for parents clicking an invite link
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { supabase } from './supabase';
 import { 
   Waves, Users, Mail, Lock, Loader2, Check, X, 
   AlertCircle, ArrowRight, Eye, EyeOff, UserPlus
 } from 'lucide-react';
 
-export default function InviteLanding({ token, onComplete }) {
+export default function InviteLanding() {
+  const { token } = useParams();
   const [loading, setLoading] = useState(true);
   const [inviteData, setInviteData] = useState(null);
   const [error, setError] = useState(null);
