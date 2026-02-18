@@ -78,7 +78,7 @@ const FEATURE_STEPS = [
   {
     title: 'Parent Portal & Communication',
     description: 'Keep parents informed with schedules, meet info, announcements, and swimmer progress — without endless emails.',
-    screenshot: null,
+    screenshots: ['/screenshots/parent-portal-1.png', '/screenshots/parent-portal-2.png'],
   },
 ];
 
@@ -238,40 +238,66 @@ function FeatureStepper() {
 
       {/* Right: media area */}
       <div className="flex-1 min-w-0 w-full lg:sticky lg:top-24">
-        <div className="relative rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-xl shadow-slate-200/50">
-          {step.video ? (
-            <div className="relative">
-              <video
-                ref={videoRef}
-                src={step.video}
-                className="w-full h-auto"
-                onEnded={() => setVideoPlaying(false)}
-                playsInline
-              />
-              {!videoPlaying && (
-                <button
-                  onClick={handlePlayVideo}
-                  className="absolute inset-0 flex items-center justify-center bg-slate-900/30 hover:bg-slate-900/40 transition-colors group"
-                >
-                  <div className="w-16 h-16 rounded-full bg-white/90 group-hover:bg-white flex items-center justify-center shadow-lg transition-all group-hover:scale-110">
-                    <Play size={28} className="text-teal-600 fill-teal-600 ml-1" />
+        {step.screenshots ? (
+          <div className="flex gap-8 items-start justify-center">
+            {step.screenshots.map((src, idx) => (
+              <div key={idx} className="relative flex-shrink-0" style={{ width: 220 }}>
+                {/* iPhone shell */}
+                <div className="relative rounded-[2.5rem] border-[6px] border-slate-800 bg-slate-800 shadow-2xl overflow-hidden">
+                  {/* Notch / Dynamic Island */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10 w-24 h-6 bg-slate-800 rounded-b-2xl" />
+                  {/* Screen */}
+                  <div className="relative rounded-[2rem] overflow-hidden bg-white">
+                    <img
+                      src={src}
+                      alt={`${step.title} ${idx + 1}`}
+                      className="w-full h-auto object-cover"
+                    />
                   </div>
-                </button>
-              )}
-            </div>
-          ) : step.screenshot ? (
-            <img
-              src={step.screenshot}
-              alt={step.title}
-              className="w-full h-auto object-contain"
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 text-slate-400 aspect-[16/10]">
-              <Smartphone size={48} className="mb-3 opacity-40" />
-              <span className="text-sm font-medium">{step.title} — screenshot coming soon</span>
-            </div>
-          )}
-        </div>
+                  {/* Home indicator */}
+                  <div className="flex justify-center py-1.5 bg-slate-800">
+                    <div className="w-20 h-1 rounded-full bg-slate-600" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="relative rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-xl shadow-slate-200/50">
+            {step.video ? (
+              <div className="relative">
+                <video
+                  ref={videoRef}
+                  src={step.video}
+                  className="w-full h-auto"
+                  onEnded={() => setVideoPlaying(false)}
+                  playsInline
+                />
+                {!videoPlaying && (
+                  <button
+                    onClick={handlePlayVideo}
+                    className="absolute inset-0 flex items-center justify-center bg-slate-900/30 hover:bg-slate-900/40 transition-colors group"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-white/90 group-hover:bg-white flex items-center justify-center shadow-lg transition-all group-hover:scale-110">
+                      <Play size={28} className="text-teal-600 fill-teal-600 ml-1" />
+                    </div>
+                  </button>
+                )}
+              </div>
+            ) : step.screenshot ? (
+              <img
+                src={step.screenshot}
+                alt={step.title}
+                className="w-full h-auto object-contain"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 text-slate-400 aspect-[16/10]">
+                <Smartphone size={48} className="mb-3 opacity-40" />
+                <span className="text-sm font-medium">{step.title} — screenshot coming soon</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
