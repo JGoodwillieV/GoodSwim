@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from './supabase';
 import {
   Timer, TrendingUp, TrendingDown, ChevronRight, Calendar,
-  Users, Zap, Target, ChevronDown, ChevronUp, BarChart3
+  Users, Zap, Target, ChevronDown, ChevronUp, BarChart3, Trash2
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
@@ -433,6 +433,25 @@ export function TestSetsList({ onBack, onStartNew }) {
   const [testSets, setTestSets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedSet, setExpandedSet] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteSet = async (setId) => {
+    setDeleting(true);
+    const { error } = await supabase
+      .from('test_sets')
+      .delete()
+      .eq('id', setId);
+
+    if (error) {
+      alert('Error deleting test set: ' + error.message);
+    } else {
+      setTestSets(prev => prev.filter(s => s.id !== setId));
+      setExpandedSet(null);
+    }
+    setConfirmDeleteId(null);
+    setDeleting(false);
+  };
 
   useEffect(() => {
     const fetchAllSets = async () => {
@@ -647,6 +666,38 @@ export function TestSetsList({ onBack, onStartNew }) {
                         })}
                       </tbody>
                     </table>
+
+                    {/* Delete button */}
+                    <div className="px-4 py-3 border-t border-slate-100 flex justify-end">
+                      {confirmDeleteId === set.id ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-slate-500">Delete this test set?</span>
+                          <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            disabled={deleting}
+                            className="px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSet(set.id)}
+                            disabled={deleting}
+                            className="px-3 py-1.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-1"
+                          >
+                            <Trash2 size={14} />
+                            {deleting ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(set.id); }}
+                          className="px-3 py-1.5 text-sm font-medium text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1"
+                        >
+                          <Trash2 size={14} />
+                          Delete Set
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
