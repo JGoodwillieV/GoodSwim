@@ -62,8 +62,8 @@ const FEATURE_STEPS = [
   },
   {
     title: 'Meet Management',
-    description: 'Import meet info, manage entries, track commitments, and auto-generate event recommendations — all in one place.',
-    screenshot: null,
+    description: 'Upload a meet invite PDF and we auto-parse everything — events, timelines, heat sheets, and more. Collect swimmer commitments, manage entries, and generate event recommendations effortlessly.',
+    screenshot: '/screenshots/meet-management.png',
   },
   {
     title: 'Test Set Tracker',
