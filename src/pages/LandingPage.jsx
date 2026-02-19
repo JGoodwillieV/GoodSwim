@@ -621,20 +621,20 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Big Feature 1: Practice Builder */}
+      {/* Big Feature 1: Your Data, Fully Unlocked */}
       <section id="benefits" className="py-24 relative">
         <div className="max-w-7xl mx-auto px-6">
           <BigFeature 
-            icon={Waves}
-            title="Practice Planning That Actually Works"
-            description="Build workouts visually with our intuitive practice builder. No more scribbling on whiteboards or losing workout cards."
+            icon={BarChart3}
+            title="Finally, a Platform That Puts Your Data to Work"
+            description="Your team generates tons of data every season — times, meet results, attendance, standards progress. GoodSwim brings it all together so you can actually analyze, understand, and act on it."
             features={[
-              'Drag-and-drop set organization',
-              'Quick-entry mode for rapid input',
-              'Equipment and focus tracking',
-              'Print-ready deck cards',
-              'Library of saved workouts',
-              'Run mode for live practices'
+              'Powerful reports like Big Movers, Close Calls, and Relay Generators',
+              'AI Data Assistant — chat with your entire team database in plain English',
+              'Rich swimmer profiles with PB history, standards tracking, and trends',
+              'Test set analytics with historical comparisons across seasons',
+              'Team-wide dashboards for quick performance snapshots',
+              'Export and share data with parents, staff, and administrators'
             ]}
             color="bg-gradient-to-br from-teal-500 to-cyan-600"
             gradient="bg-gradient-to-br from-teal-500 to-cyan-600"
