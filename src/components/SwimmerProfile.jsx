@@ -326,7 +326,7 @@ export default function SwimmerProfile({
               activeTab === 'analysis' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'
             }`}
           >
-            <Icon name="video" size={14} /> Video Analysis
+            <Icon name="video" size={14} /> Video Analysis <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-semibold ml-1">Soon</span>
           </button>
           <button 
             onClick={() => setActiveTab('photos')} 
@@ -584,46 +584,20 @@ export default function SwimmerProfile({
         </div>
       )}
 
-      {/* --- TAB 4: ANALYSIS --- */}
+      {/* --- TAB 4: ANALYSIS (Coming Soon) --- */}
       {activeTab === 'analysis' && (
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm min-h-[400px]">
-          <div className="p-6 border-b border-slate-100">
-            <h3 className="font-bold text-slate-800 text-lg">AI Video Analyses</h3>
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="font-bold text-slate-800 text-lg">Video Analysis</h3>
+            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">Coming Q2 2026</span>
           </div>
-          {analyses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
-              {analyses.map((analysis, idx) => (
-                <div 
-                  key={idx} 
-                  onClick={() => onViewAnalysis(analysis)} 
-                  className="group relative aspect-video bg-slate-900 rounded-xl overflow-hidden cursor-pointer shadow-md hover:shadow-xl transition-all"
-                >
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/20 transition-colors">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Icon name="play" size={24} className="text-white fill-white ml-1" />
-                    </div>
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-                    <p className="text-white font-bold text-sm">Analysis #{analysis.id}</p>
-                    <p className="text-slate-300 text-xs">
-                      {new Date(analysis.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-              <Icon name="video" size={32} className="opacity-50 mb-4" />
-              <p>No AI analyses saved yet.</p>
-              <button 
-                onClick={() => navigateTo('analysis')} 
-                className="mt-2 text-blue-600 hover:underline text-sm font-medium"
-              >
-                Go to Analysis Tool
-              </button>
-            </div>
-          )}
+          <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+            <Icon name="video" size={32} className="opacity-50 mb-4" />
+            <p className="text-slate-600 font-medium">Video Analysis is coming soon</p>
+            <p className="text-slate-500 text-sm mt-1 max-w-sm text-center">
+              Upload footage, annotate key moments, and get AI-powered stroke analysis — launching Q2 2026.
+            </p>
+          </div>
         </div>
       )}
       

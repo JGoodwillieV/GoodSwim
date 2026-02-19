@@ -236,16 +236,24 @@ export default function ToolsHub({
 
       {/* Main Tools Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <FeatureCard
-          icon={Video}
-          title="AI Video Analysis"
-          description="Upload swim videos for AI-powered stroke analysis and feedback"
-          color="from-blue-500 to-indigo-600"
-          onClick={onStartAnalysis}
-          badge="Powered by Gemini"
-          isLocked={!aiVideoAccess.isUnlocked}
-          requiredTier={aiVideoAccess.requiredTier}
-        />
+        <div className="relative w-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl p-5 text-left overflow-hidden opacity-80">
+          <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-[2px] bg-white/5">
+            <div className="flex items-center gap-2 bg-white/90 border border-slate-200 rounded-full px-4 py-2 text-sm font-bold text-slate-700 shadow-lg">
+              <Clock size={16} className="text-blue-600" />
+              Coming Soon — Q2 2026
+            </div>
+          </div>
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <Video size={24} />
+              </div>
+            </div>
+            <h3 className="font-bold text-lg">Video Analysis Suite</h3>
+            <p className="text-sm opacity-80 mt-1">Upload swim videos, annotate, and get AI-powered stroke analysis</p>
+          </div>
+          <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/10 rounded-full"></div>
+        </div>
         <FeatureCard
           icon={MessageSquare}
           title="AI Data Assistant"
@@ -306,50 +314,22 @@ export default function ToolsHub({
         </div>
       </div>
 
-      {/* Recent Analyses */}
+      {/* Video Analysis Coming Soon */}
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
         <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
           <h3 className="font-bold text-slate-800 flex items-center gap-2">
             <Video size={18} className="text-blue-600" />
-            Recent Analyses
+            Video Analysis Suite
           </h3>
-          <button
-            onClick={onStartAnalysis}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-          >
-            <Upload size={14} />
-            New Analysis
-          </button>
+          <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">Coming Q2 2026</span>
         </div>
         
-        <div className="p-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="animate-spin text-blue-500" size={24} />
-            </div>
-          ) : recentAnalyses.length > 0 ? (
-            <div className="space-y-3">
-              {recentAnalyses.map(analysis => (
-                <AnalysisCard 
-                  key={analysis.id}
-                  analysis={analysis}
-                  onView={onViewAnalysis}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Video size={40} className="mx-auto text-slate-300 mb-3" />
-              <p className="text-slate-600 font-medium">No analyses yet</p>
-              <p className="text-slate-500 text-sm mt-1">Upload a video to get AI-powered feedback</p>
-              <button
-                onClick={onStartAnalysis}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-              >
-                Start First Analysis
-              </button>
-            </div>
-          )}
+        <div className="p-6 text-center">
+          <Video size={40} className="mx-auto text-slate-300 mb-3" />
+          <p className="text-slate-600 font-medium">Video Analysis is coming soon</p>
+          <p className="text-slate-500 text-sm mt-1 max-w-md mx-auto">
+            Upload swimmer footage, add timestamps, draw annotations, record voiceovers, and get AI-powered stroke analysis — launching Q2 2026.
+          </p>
         </div>
       </div>
 

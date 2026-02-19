@@ -54,7 +54,7 @@ const navItems = [
     id: 'tools', 
     icon: 'sparkles', 
     label: 'Tools',
-    description: 'AI analysis & chat',
+    description: 'AI chat & more',
     requiredFeature: null,
     hasProFeatures: ['ai_video_analysis', 'ai_chat']
   },

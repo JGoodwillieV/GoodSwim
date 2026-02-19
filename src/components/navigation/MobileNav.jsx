@@ -18,7 +18,7 @@ const mobileNavItems = [
 // Items in the "More" menu
 const moreMenuItems = [
   { id: 'reports', icon: 'bar-chart-2', label: 'Reports', description: 'Analytics & progress' },
-  { id: 'tools', icon: 'sparkles', label: 'Tools', description: 'AI analysis & chat' },
+  { id: 'tools', icon: 'sparkles', label: 'Tools', description: 'AI chat & more' },
 ];
 
 export default function MobileNav({ activeTab, setActiveTab }) {

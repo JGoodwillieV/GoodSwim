@@ -66,8 +66,7 @@ const PLANS = [
     color: 'purple',
     features: [
       'Everything in Pro',
-      'AI Video Analysis (10/mo)',
-      'AI Chat Assistant',
+      'AI Data Assistant',
       'Advanced Analytics',
       'Custom Branding',
       'Unlimited Coaches',

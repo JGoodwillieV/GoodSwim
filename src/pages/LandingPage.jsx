@@ -563,7 +563,7 @@ export default function LandingPage() {
 
             {/* Subheadline */}
             <p className="text-xl md:text-2xl text-slate-600 mb-10 leading-relaxed max-w-3xl mx-auto">
-              Practice planning, AI video analysis, meet management, and parent communication — 
+              Scheduling, meet management, powerful reports, and parent communication — 
               all in one beautiful platform that saves coaches hours every week.
             </p>
 

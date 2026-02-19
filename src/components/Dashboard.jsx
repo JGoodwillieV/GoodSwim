@@ -284,29 +284,23 @@ export default function Dashboard({ navigateTo, swimmers, stats, onLogout, onInv
                 </div>
               </button>
               
-              <button 
-                onClick={handleVideoAnalysisClick}
-                className={`relative bg-white border border-slate-200 p-4 rounded-xl flex flex-col items-start gap-2 cursor-pointer hover:bg-slate-50 hover:border-slate-300 transition-all group overflow-hidden ${
-                  !aiVideoAccess.isUnlocked ? 'opacity-75' : ''
-                }`}
+              <div 
+                className="relative bg-white border border-slate-200 p-4 rounded-xl flex flex-col items-start gap-2 overflow-hidden opacity-75 cursor-default"
               >
-                {!aiVideoAccess.isUnlocked && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/5 backdrop-blur-[1px] pointer-events-none">
-                    <div className="flex items-center gap-2 bg-white/90 border border-slate-200 rounded-full px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
-                      <Lock size={14} className="text-slate-500" />
-                      <span>Club</span>
-                      <Crown size={14} className="text-purple-600" />
-                    </div>
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/5 backdrop-blur-[1px] pointer-events-none">
+                  <div className="flex items-center gap-2 bg-white/90 border border-slate-200 rounded-full px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                    <Clock size={14} className="text-blue-500" />
+                    <span>Coming Soon</span>
                   </div>
-                )}
+                </div>
                 <div className="w-9 h-9 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center">
                   <Icon name="video" size={18}/>
                 </div>
                 <div>
                   <div className="font-bold text-sm text-slate-800">Video Analysis</div>
-                  <div className="text-slate-500 text-xs">Analyze video</div>
+                  <div className="text-slate-500 text-xs">Q2 2026</div>
                 </div>
-              </button>
+              </div>
               
               <button 
                 onClick={() => navigateTo('reports')} 
