@@ -133,7 +133,7 @@ const MeetFormModal = ({ meet, onSave, onClose }) => {
     location_name: meet?.location_name || '',
     location_address: meet?.location_address || '',
     sanction_number: meet?.sanction_number || '',
-    team_code: meet?.team_code || 'HNVR',
+    team_code: meet?.team_code || '',
     meet_type: meet?.meet_type || 'timed_finals',
     course: meet?.course || 'SCY',
     events_per_day_limit: meet?.events_per_day_limit || 3,
@@ -146,6 +146,37 @@ const MeetFormModal = ({ meet, onSave, onClose }) => {
   });
   const [loading, setLoading] = useState(false);
   const [parsing, setParsing] = useState(false);
+  const [teamId, setTeamId] = useState(null);
+
+  useEffect(() => {
+    const loadTeamCode = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: teamMember } = await supabase
+          .from('team_members')
+          .select('team_id')
+          .eq('user_id', user.id)
+          .single();
+        if (!teamMember?.team_id) return;
+        setTeamId(teamMember.team_id);
+
+        if (!meet?.team_code) {
+          const { data: team } = await supabase
+            .from('teams')
+            .select('team_code')
+            .eq('id', teamMember.team_id)
+            .single();
+          if (team?.team_code) {
+            setFormData(prev => ({ ...prev, team_code: prev.team_code || team.team_code }));
+          }
+        }
+      } catch (err) {
+        console.error('Error loading team code:', err);
+      }
+    };
+    loadTeamCode();
+  }, [meet?.team_code]);
 
   const handlePdfUpload = async (e) => {
     const file = e.target.files[0];
@@ -216,6 +247,8 @@ const MeetFormModal = ({ meet, onSave, onClose }) => {
         entry_fee_surcharge: rawMeetData.entry_fee_surcharge || null,
       };
       
+      let resolvedTeamId = teamId;
+
       if (meet?.id) {
         // Update existing
         const { error } = await supabase
@@ -223,23 +256,26 @@ const MeetFormModal = ({ meet, onSave, onClose }) => {
           .update(meetData)
           .eq('id', meet.id);
         if (error) throw error;
+        resolvedTeamId = resolvedTeamId || meet.team_id;
       } else {
         // Get team_id for new meet
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: teamMember } = await supabase
-          .from('team_members')
-          .select('team_id')
-          .eq('user_id', user.id)
-          .single();
-        
-        if (!teamMember?.team_id) {
-          throw new Error('No team association found for your account.');
+        if (!resolvedTeamId) {
+          const { data: teamMember } = await supabase
+            .from('team_members')
+            .select('team_id')
+            .eq('user_id', user.id)
+            .single();
+          if (!teamMember?.team_id) {
+            throw new Error('No team association found for your account.');
+          }
+          resolvedTeamId = teamMember.team_id;
         }
 
         // Insert new
         const { data, error } = await supabase
           .from('meets')
-          .insert({ ...meetData, team_id: teamMember.team_id, created_by: user.id, status: 'draft' })
+          .insert({ ...meetData, team_id: resolvedTeamId, created_by: user.id, status: 'draft' })
           .select()
           .single();
         if (error) throw error;
@@ -265,7 +301,7 @@ const MeetFormModal = ({ meet, onSave, onClose }) => {
           
           const eventsToInsert = uniqueEvents.map(evt => ({
             meet_id: data.id,
-            team_id: teamMember.team_id,
+            team_id: resolvedTeamId,
             event_number: evt.eventNumber,
             event_name: evt.eventName || `${evt.gender || ''} ${evt.ageGroup || ''} ${evt.distance || ''} ${evt.stroke || ''}`.trim(),
             age_group: evt.ageGroup,
@@ -282,10 +318,17 @@ const MeetFormModal = ({ meet, onSave, onClose }) => {
             const { error: eventsError } = await supabase.from('meet_events').insert(batch);
             if (eventsError) {
               console.error(`Error inserting events batch ${i}-${i+batch.length}:`, eventsError);
-              // Continue with other batches
             }
           }
         }
+      }
+
+      // Persist team code to the teams table for future meets
+      if (resolvedTeamId && meetData.team_code) {
+        await supabase
+          .from('teams')
+          .update({ team_code: meetData.team_code })
+          .eq('id', resolvedTeamId);
       }
       
       onSave();
@@ -385,7 +428,7 @@ const MeetFormModal = ({ meet, onSave, onClose }) => {
                 type="text"
                 value={formData.team_code}
                 onChange={(e) => setFormData({ ...formData, team_code: e.target.value.toUpperCase() })}
-                placeholder="e.g., HNVR, RAYS"
+                placeholder="e.g., RAYS, TIDE"
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-xs text-slate-500 mt-1">Used for matching heat sheets to your swimmers</p>
@@ -2860,8 +2903,7 @@ const HeatSheetTab = ({ meet, onRefresh }) => {
       console.log('Parsed heat sheet:', parsed);
       console.log(`Found ${parsed.entries.length} total entries in heat sheet`);
       
-      // Get team code from meet or default to HNVR (could be made configurable)
-      const teamCode = meet.team_code || 'HNVR';
+      const teamCode = meet.team_code || '';
       
       // Get existing meet entries to match against
       const { data: existingEntries } = await supabase
