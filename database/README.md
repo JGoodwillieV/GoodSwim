@@ -1,6 +1,6 @@
 # Team Records Setup Guide
 
-This guide explains how to set up and use the Hurricane SC team records feature in GoodSwim.
+This guide explains how to set up and use the GoodSwim team records feature.
 
 ## Overview
 
@@ -24,7 +24,7 @@ This will create:
 
 ### 2. Load the Team Records Data
 
-After creating the table, load the Hurricane SC records data:
+After creating the table, load the team records data:
 
 **Option A: Using the Node.js script (Recommended)**
 
@@ -172,7 +172,7 @@ All items are sorted by time, so you can easily see where the swimmer ranks comp
 
 ## Data Sources
 
-The team records in `team_records_data.json` were sourced from the Hurricane SC records PDF document dated December 2024 - March 2025. Records include:
+The team records in `team_records_data.json` were sourced from the GoodSwim records document dated December 2024 - March 2025. Records include:
 
 - All standard individual events (Free, Back, Breast, Fly, IM)
 - Distances from 25y to 1650y

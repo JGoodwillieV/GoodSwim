@@ -1,4 +1,4 @@
-// Script to load Hurricane SC team records into Supabase
+// Script to load GoodSwim team records into Supabase
 // Run this with: node database/load_team_records.js
 
 import { createClient } from '@supabase/supabase-js';

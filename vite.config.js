@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/*.png', 'team-logo-white.png', 'team-logo.png'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'favicon-16x16.png', 'favicon-32x32.png', 'android-chrome-192x192.png', 'android-chrome-512x512.png', 'team-logo-white.png', 'team-logo.png'],
       manifest: {
         name: 'GoodSwim',
         short_name: 'GoodSwim',
@@ -17,9 +17,9 @@ export default defineConfig({
         background_color: '#0f172a',
         display: 'standalone',
         icons: [
-          { src: '/icons/192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/icons/512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+          { src: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ]
       },
       workbox: {

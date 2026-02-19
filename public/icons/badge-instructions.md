@@ -67,8 +67,7 @@ The badge should appear next to your notification.
 
 A good badge icon for GoodSwim could be:
 - Stylized wave or swimmer icon (monochrome)
-- "ST" letters in bold font
-- Lightning bolt for "Storm" theme
+- "GS" letters in bold font
 - Simple geometric wave pattern
 
 Keep it simple and recognizable at small sizes!

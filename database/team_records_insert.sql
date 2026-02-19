@@ -1,4 +1,4 @@
--- Hurricane SC Team Records - SQL Insert Statements
+-- GoodSwim Team Records - SQL Insert Statements
 -- Run this in Supabase SQL Editor after creating the team_records table
 -- This will insert all 250+ team records
 

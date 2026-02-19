@@ -91,7 +91,7 @@ Run the SQL in `database/practice_schedules_schema.sql` in your Supabase SQL Edi
 
 ## 📝 Example Schedule (from PDF)
 
-Based on the Hanover Hurricanes schedule:
+Based on the GoodSwim schedule:
 
 | Group | Mon-Thu | Friday | Saturday |
 |-------|---------|--------|----------|
@@ -129,7 +129,7 @@ Modal for creating schedule exceptions:
 - Preset reasons dropdown
 
 ### GroupModal
-Quick add for training groups with hurricane-themed presets.
+Quick add for training groups with swim-themed presets.
 
 ### SeasonModal
 Configure active season dates.

@@ -69,7 +69,7 @@ Get the team records feature up and running in 5 minutes! ⚡
 
 ---
 
-**What this does**: Loads all Hurricane SC team records into your database.
+**What this does**: Loads all GoodSwim team records into your database.
 
 ---
 

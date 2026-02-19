@@ -134,7 +134,7 @@ function ActivityItem({ activity }) {
 // Resources Placeholder Component
 function ResourcesPlaceholder() {
   const sampleResources = [
-    { type: 'link', title: 'Team Website', description: 'Official Hanover Aquatics site', icon: ExternalLink },
+    { type: 'link', title: 'Team Website', description: 'Official GoodSwim site', icon: ExternalLink },
     { type: 'doc', title: 'Parent Handbook', description: 'Team policies & information', icon: FileText },
     { 
       type: 'link', 

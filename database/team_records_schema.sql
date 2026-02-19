@@ -1,5 +1,5 @@
 -- Team Records Table
--- Stores Hurricane Swim Club's team records for all age groups and events
+-- Stores GoodSwim team records for all age groups and events
 
 CREATE TABLE IF NOT EXISTS team_records (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

@@ -2,7 +2,7 @@
 
 ## Overview
 
-A new feature has been added to GoodSwim that displays Hurricane SC team records in the Standards & Goals "View Ladder" section. Swimmers can now see how their personal bests compare to both official time standards and their team's all-time records for their age group.
+A new feature has been added to GoodSwim that displays team records in the Standards & Goals "View Ladder" section. Swimmers can now see how their personal bests compare to both official time standards and their team's all-time records for their age group.
 
 ## What's New
 
@@ -28,7 +28,7 @@ A new feature has been added to GoodSwim that displays Hurricane SC team records
    - Run this first in Supabase SQL Editor
 
 2. **`team_records_data.json`**
-   - Complete Hurricane SC records data (250+ records)
+   - Complete GoodSwim records data (250+ records)
    - Sourced from official team records PDF
    - All age groups, both genders, all individual events
    - Short Course Yards (SCY) only
@@ -344,7 +344,7 @@ A: Check that database indexes were created with the schema.
 ## Credits
 
 **Implementation Date**: December 2024  
-**Data Source**: Hurricane SC records PDF (2024-2025 season)  
+**Data Source**: GoodSwim records (2024-2025 season)  
 **Records Include**: 250+ individual event records across all age groups  
 **Technology Stack**: React, Supabase, Tailwind CSS  
 
