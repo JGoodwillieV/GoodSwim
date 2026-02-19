@@ -18,7 +18,7 @@ const howToItems = [
   {
     id: 'add-results',
     title: 'Add Results',
-    description: 'Enter meet results manually or import them from meet management software.',
+    description: 'Export results from Team Unify and import them into GoodSwim.',
     icon: Trophy,
     category: 'Meets',
   },
@@ -179,6 +179,60 @@ function ImportRosterGuide() {
   );
 }
 
+function AddResultsGuide() {
+  return (
+    <div className="space-y-6">
+      {/* Section 1: Exporting from Team Unify */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+        <h3 className="text-lg font-bold text-slate-900 mb-1">Exporting from Team Unify</h3>
+        <p className="text-sm text-slate-500 mb-6">First, export your meet results from Team Unify as an Excel file.</p>
+
+        <div className="space-y-5">
+          <StepItem number={1}>
+            Click <span className="font-semibold text-slate-900">"Events & Competition"</span>.
+          </StepItem>
+          <StepItem number={2}>
+            Click <span className="font-semibold text-slate-900">"Meet Results"</span>.
+          </StepItem>
+          <StepItem number={3}>
+            Click <span className="font-semibold text-slate-900">"Results By Meet"</span>.
+          </StepItem>
+          <StepItem number={4}>
+            Click the <span className="font-semibold text-slate-900">meet name</span> you want to export.
+          </StepItem>
+          <StepItem number={5}>
+            Select your team from the dropdown. If you have a lot of swimmers, you may need to break it out by <span className="font-semibold text-slate-900">"Competitive Category"</span> and/or <span className="font-semibold text-slate-900">"Age Group"</span> and pull multiple files.
+          </StepItem>
+          <StepItem number={6}>
+            Click <span className="font-semibold text-slate-900">"Search"</span>.
+          </StepItem>
+          <StepItem number={7}>
+            Click <span className="font-semibold text-slate-900">"Excel Export"</span>.
+          </StepItem>
+        </div>
+      </div>
+
+      {/* Section 2: Importing into GoodSwim */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+        <h3 className="text-lg font-bold text-slate-900 mb-1">Importing into GoodSwim</h3>
+        <p className="text-sm text-slate-500 mb-6">Now import the exported file(s) into GoodSwim.</p>
+
+        <div className="space-y-5">
+          <StepItem number={1}>
+            Go to <span className="font-semibold text-slate-900">"Team"</span> in the navigation bar.
+          </StepItem>
+          <StepItem number={2}>
+            Click <span className="font-semibold text-slate-900">"Import Results"</span>.
+          </StepItem>
+          <StepItem number={3}>
+            Select the <span className="font-semibold text-slate-900">file(s)</span> that you just downloaded from Team Unify.
+          </StepItem>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HelpHub({ navigateTo, isParentView = false }) {
   const [activeTab, setActiveTab] = useState(isParentView ? 'support' : 'how-to');
   const [selectedArticle, setSelectedArticle] = useState(null);
@@ -263,6 +317,8 @@ export default function HelpHub({ navigateTo, isParentView = false }) {
 
           {selectedArticle === 'import-roster' ? (
             <ImportRosterGuide />
+          ) : selectedArticle === 'add-results' ? (
+            <AddResultsGuide />
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 p-8 md:p-12 text-center">
               <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-6">
