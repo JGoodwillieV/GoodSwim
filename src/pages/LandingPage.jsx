@@ -654,7 +654,7 @@ export default function LandingPage() {
               'Weekly workout planner with drag-and-drop assignments',
               'Practice times and group schedules visible to the whole team',
               'Coach assignments so everyone knows who\'s on deck',
-              'Meet manager with auto-parsed invites and timelines',
+              'Meet manager with auto-parsed meet invites, timelines, heat sheets, and more',
               'Event manager for non-meet activities and team events',
               'Visual calendar view with schedule exceptions and cancellations'
             ]}
