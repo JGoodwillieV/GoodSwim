@@ -706,6 +706,51 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Coming Soon */}
+      <section className="py-24 bg-slate-50 relative">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <span className="text-purple-600 font-semibold text-sm uppercase tracking-wide">Coming Soon</span>
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mt-3 mb-6">
+              What's Next for GoodSwim
+            </h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              We're always building. Here's what's on the horizon.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Video Suite */}
+            <div className="relative bg-white rounded-2xl p-8 shadow-sm border border-slate-100 overflow-hidden">
+              <div className="absolute top-4 right-4 bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                Q2 2026
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-5">
+                <Video size={24} className="text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-3">Coach Video Suite</h3>
+              <p className="text-slate-600 leading-relaxed">
+                Upload swimmer footage and break it down frame by frame. Add timestamps, voiceover notes, draw lines and angles directly on the video, and annotate key moments — then push the finished analysis straight to the swimmer's profile. AI-powered stroke analysis will also be available to help identify technique issues automatically.
+              </p>
+            </div>
+
+            {/* Parent Video Upload */}
+            <div className="relative bg-white rounded-2xl p-8 shadow-sm border border-slate-100 overflow-hidden">
+              <div className="absolute top-4 right-4 bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                Q3 2026
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center mb-5">
+                <Smartphone size={24} className="text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-3">Parent Video Uploads</h3>
+              <p className="text-slate-600 leading-relaxed">
+                Parents can film their child's races and upload them right from the app, tagging each video to the specific meet result. Coaches get instant access to review footage alongside the data. AI analysis ties it all together — ask questions like "how did the 12&amp;under backstroke turns look at the last meet?" and get instant, actionable answers.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Stats Section */}
       <section className="py-24 bg-gradient-to-br from-slate-900 to-slate-800 relative overflow-hidden">
         <div className="absolute inset-0 opacity-30">
