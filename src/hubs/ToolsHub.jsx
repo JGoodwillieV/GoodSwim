@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
 import {
   Video, MessageSquare, Sparkles, ChevronRight, Play, Clock,
-  User, Loader2, Upload, Brain, Zap, Star, ExternalLink, Lock, Crown
+  User, Loader2, Upload, Brain, Zap, Star, ExternalLink, Lock, Crown, Bot
 } from 'lucide-react';
 import { formatDateSafe } from '../utils/dateUtils';
 import { FeatureGate, useFeatureGate } from '../components/gates';
@@ -116,15 +116,64 @@ function FeatureCard({ icon: Icon, title, description, color, onClick, badge, is
   );
 }
 
+// Chat History Card
+function ChatHistoryCard({ conversation, onOpen }) {
+  const timeAgo = (dateStr) => {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return formatDateSafe(dateStr, { month: 'short', day: 'numeric' });
+  };
+
+  return (
+    <button
+      onClick={() => onOpen?.(conversation.id)}
+      className="w-full bg-white border border-slate-200 rounded-xl p-4 text-left hover:shadow-md hover:border-purple-200 transition-all group"
+    >
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-purple-200 transition-colors">
+          <Bot size={18} className="text-purple-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h4 className="font-medium text-slate-800 truncate text-sm">
+            {conversation.title || 'New Conversation'}
+          </h4>
+          <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
+            <Clock size={11} />
+            {timeAgo(conversation.updated_at || conversation.created_at)}
+            {conversation.message_count > 0 && (
+              <>
+                <span>•</span>
+                <span>{conversation.message_count} messages</span>
+              </>
+            )}
+          </div>
+        </div>
+        <ChevronRight size={14} className="text-slate-300 group-hover:text-purple-500 mt-1" />
+      </div>
+    </button>
+  );
+}
+
 export default function ToolsHub({ 
   swimmers = [],
   navigateTo,
   onStartAnalysis,
   onOpenAIChat,
+  onOpenConversation,
   onViewAnalysis
 }) {
   const [recentAnalyses, setRecentAnalyses] = useState([]);
+  const [recentChats, setRecentChats] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [chatsLoading, setChatsLoading] = useState(true);
   const [stats, setStats] = useState({ totalAnalyses: 0 });
   
   // Check feature access
@@ -133,6 +182,7 @@ export default function ToolsHub({
 
   useEffect(() => {
     fetchRecentAnalyses();
+    fetchRecentChats();
   }, []);
 
   const fetchRecentAnalyses = async () => {
@@ -153,6 +203,26 @@ export default function ToolsHub({
       console.error('Error fetching analyses:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRecentChats = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { data, error } = await supabase
+        .from('chat_conversations')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      setRecentChats(data || []);
+    } catch (err) {
+      console.error('Error fetching chat history:', err);
+    } finally {
+      setChatsLoading(false);
     }
   };
 
@@ -277,6 +347,53 @@ export default function ToolsHub({
                 className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
                 Start First Analysis
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Chat History */}
+      <div className="mt-6 bg-white border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <MessageSquare size={18} className="text-purple-600" />
+            Chat History
+          </h3>
+          <button
+            onClick={onOpenAIChat}
+            className="text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+          >
+            <Bot size={14} />
+            New Chat
+          </button>
+        </div>
+
+        <div className="p-4">
+          {chatsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="animate-spin text-purple-500" size={24} />
+            </div>
+          ) : recentChats.length > 0 ? (
+            <div className="space-y-2">
+              {recentChats.map(chat => (
+                <ChatHistoryCard
+                  key={chat.id}
+                  conversation={chat}
+                  onOpen={onOpenConversation}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <MessageSquare size={40} className="mx-auto text-slate-300 mb-3" />
+              <p className="text-slate-600 font-medium">No conversations yet</p>
+              <p className="text-slate-500 text-sm mt-1">Start a chat with your AI Data Assistant</p>
+              <button
+                onClick={onOpenAIChat}
+                className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+              >
+                Start Chatting
               </button>
             </div>
           )}

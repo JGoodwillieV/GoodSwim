@@ -79,6 +79,7 @@ export default function App() {
   const [previousView, setPreviousView] = useState(null); // Track where user came from for back navigation
   const [practicePreFill, setPracticePreFill] = useState(null); // Pre-fill data when creating practice from schedule
   const [selectedGroupName, setSelectedGroupName] = useState(null); // Track selected group for group detail view
+  const [selectedConversationId, setSelectedConversationId] = useState(null);
   
   // User Role State
   const [userRole, setUserRole] = useState(null);
@@ -233,6 +234,9 @@ export default function App() {
   // --- Navigation ---
   const navigateTo = (v) => {
     setView(v);
+    if (v === 'ai-chat') {
+      setSelectedConversationId(null);
+    }
     if (v !== 'roster' && v !== 'view-analysis') {
       setSelectedSwimmer(null);
     }
@@ -572,6 +576,7 @@ export default function App() {
             navigateTo={navigateTo}
             onStartAnalysis={() => navigateTo('analysis')}
             onOpenAIChat={() => navigateTo('ai-chat')}
+            onOpenConversation={(id) => { setSelectedConversationId(id); setView('ai-chat'); }}
             onViewAnalysis={handleViewAnalysis}
           />
         )}
@@ -734,7 +739,11 @@ export default function App() {
         )}
 
         {view === 'ai-chat' && (
-          <AIChat onBack={() => navigateTo('dashboard')} />
+          <AIChat
+            onBack={() => navigateTo('tools')}
+            conversationId={selectedConversationId}
+            onConversationChange={setSelectedConversationId}
+          />
         )}
 
         {view === 'practice-hub' && (
