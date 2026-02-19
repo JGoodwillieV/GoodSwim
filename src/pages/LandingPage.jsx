@@ -80,6 +80,11 @@ const FEATURE_STEPS = [
     description: 'Keep parents informed with schedules, meet info, announcements, and swimmer progress — without endless emails.',
     screenshots: ['/screenshots/parent-portal-1.png', '/screenshots/parent-portal-2.png'],
   },
+  {
+    title: 'AI Data Assistant',
+    description: 'Chat with your entire team database. Ask about performance trends, best times, schedules, roster breakdowns, upcoming meets, and more — instant answers powered by AI.',
+    screenshot: '/screenshots/ai-assistant.png',
+  },
 ];
 
 const AUTO_ADVANCE_MS = 5000;
