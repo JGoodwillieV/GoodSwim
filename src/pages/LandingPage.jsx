@@ -363,7 +363,7 @@ function StatCard({ value, label, icon: Icon }) {
 }
 
 // Testimonial card
-function TestimonialCard({ quote, author, role, team }) {
+function TestimonialCard({ quote, author, role }) {
   return (
     <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
       <div className="flex gap-1 mb-4">
@@ -378,7 +378,7 @@ function TestimonialCard({ quote, author, role, team }) {
         </div>
         <div>
           <div className="font-semibold text-slate-900">{author}</div>
-          <div className="text-sm text-slate-500">{role} • {team}</div>
+          <div className="text-sm text-slate-500">{role}</div>
         </div>
       </div>
     </div>
@@ -796,22 +796,19 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             <TestimonialCard 
-              quote="GoodSwim has completely transformed how I run practices. The visual builder is intuitive and swimmers love seeing their Trophy Case fill up."
-              author="Sarah Mitchell"
+              quote="The Close Calls report alone has changed how I plan tapers. And the AI assistant is unreal — I just ask 'who's closest to a Sectionals cut?' and it tells me instantly. I used to spend hours digging through spreadsheets for that."
+              author="Sarah M."
               role="Head Coach"
-              team="Blue Tide Aquatics"
             />
             <TestimonialCard 
-              quote="The AI video analysis is like having an assistant coach. I can give technique feedback to twice as many swimmers in half the time."
-              author="Marcus Johnson"
-              role="Associate Coach"
-              team="Riverside Swim Club"
-            />
-            <TestimonialCard 
-              quote="Parents finally have everything in one place. No more 'I didn't see the email' excuses. Communication has never been easier."
-              author="Jennifer Park"
+              quote="Having the full schedule, workout planner, and meet manager in one place is a game changer. I upload the meet invite PDF and everything gets parsed automatically — events, timeline, heat sheets. My assistant coaches can see it all without me sending a single email."
+              author="Marcus J."
               role="Head Age Group Coach"
-              team="Summit Swimming"
+            />
+            <TestimonialCard 
+              quote="Parents love the portal. They can see schedules, commit to meets, and track their kid's progress all from their phone. I went from answering 20 texts a day to basically zero. It's given me my evenings back."
+              author="Jennifer P."
+              role="Associate Coach"
             />
           </div>
         </div>
