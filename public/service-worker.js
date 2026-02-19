@@ -1,5 +1,5 @@
 // service-worker.js
-const CACHE_NAME = 'goodswim-v3';
+const CACHE_NAME = 'goodswim-v4';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
@@ -48,18 +48,16 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Skip Supabase API calls (always need fresh data)
+  // Skip cross-origin API calls and non-http(s) requests
   if (url.hostname.includes('supabase')) return;
-
-  // Skip Chrome extension requests
   if (url.protocol === 'chrome-extension:') return;
+  if (url.origin !== self.location.origin) return;
 
   // For navigation requests (HTML pages), use network-first
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Clone and cache the response
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(request, responseClone);
@@ -67,7 +65,6 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // Fallback to cache if offline
           return caches.match(request).then((cachedResponse) => {
             return cachedResponse || caches.match('/');
           });
@@ -76,7 +73,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For static assets (JS, CSS, images), use cache-first
+  // For static assets (JS, CSS, images), use stale-while-revalidate
   if (
     url.pathname.endsWith('.js') ||
     url.pathname.endsWith('.css') ||
@@ -87,23 +84,22 @@ self.addEventListener('fetch', (event) => {
   ) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
-        if (cachedResponse) {
-          // Return cache, but also fetch and update cache in background
-          fetch(request).then((response) => {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, response);
-            });
+        const networkFetch = fetch(request)
+          .then((response) => {
+            if (response.ok) {
+              const responseClone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, responseClone);
+              });
+            }
+            return response;
+          })
+          .catch(() => {
+            if (cachedResponse) return cachedResponse;
+            return caches.match('/');
           });
-          return cachedResponse;
-        }
-        // Not in cache, fetch and cache
-        return fetch(request).then((response) => {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
-          return response;
-        });
+
+        return cachedResponse || networkFetch;
       })
     );
     return;
@@ -112,12 +108,8 @@ self.addEventListener('fetch', (event) => {
   // Default: network-first for everything else
   event.respondWith(
     fetch(request)
-      .then((response) => {
-        return response;
-      })
-      .catch(() => {
-        return caches.match(request);
-      })
+      .then((response) => response)
+      .catch(() => caches.match(request))
   );
 });
 
