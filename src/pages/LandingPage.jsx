@@ -582,8 +582,8 @@ export default function LandingPage() {
               </button>
             </div>
 
-            {/* Social proof */}
-            <div className="flex flex-wrap items-center justify-center gap-8 text-slate-500 text-sm">
+            {/* Social proof - hidden until more teams onboard */}
+            {/* <div className="flex flex-wrap items-center justify-center gap-8 text-slate-500 text-sm">
               <div className="flex items-center gap-2">
                 <div className="flex -space-x-2">
                   {['bg-teal-500', 'bg-cyan-500', 'bg-blue-500', 'bg-indigo-500'].map((color, i) => (
@@ -598,7 +598,7 @@ export default function LandingPage() {
                 ))}
                 <span className="ml-1"><strong className="text-slate-700">4.9/5</strong> rating</span>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
         <AnimatedWaves />
@@ -831,10 +831,12 @@ export default function LandingPage() {
               period="swimmer/mo"
               description="Perfect for getting started"
               features={[
-                'Practice builder',
-                'Basic reports',
-                'Parent portal',
+                'Unlimited swimmers',
+                'Calendar & scheduling',
+                'Parent portal (read-only)',
+                'Manual data entry',
                 'Roster management',
+                '1 coach account',
                 'Email support'
               ]}
               cta="Get Started"
@@ -846,10 +848,15 @@ export default function LandingPage() {
               description="For growing programs"
               features={[
                 'Everything in Starter',
-                'AI video analysis',
-                'Advanced reports',
-                'Meet management',
-                'Test set tracker',
+                'Full parent portal with commitments',
+                'Practice builder',
+                'Meet management with PDF import',
+                'Meet reports & analytics',
+                'Trophy case & standards',
+                'Team records board',
+                'SD3 & CSV import',
+                'Push notifications',
+                'Up to 3 coach accounts',
                 'Priority support'
               ]}
               popular={true}
@@ -862,10 +869,10 @@ export default function LandingPage() {
               description="For elite programs"
               features={[
                 'Everything in Pro',
-                'Multiple coach accounts',
-                'Team records board',
+                'AI Data Assistant',
+                'Unlimited coach accounts',
+                'Advanced analytics',
                 'Custom branding',
-                'API access',
                 'Dedicated support'
               ]}
               cta="Contact Sales"
