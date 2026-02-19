@@ -643,23 +643,23 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Big Feature 2: AI Analysis */}
+      {/* Big Feature 2: Scheduling Hub */}
       <section className="py-24 bg-slate-50 relative">
         <div className="max-w-7xl mx-auto px-6">
           <BigFeature 
-            icon={Sparkles}
-            title="AI-Powered Stroke Analysis"
-            description="Upload video from your phone and get professional-level technique analysis in seconds. Our AI identifies exactly what to fix."
+            icon={Calendar}
+            title="Scheduling & Practices, All in One Place"
+            description="Stop juggling spreadsheets, group chats, and sticky notes. GoodSwim gives your entire coaching staff a single hub for every schedule, workout, and assignment."
             features={[
-              'Works with any camera or phone',
-              'Above and underwater footage',
-              'Timestamped technique notes',
-              'Specific drill recommendations',
-              'Share feedback with swimmers',
-              'Track improvement over time'
+              'Weekly workout planner with drag-and-drop assignments',
+              'Practice times and group schedules visible to the whole team',
+              'Coach assignments so everyone knows who\'s on deck',
+              'Meet manager with auto-parsed invites and timelines',
+              'Event manager for non-meet activities and team events',
+              'Visual calendar view with schedule exceptions and cancellations'
             ]}
-            color="bg-gradient-to-br from-purple-500 to-pink-600"
-            gradient="bg-gradient-to-br from-purple-500 to-pink-600"
+            color="bg-gradient-to-br from-blue-500 to-indigo-600"
+            gradient="bg-gradient-to-br from-blue-500 to-indigo-600"
             imageSide="left"
           />
         </div>
