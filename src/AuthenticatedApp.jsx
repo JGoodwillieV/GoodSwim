@@ -373,7 +373,7 @@ export default function App() {
           )}
 
           {view === 'help' && (
-            <HelpHub navigateTo={navigateTo} />
+            <HelpHub navigateTo={navigateTo} isParentView />
           )}
           
           {view === 'profile' && selectedSwimmer && (

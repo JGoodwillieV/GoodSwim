@@ -105,8 +105,8 @@ const issueTypes = [
   { value: 'other', label: 'Other' },
 ];
 
-export default function HelpHub({ navigateTo }) {
-  const [activeTab, setActiveTab] = useState('how-to');
+export default function HelpHub({ navigateTo, isParentView = false }) {
+  const [activeTab, setActiveTab] = useState(isParentView ? 'support' : 'how-to');
   const [selectedArticle, setSelectedArticle] = useState(null);
 
   // Support form state
@@ -206,34 +206,36 @@ export default function HelpHub({ navigateTo }) {
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-1">Help Center</h2>
-        <p className="text-slate-500">Find guides and get support for GoodSwim</p>
+        <p className="text-slate-500">{isParentView ? 'Get support for GoodSwim' : 'Find guides and get support for GoodSwim'}</p>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex gap-1 bg-slate-100 rounded-xl p-1 mb-8 max-w-sm">
-        <button
-          onClick={() => setActiveTab('how-to')}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            activeTab === 'how-to'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <BookOpen size={16} />
-          How To
-        </button>
-        <button
-          onClick={() => setActiveTab('support')}
-          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            activeTab === 'support'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <LifeBuoy size={16} />
-          Support
-        </button>
-      </div>
+      {/* Tab Navigation (coaches only) */}
+      {!isParentView && (
+        <div className="flex gap-1 bg-slate-100 rounded-xl p-1 mb-8 max-w-sm">
+          <button
+            onClick={() => setActiveTab('how-to')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === 'how-to'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <BookOpen size={16} />
+            How To
+          </button>
+          <button
+            onClick={() => setActiveTab('support')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === 'support'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <LifeBuoy size={16} />
+            Support
+          </button>
+        </div>
+      )}
 
       {/* How To Tab */}
       {activeTab === 'how-to' && (
