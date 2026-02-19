@@ -87,6 +87,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, session }) 
       reports: ['test-sets-list'],
       tools: ['analysis', 'ai-chat', 'view-analysis'],
       schedule: ['calendar', 'meets', 'meet-entries', 'practice-hub', 'practice-builder', 'test-set'],
+      help: [],
     };
     
     return hubMappings[itemId]?.includes(activeTab) || false;
@@ -175,8 +176,23 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, session }) 
       {/* Divider */}
       <div className="border-t border-slate-800 my-4" />
 
-      {/* User Section */}
-      <div className="space-y-2">
+      {/* Bottom Section */}
+      <div className="space-y-1.5">
+        <button 
+          onClick={() => handleNavClick('help')}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all group ${
+            isTabActive('help')
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <div className={`p-1.5 rounded-lg transition-colors ${
+            isTabActive('help') ? 'bg-blue-500' : 'bg-slate-800 group-hover:bg-slate-700'
+          }`}>
+            <Icon name="help-circle" size={16} />
+          </div>
+          <span className="font-medium text-sm">Help</span>
+        </button>
         <button 
           onClick={onLogout} 
           className="w-full text-slate-500 hover:text-white text-sm flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition-all"

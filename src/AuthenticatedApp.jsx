@@ -58,6 +58,7 @@ import { CommunicationsHub, ReportsHub, ToolsHub } from './hubs';
 import Team from './components/Team';
 import GroupDetail from './components/GroupDetail';
 import BillingSettings from './components/BillingSettings';
+import HelpHub from './components/HelpHub';
 import { SubscriptionProvider } from './hooks/useSubscription';
 
 // Icons
@@ -370,6 +371,10 @@ export default function App() {
               swimmerGroups={[...new Set(swimmers.map(s => s.group_name).filter(Boolean))]}
             />
           )}
+
+          {view === 'help' && (
+            <HelpHub navigateTo={navigateTo} />
+          )}
           
           {view === 'profile' && selectedSwimmer && (
             <SwimmerProfile 
@@ -584,6 +589,11 @@ export default function App() {
         {/* Billing Settings */}
         {view === 'billing' && (
           <BillingSettings />
+        )}
+
+        {/* Help Center */}
+        {view === 'help' && (
+          <HelpHub navigateTo={navigateTo} />
         )}
         
         {/* Unified Schedule View */}

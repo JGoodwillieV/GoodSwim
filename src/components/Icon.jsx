@@ -5,7 +5,9 @@ import {
   ChevronLeft, Trophy, FileUp, X, Play, Send, Loader2, Check, TrendingDown,
   PlayCircle, ClipboardList, Key, UploadCloud, Cpu, Sparkles, Scan, PenTool, 
   Share2, Download, TrendingUp, LogOut, Image as ImageIcon, Camera, User, 
-  Calendar, Clipboard, Bell, FileText, Timer, MessageSquare, Megaphone, UserPlus
+  Calendar, Clipboard, Bell, FileText, Timer, MessageSquare, Megaphone, UserPlus,
+  HelpCircle, BookOpen, Mail, ChevronRight, AlertCircle, Bug, MessageCircle,
+  Lightbulb, CircleDot, BarChart2, CreditCard, LifeBuoy
 } from 'lucide-react';
 
 // Icon name to component mapping
@@ -49,7 +51,19 @@ const icons = {
   'calendar': Calendar,
   'clipboard': Clipboard,
   'bell': Bell,
-  'timer': Timer
+  'timer': Timer,
+  'help-circle': HelpCircle,
+  'book-open': BookOpen,
+  'mail': Mail,
+  'chevron-right': ChevronRight,
+  'alert-circle': AlertCircle,
+  'bug': Bug,
+  'message-circle': MessageCircle,
+  'lightbulb': Lightbulb,
+  'circle-dot': CircleDot,
+  'bar-chart-2': BarChart2,
+  'credit-card': CreditCard,
+  'life-buoy': LifeBuoy
 };
 
 /**
@@ -70,6 +84,8 @@ export {
   ChevronLeft, Trophy, FileUp, X, Play, Send, Loader2, Check, TrendingDown,
   PlayCircle, ClipboardList, Key, UploadCloud, Cpu, Sparkles, Scan, PenTool, 
   Share2, Download, TrendingUp, LogOut, ImageIcon, Camera, User, 
-  Calendar, Clipboard, Bell, FileText, Timer, MessageSquare, Megaphone, UserPlus
+  Calendar, Clipboard, Bell, FileText, Timer, MessageSquare, Megaphone, UserPlus,
+  HelpCircle, BookOpen, Mail, ChevronRight, AlertCircle, Bug, MessageCircle,
+  Lightbulb, CircleDot, BarChart2, CreditCard, LifeBuoy
 };
 

@@ -12,6 +12,7 @@ const parentMobileNavItems = [
   { id: 'meets', icon: 'calendar', label: 'Schedule' },
   { id: 'my-swimmers', icon: 'user', label: 'Swimmers' },
   { id: 'notifications', icon: 'bell', label: 'Messages' },
+  { id: 'help', icon: 'help-circle', label: 'Help' },
 ];
 
 export default function ParentMobileNav({ activeTab, setActiveTab }) {

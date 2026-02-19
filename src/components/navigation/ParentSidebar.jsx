@@ -209,9 +209,24 @@ export default function ParentSidebar({ activeTab, setActiveTab, onLogout, sessi
         })}
       </nav>
       
-      {/* User Section */}
-      <div className="border-t border-slate-800 pt-4 mt-4 space-y-2">
-        <p className="text-slate-500 text-xs px-3 mb-2">Parent Account</p>
+      {/* Bottom Section */}
+      <div className="border-t border-slate-800 pt-4 mt-4 space-y-1.5">
+        <button 
+          onClick={() => setActiveTab('help')}
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all group ${
+            activeTab === 'help'
+              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <div className={`p-1.5 rounded-lg transition-colors ${
+            activeTab === 'help' ? 'bg-blue-500' : 'bg-slate-800 group-hover:bg-slate-700'
+          }`}>
+            <Icon name="help-circle" size={16} />
+          </div>
+          <span className="font-medium text-sm">Help</span>
+        </button>
+        <p className="text-slate-500 text-xs px-3 pt-2 mb-1">Parent Account</p>
         <button 
           onClick={onLogout} 
           className="w-full text-slate-500 hover:text-white text-sm flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800 transition-all"

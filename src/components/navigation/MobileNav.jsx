@@ -19,6 +19,7 @@ const mobileNavItems = [
 const moreMenuItems = [
   { id: 'reports', icon: 'bar-chart-2', label: 'Reports', description: 'Analytics & progress' },
   { id: 'tools', icon: 'sparkles', label: 'Tools', description: 'AI chat & more' },
+  { id: 'help', icon: 'help-circle', label: 'Help', description: 'Guides & support' },
 ];
 
 export default function MobileNav({ activeTab, setActiveTab }) {
@@ -35,6 +36,7 @@ export default function MobileNav({ activeTab, setActiveTab }) {
       reports: ['test-sets-list'],
       tools: ['analysis', 'ai-chat', 'view-analysis'],
       schedule: ['calendar', 'meets', 'meet-entries', 'practice-hub', 'practice-builder', 'test-set'],
+      help: [],
     };
     
     return hubMappings[itemId]?.includes(activeTab) || false;
