@@ -766,7 +766,7 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="text-5xl font-bold text-white mb-2">5+</div>
+              <div className="text-5xl font-bold text-white mb-2">10+</div>
               <div className="text-slate-400">Hours saved per week</div>
             </div>
             <div className="text-center">
@@ -774,11 +774,11 @@ export default function LandingPage() {
               <div className="text-slate-400">Parent engagement</div>
             </div>
             <div className="text-center">
-              <div className="text-5xl font-bold text-white mb-2">10k+</div>
-              <div className="text-slate-400">Swimmers tracked</div>
+              <div className="text-5xl font-bold text-white mb-2">25k+</div>
+              <div className="text-slate-400">Meet results analyzed</div>
             </div>
             <div className="text-center">
-              <div className="text-5xl font-bold text-white mb-2">50k+</div>
+              <div className="text-5xl font-bold text-white mb-2">5k+</div>
               <div className="text-slate-400">Practices planned</div>
             </div>
           </div>
