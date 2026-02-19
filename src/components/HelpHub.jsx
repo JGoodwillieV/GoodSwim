@@ -11,7 +11,7 @@ const howToItems = [
   {
     id: 'import-roster',
     title: 'Import Roster',
-    description: 'Learn how to import your team roster from a spreadsheet or CSV file.',
+    description: 'Export from Team Unify and import your roster into GoodSwim.',
     icon: FileUp,
     category: 'Getting Started',
   },
@@ -105,6 +105,80 @@ const issueTypes = [
   { value: 'other', label: 'Other' },
 ];
 
+function StepItem({ number, children }) {
+  return (
+    <div className="flex gap-4">
+      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
+        {number}
+      </div>
+      <div className="flex-1 pt-1 text-slate-700 text-sm leading-relaxed">{children}</div>
+    </div>
+  );
+}
+
+function ImportRosterGuide() {
+  return (
+    <div className="space-y-6">
+      {/* Section 1: Exporting from Team Unify */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+        <h3 className="text-lg font-bold text-slate-900 mb-1">Exporting from Team Unify</h3>
+        <p className="text-sm text-slate-500 mb-6">First, export your roster from Team Unify as a PDF.</p>
+
+        <div className="space-y-5">
+          <StepItem number={1}>
+            Go to <span className="font-semibold text-slate-900">"Org Tools"</span> then click <span className="font-semibold text-slate-900">"Members"</span>.
+          </StepItem>
+          <StepItem number={2}>
+            Click the <span className="font-semibold text-slate-900">checkbox at the top</span> to select all members.
+          </StepItem>
+          <StepItem number={3}>
+            Click the <span className="font-semibold text-slate-900">"Export"</span> button and select <span className="font-semibold text-slate-900">"Member Directory"</span>.
+          </StepItem>
+          <StepItem number={4}>
+            Make sure you check <span className="font-semibold text-slate-900">"Include DOB"</span> and <span className="font-semibold text-slate-900">"Include ID#"</span>.
+          </StepItem>
+          <StepItem number={5}>
+            Click <span className="font-semibold text-slate-900">"Generate"</span>. It should download a PDF after that.
+          </StepItem>
+        </div>
+      </div>
+
+      {/* Section 2: Importing into GoodSwim */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+        <h3 className="text-lg font-bold text-slate-900 mb-1">Importing into GoodSwim</h3>
+        <p className="text-sm text-slate-500 mb-6">Now import the exported PDF into GoodSwim.</p>
+
+        <div className="space-y-5">
+          <StepItem number={1}>
+            Click <span className="font-semibold text-slate-900">"Team"</span> in the navigation bar.
+          </StepItem>
+          <StepItem number={2}>
+            Click <span className="font-semibold text-slate-900">"Import Roster"</span>.
+          </StepItem>
+          <StepItem number={3}>
+            Select the <span className="font-semibold text-slate-900">PDF</span> that you just downloaded from Team Unify.
+          </StepItem>
+        </div>
+      </div>
+
+      {/* Video Tutorial */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+        <h3 className="text-lg font-bold text-slate-900 mb-4">Video Walkthrough</h3>
+        <div className="rounded-xl overflow-hidden bg-slate-900">
+          <video
+            controls
+            className="w-full"
+            preload="metadata"
+          >
+            <source src="/videos/import-roster.webm" type="video/webm" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HelpHub({ navigateTo, isParentView = false }) {
   const [activeTab, setActiveTab] = useState(isParentView ? 'support' : 'how-to');
   const [selectedArticle, setSelectedArticle] = useState(null);
@@ -187,15 +261,19 @@ export default function HelpHub({ navigateTo, isParentView = false }) {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-8 md:p-12 text-center">
-            <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-6">
-              <Play size={32} className="text-slate-400 ml-1" />
+          {selectedArticle === 'import-roster' ? (
+            <ImportRosterGuide />
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 md:p-12 text-center">
+              <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-6">
+                <Play size={32} className="text-slate-400 ml-1" />
+              </div>
+              <h3 className="text-xl font-semibold text-slate-700 mb-2">Content Coming Soon</h3>
+              <p className="text-slate-500 max-w-md mx-auto">
+                A detailed walkthrough with step-by-step instructions and a video tutorial will be added here shortly.
+              </p>
             </div>
-            <h3 className="text-xl font-semibold text-slate-700 mb-2">Content Coming Soon</h3>
-            <p className="text-slate-500 max-w-md mx-auto">
-              A detailed walkthrough with step-by-step instructions and a video tutorial will be added here shortly.
-            </p>
-          </div>
+          )}
         </div>
       </div>
     );
