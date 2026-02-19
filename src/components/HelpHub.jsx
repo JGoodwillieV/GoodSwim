@@ -232,7 +232,7 @@ export default function HelpHub({ navigateTo, isParentView = false }) {
       setTimeout(() => setSent(false), 5000);
     } catch (err) {
       console.error('Error sending support request:', err);
-      setError('Something went wrong. Please try again or email us directly at james.goodwillie@gmail.com');
+      setError('Something went wrong. Please try again or email us directly at support@goodswim.io');
     } finally {
       setSending(false);
     }
@@ -446,8 +446,8 @@ export default function HelpHub({ navigateTo, isParentView = false }) {
           <div className="mt-6 bg-slate-50 rounded-xl border border-slate-200 p-5">
             <p className="text-sm text-slate-600">
               You can also reach us directly at{' '}
-              <a href="mailto:james.goodwillie@gmail.com" className="text-blue-600 font-medium hover:underline">
-                james.goodwillie@gmail.com
+              <a href="mailto:support@goodswim.io" className="text-blue-600 font-medium hover:underline">
+                support@goodswim.io
               </a>
             </p>
           </div>
