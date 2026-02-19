@@ -92,13 +92,15 @@ function AnnouncementCard({ announcement, onEdit }) {
 
 // Invite Card
 function InviteCard({ invite }) {
+  const effectiveStatus = invite.is_expired ? 'expired' : invite.status;
   const statusColors = {
-    pending: { bg: 'bg-amber-100', text: 'text-amber-700', icon: Clock },
-    accepted: { bg: 'bg-green-100', text: 'text-green-700', icon: CheckCircle },
-    expired: { bg: 'bg-slate-100', text: 'text-slate-500', icon: AlertCircle },
+    pending: { bg: 'bg-amber-100', text: 'text-amber-700', icon: Clock, label: 'Pending' },
+    accepted: { bg: 'bg-green-100', text: 'text-green-700', icon: CheckCircle, label: 'Accepted' },
+    expired: { bg: 'bg-slate-100', text: 'text-slate-500', icon: AlertCircle, label: 'Expired' },
+    revoked: { bg: 'bg-red-100', text: 'text-red-500', icon: AlertCircle, label: 'Revoked' },
   };
   
-  const status = statusColors[invite.status] || statusColors.pending;
+  const status = statusColors[effectiveStatus] || statusColors.pending;
   const StatusIcon = status.icon;
 
   return (
@@ -108,14 +110,18 @@ function InviteCard({ invite }) {
           <Mail size={20} className="text-violet-600" />
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="font-medium text-slate-800 truncate">{invite.email}</h4>
+          <h4 className="font-medium text-slate-800 truncate">
+            {invite.account_name || invite.email}
+          </h4>
           <p className="text-xs text-slate-500">
-            For: {invite.swimmers?.name || 'Unknown swimmer'}
+            {invite.swimmer_names?.length > 0
+              ? invite.swimmer_names.join(', ')
+              : invite.email}
           </p>
         </div>
         <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${status.bg} ${status.text}`}>
           <StatusIcon size={12} />
-          {invite.status}
+          {status.label}
         </div>
       </div>
     </div>
@@ -219,12 +225,26 @@ function InvitesTab({ onInviteParent, swimmers }) {
   const fetchInvites = async () => {
     try {
       const { data, error } = await supabase
-        .from('parent_invitations')
-        .select('*, swimmers(name)')
+        .from('parent_invites')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setInvites(data || []);
+
+      const swimmerMap = (swimmers || []).reduce((acc, s) => {
+        acc[s.id] = s.name;
+        return acc;
+      }, {});
+
+      const enriched = (data || []).map(invite => ({
+        ...invite,
+        swimmer_names: (invite.swimmer_ids || [])
+          .map(id => swimmerMap[id])
+          .filter(Boolean),
+        is_expired: new Date(invite.expires_at) < new Date() && invite.status === 'pending'
+      }));
+
+      setInvites(enriched);
     } catch (err) {
       console.error('Error fetching invites:', err);
     } finally {
@@ -233,7 +253,7 @@ function InvitesTab({ onInviteParent, swimmers }) {
   };
 
   const stats = {
-    pending: invites.filter(i => i.status === 'pending').length,
+    pending: invites.filter(i => i.status === 'pending' && !i.is_expired).length,
     accepted: invites.filter(i => i.status === 'accepted').length,
     total: invites.length,
   };
