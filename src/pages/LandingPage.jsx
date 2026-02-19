@@ -796,12 +796,12 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             <TestimonialCard 
-              quote="The Close Calls report alone has changed how I plan tapers. And the AI assistant is unreal — I just ask 'who's closest to a Sectionals cut?' and it tells me instantly. I used to spend hours digging through spreadsheets for that."
+              quote="The Close Calls report alone has changed how I plan meet entries. And the AI assistant is unreal - I just ask 'who's closest to a Sectionals cut?' and it tells me instantly. I used to spend hours digging through spreadsheets for that."
               author="Sarah M."
               role="Head Coach"
             />
             <TestimonialCard 
-              quote="Having the full schedule, workout planner, and meet manager in one place is a game changer. I upload the meet invite PDF and everything gets parsed automatically — events, timeline, heat sheets. My assistant coaches can see it all without me sending a single email."
+              quote="Having the full schedule, workout planner, and meet manager in one place is a game changer. I upload the meet invite PDF and everything gets parsed automatically - events, timeline, heat sheets. My assistant coaches can see it all without me sending a single email."
               author="Marcus J."
               role="Head Age Group Coach"
             />
