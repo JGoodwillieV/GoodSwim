@@ -317,6 +317,142 @@ export default function Roster({
     return changedKeys.length > 0 ? patch : null;
   };
 
+  // --- CSV ROSTER IMPORT (smart column detection) ---
+  const COLUMN_MATCHERS = {
+    name:                 ['name', 'swimmer name', 'swimmer', 'full name', 'athlete', 'athlete name'],
+    first_name:           ['first name', 'first', 'fname'],
+    last_name:            ['last name', 'last', 'lname', 'surname'],
+    group_name:           ['group', 'group name', 'practice group', 'squad', 'team group', 'level'],
+    age:                  ['age'],
+    gender:               ['gender', 'sex', 'm/f', 'male/female'],
+    date_of_birth:        ['date of birth', 'dob', 'birthday', 'birth date', 'birthdate', 'birth_date'],
+    usa_swimming_id:      ['usa swimming id', 'usas id', 'usa-s id', 'member id', 'registration id', 'usas #', 'usa_swimming_id', 'uss id', 'uss#'],
+    parent_email:         ['parent email', 'guardian email', 'email', 'parent_email', 'contact email'],
+    parent_account_name:  ['parent name', 'guardian name', 'parent', 'guardian', 'parent_name', 'contact name', 'account name'],
+  };
+
+  const detectColumnMapping = (headerRow) => {
+    const mapping = {};
+    const headers = headerRow.map(h => String(h).trim().toLowerCase());
+
+    for (const [field, aliases] of Object.entries(COLUMN_MATCHERS)) {
+      const idx = headers.findIndex(h => aliases.includes(h));
+      if (idx !== -1) mapping[field] = idx;
+    }
+    return mapping;
+  };
+
+  const parseDateValue = (val) => {
+    if (!val) return null;
+    if (val instanceof Date) {
+      const y = val.getFullYear();
+      const m = String(val.getMonth() + 1).padStart(2, '0');
+      const d = String(val.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    const s = String(val).trim();
+    // ISO: YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    // US: MM/DD/YYYY or M/D/YYYY
+    const usMatch = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (usMatch) return `${usMatch[3]}-${usMatch[1].padStart(2, '0')}-${usMatch[2].padStart(2, '0')}`;
+    // US short: MM/DD/YY
+    const usShort = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+    if (usShort) {
+      const century = parseInt(usShort[3]) > 50 ? '19' : '20';
+      return `${century}${usShort[3]}-${usShort[1].padStart(2, '0')}-${usShort[2].padStart(2, '0')}`;
+    }
+    return null;
+  };
+
+  const parseGenderValue = (val) => {
+    if (!val) return null;
+    const s = String(val).trim().toUpperCase();
+    if (s === 'M' || s === 'MALE' || s === 'BOY') return 'M';
+    if (s === 'F' || s === 'FEMALE' || s === 'GIRL') return 'F';
+    return null;
+  };
+
+  const computeAgeFromDob = (isoDate) => {
+    if (!isoDate) return null;
+    const [year, month, day] = isoDate.split('-').map(Number);
+    const dob = new Date(year, month - 1, day);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+    return age;
+  };
+
+  const handleCSVRosterImport = async (rows) => {
+    if (!rows || rows.length < 2) {
+      alert('File appears empty or has no data rows.');
+      return;
+    }
+
+    const mapping = detectColumnMapping(rows[0]);
+
+    // Must have at least a name column (or first+last)
+    const hasName = mapping.name != null || (mapping.first_name != null && mapping.last_name != null);
+    if (!hasName) {
+      alert('Could not detect a "Name" column in your file.\n\nPlease use the downloadable template or make sure your header row includes a "Name" column.');
+      return;
+    }
+
+    const { userId, teamId } = await getUserAndTeamContext();
+    const incoming = [];
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.every(cell => !cell && cell !== 0)) continue;
+
+      let name = '';
+      if (mapping.name != null) {
+        name = String(row[mapping.name] ?? '').trim();
+        // Handle "Last, First" format
+        if (name.includes(',')) {
+          const parts = name.split(',').map(p => p.trim());
+          if (parts.length >= 2) name = `${parts[1]} ${parts[0]}`;
+        }
+      } else {
+        const first = String(row[mapping.first_name] ?? '').trim();
+        const last = String(row[mapping.last_name] ?? '').trim();
+        name = `${first} ${last}`.trim();
+      }
+
+      if (!name) continue;
+
+      // Title-case the name
+      name = name.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+      const dob = mapping.date_of_birth != null ? parseDateValue(row[mapping.date_of_birth]) : null;
+      const ageRaw = mapping.age != null ? parseInt(row[mapping.age]) : null;
+      const age = (Number.isFinite(ageRaw) && ageRaw > 0) ? ageRaw : computeAgeFromDob(dob);
+
+      incoming.push({
+        name,
+        group_name: mapping.group_name != null ? (String(row[mapping.group_name] ?? '').trim() || 'Imported') : 'Imported',
+        status: 'New',
+        efficiency_score: 70,
+        age,
+        gender: mapping.gender != null ? parseGenderValue(row[mapping.gender]) : null,
+        date_of_birth: dob,
+        usa_swimming_id: mapping.usa_swimming_id != null ? (String(row[mapping.usa_swimming_id] ?? '').trim() || null) : null,
+        parent_email: mapping.parent_email != null ? (String(row[mapping.parent_email] ?? '').trim() || null) : null,
+        parent_account_name: mapping.parent_account_name != null ? (String(row[mapping.parent_account_name] ?? '').trim() || null) : null,
+        coach_id: userId,
+        team_id: teamId,
+      });
+    }
+
+    if (incoming.length === 0) {
+      alert('No valid swimmer rows found in the file.');
+      return;
+    }
+
+    await handleRosterUpsert(incoming);
+  };
+
   // CSV Parser
   const parseCSVWithQuotes = (text) => {
     const rows = [];
@@ -573,8 +709,21 @@ export default function Roster({
       if (importType === 'roster') {
         const file = files[0];
         const isPdf = file.name.match(/\.pdf$/i);
+        const isSD3 = file.name.match(/\.sd3$/i);
+        const isSpreadsheet = file.name.match(/\.(csv|xls|xlsx)$/i);
         
-        if (isPdf) {
+        if (isSpreadsheet) {
+          // CSV/Excel roster import — available on all tiers
+          if (!csvAccess.isUnlocked) {
+            alert(`CSV/Excel Roster Import requires ${csvAccess.requiredTierDisplay} plan. Please upgrade to use this feature.`);
+            setShowImport(false);
+            return;
+          }
+          setImportProgress({ totalFiles: 1, currentFile: 1, step: 'Reading spreadsheet...' });
+          const rows = await readFileToRows(file);
+          setImportProgress({ totalFiles: 1, currentFile: 1, step: 'Mapping columns & importing...' });
+          await handleCSVRosterImport(rows);
+        } else if (isPdf) {
           if (!sd3Access.isUnlocked) {
             alert(`Roster PDF Import requires ${sd3Access.requiredTierDisplay} plan. Please upgrade to use this feature.`);
             setShowImport(false);
@@ -610,7 +759,7 @@ export default function Roster({
               team_id: teamId
             }));
           await handleRosterUpsert(incoming);
-        } else {
+        } else if (isSD3) {
           if (!sd3Access.isUnlocked) {
             alert(`Roster Import (SD3/PDF) requires ${sd3Access.requiredTierDisplay} plan. Please upgrade to use this feature.`);
             setShowImport(false);
@@ -620,6 +769,8 @@ export default function Roster({
           const text = await file.text();
           const incomingSwimmersRaw = await parseSD3Roster(text);
           await handleRosterUpsert(incomingSwimmersRaw);
+        } else {
+          alert('Unsupported file type. Please upload a CSV, Excel (.xls/.xlsx), SD3, or PDF file.');
         }
         return;
       }
@@ -925,19 +1076,45 @@ export default function Roster({
               </div>
             )}
 
-            {/* Show locked message for SD3 import */}
-            {importType === 'roster' && !sd3Access.isUnlocked && (
-              <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <Icon name="lock" size={20} className="text-amber-600" />
-                  <div>
-                    <p className="font-medium text-amber-800">Roster Import requires {sd3Access.requiredTierDisplay}</p>
-                    <p className="text-sm text-amber-600">Upgrade to import rosters from SD3 or Member Directory PDFs</p>
+            {/* Roster import options */}
+            {importType === 'roster' && (
+              <div className="mb-4 space-y-3">
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <Icon name="download" size={18} className="text-blue-600 mt-0.5 shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-medium text-blue-800 text-sm">Need a template?</p>
+                      <p className="text-xs text-blue-600 mt-0.5 mb-2">Download our CSV template to see the expected format, then fill it in with your swimmers.</p>
+                      <a
+                        href="/roster_template.csv"
+                        download="roster_template.csv"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900 underline underline-offset-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Icon name="file-spreadsheet" size={14} /> Download CSV Template
+                      </a>
+                    </div>
                   </div>
                 </div>
+
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  <span className="font-medium text-slate-600">Supported formats:</span> CSV, Excel (.xls/.xlsx){sd3Access.isUnlocked ? ', SD3, Member Directory PDF' : ''}
+                </p>
+
+                {!sd3Access.isUnlocked && !csvAccess.isUnlocked && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <Icon name="lock" size={18} className="text-amber-600" />
+                      <div>
+                        <p className="font-medium text-amber-800 text-sm">Roster Import requires an upgrade</p>
+                        <p className="text-xs text-amber-600">Upgrade your plan to import rosters</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-            
+
             {/* Course selector for results import */}
             {importType === 'results' && (
               <div className="mb-4">
@@ -965,7 +1142,7 @@ export default function Roster({
               ref={fileInputRef} 
               onChange={handleFileSelect} 
               className="hidden" 
-              accept={importType === 'roster' ? '.sd3,.pdf' : '.csv,.xls,.xlsx'}
+              accept={importType === 'roster' ? '.csv,.xls,.xlsx,.sd3,.pdf' : '.csv,.xls,.xlsx'}
               multiple={importType === 'results'}
             />
             
@@ -999,14 +1176,15 @@ export default function Roster({
             ) : (
               <div 
                 onClick={() => {
-                  if (importType === 'roster' && !sd3Access.isUnlocked) {
+                  const rosterLocked = importType === 'roster' && !csvAccess.isUnlocked && !sd3Access.isUnlocked;
+                  if (rosterLocked) {
                     window.dispatchEvent(new CustomEvent('navigate', { detail: 'billing' }));
                     return;
                   }
                   fileInputRef.current.click();
                 }} 
                 className={`border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center mb-6 group cursor-pointer transition-colors ${
-                  importType === 'roster' && !sd3Access.isUnlocked
+                  importType === 'roster' && !csvAccess.isUnlocked && !sd3Access.isUnlocked
                     ? 'border-slate-200 bg-slate-50 opacity-90'
                     : importType === 'results' 
                       ? 'border-yellow-300 hover:bg-yellow-50 bg-slate-50' 
@@ -1021,11 +1199,15 @@ export default function Roster({
                   <Icon name={importType === 'results' ? 'trophy' : 'file-up'} size={24} />
                 </div>
                 <p className="text-slate-800 font-bold text-lg mb-1">
-                  {(importType === 'roster' && !sd3Access.isUnlocked) ? 'Upgrade to Import' :
-                   'Drag & drop or click to upload'}
+                  {(importType === 'roster' && !csvAccess.isUnlocked && !sd3Access.isUnlocked)
+                    ? 'Upgrade to Import'
+                    : 'Drag & drop or click to upload'}
                 </p>
                 {importType === 'results' && (
                   <p className="text-slate-400 text-sm">You can select multiple files at once</p>
+                )}
+                {importType === 'roster' && (csvAccess.isUnlocked || sd3Access.isUnlocked) && (
+                  <p className="text-slate-400 text-sm">CSV, Excel{sd3Access.isUnlocked ? ', SD3, or PDF' : ''}</p>
                 )}
               </div>
             )}
