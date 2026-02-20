@@ -20,7 +20,7 @@ const howToItems = [
     title: 'Add Results',
     description: 'Export results from Team Unify and import them into GoodSwim.',
     icon: Trophy,
-    category: 'Meets',
+    category: 'Getting Started',
   },
   {
     id: 'practice-schedule',
