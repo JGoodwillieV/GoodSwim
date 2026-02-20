@@ -28,10 +28,21 @@ export default function Roster({
   const fileInputRef = useRef(null);
 
   // Subscription & Feature Access
-  const { tier, swimmerCount, isTrial, canAddSwimmer, remainingSwimmers, getLimit } = useSubscription();
+  const { tier, swimmerCount, isTrial, canAddSwimmer, remainingSwimmers, getLimit, teamId: subTeamId, isPaid } = useSubscription();
   const sd3Access = useFeatureGate('sd3_import');
   const csvAccess = useFeatureGate('csv_import');
   const maxSwimmers = getLimit('max_swimmers');
+
+  const syncBillingAfterRosterChange = async (teamId) => {
+    if (!isPaid || !teamId) return;
+    try {
+      await supabase.functions.invoke('sync-swimmer-billing', {
+        body: { team_id: teamId }
+      });
+    } catch (err) {
+      console.warn('Billing sync failed (non-blocking):', err);
+    }
+  };
 
   // --- FILTER & SORT ---
   const filteredSwimmers = useMemo(() => {
@@ -220,6 +231,11 @@ export default function Roster({
 
     if (updatedRows.length > 0 || insertedRows.length > 0) {
       setSwimmers(prev => mergeSwimmersById(prev, [...updatedRows, ...insertedRows]));
+    }
+
+    // Sync billing if swimmers were added
+    if (insertedRows.length > 0) {
+      syncBillingAfterRosterChange(teamId);
     }
 
     const addedCount = insertedRows.length;
@@ -785,7 +801,10 @@ export default function Roster({
     };
     
     const { data, error } = await supabase.from('swimmers').insert([newSwimmer]).select();
-    if (!error) setSwimmers(prev => [...prev, ...data]);
+    if (!error) {
+      setSwimmers(prev => [...prev, ...data]);
+      syncBillingAfterRosterChange(teamMember.team_id);
+    }
   };
 
   return (

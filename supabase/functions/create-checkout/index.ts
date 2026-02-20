@@ -1,6 +1,6 @@
 // supabase/functions/create-checkout/index.ts
 // Creates Stripe Checkout session for subscription upgrades
-// Updated for METERED billing (no quantity field)
+// Supports both standard per-unit and metered pricing
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.0'
 import Stripe from 'https://esm.sh/stripe@17.4.0?target=deno'
@@ -11,7 +11,6 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-// Price IDs from your Stripe Dashboard
 const PRICE_IDS: Record<string, string> = {
   starter: Deno.env.get('STRIPE_STARTER_PRICE_ID') || '',
   pro: Deno.env.get('STRIPE_PRO_PRICE_ID') || '',
@@ -19,13 +18,11 @@ const PRICE_IDS: Record<string, string> = {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Initialize Stripe
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')
     if (!stripeSecretKey) {
       throw new Error('STRIPE_SECRET_KEY is not configured')
@@ -35,12 +32,10 @@ Deno.serve(async (req) => {
       apiVersion: '2024-11-20.acacia',
     })
 
-    // Initialize Supabase client with service role
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Parse request body
     const { teamId, tier, userId, swimmerCount, email } = await req.json()
 
     if (!teamId || !tier || !userId) {
@@ -50,7 +45,6 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Validate tier
     if (!['starter', 'pro', 'club'].includes(tier)) {
       return new Response(
         JSON.stringify({ error: 'Invalid tier. Must be starter, pro, or club' }),
@@ -58,7 +52,6 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Check if user already has a Stripe customer ID
     const { data: existingSub } = await supabase
       .from('subscriptions')
       .select('stripe_customer_id')
@@ -67,9 +60,7 @@ Deno.serve(async (req) => {
 
     let customerId = existingSub?.stripe_customer_id
 
-    // Create or retrieve Stripe customer
     if (!customerId) {
-      // Get user email from Supabase auth if not provided
       let customerEmail = email
       if (!customerEmail) {
         const { data: userData } = await supabase.auth.admin.getUserById(userId)
@@ -85,7 +76,6 @@ Deno.serve(async (req) => {
       })
       customerId = customer.id
 
-      // Update subscription record with customer ID
       await supabase
         .from('subscriptions')
         .upsert({
@@ -98,7 +88,6 @@ Deno.serve(async (req) => {
         })
     }
 
-    // Get the price ID for the selected tier
     const priceId = PRICE_IDS[tier]
     if (!priceId) {
       console.error(`Price ID not configured for tier: ${tier}`)
@@ -111,23 +100,40 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Determine success/cancel URLs
     const appUrl = Deno.env.get('APP_URL') || 'https://goodswim.io'
     const successUrl = `${appUrl}/app?billing=success&tier=${tier}`
     const cancelUrl = `${appUrl}/app?billing=cancelled`
 
-    // Create Checkout Session
-    // NOTE: No quantity for metered billing - usage is reported separately
+    // Count current swimmers for quantity
+    const { count: currentSwimmerCount } = await supabase
+      .from('swimmers')
+      .select('id', { count: 'exact', head: true })
+      .eq('team_id', teamId)
+
+    const quantity = Math.max(currentSwimmerCount || swimmerCount || 1, 1)
+
+    // Check if the price is metered or standard by fetching price details
+    let isMetered = false
+    try {
+      const price = await stripe.prices.retrieve(priceId)
+      isMetered = price.recurring?.usage_type === 'metered' || price.billing_scheme === 'tiered'
+    } catch (e) {
+      console.warn('Could not determine price type, assuming standard:', e.message)
+    }
+
+    console.log(`Creating checkout: team=${teamId}, tier=${tier}, quantity=${quantity}, metered=${isMetered}`)
+
+    // Build line items based on pricing type
+    const lineItems: any[] = [{ price: priceId }]
+    if (!isMetered) {
+      lineItems[0].quantity = quantity
+    }
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          // NO quantity field for metered/usage-based pricing!
-        },
-      ],
+      line_items: lineItems,
       success_url: successUrl,
       cancel_url: cancelUrl,
       subscription_data: {
@@ -135,7 +141,7 @@ Deno.serve(async (req) => {
           team_id: teamId,
           user_id: userId,
           tier: tier,
-          swimmer_count: swimmerCount?.toString() || '0',
+          swimmer_count: quantity.toString(),
         },
       },
       metadata: {
@@ -147,7 +153,7 @@ Deno.serve(async (req) => {
       billing_address_collection: 'auto',
     })
 
-    console.log(`Checkout session created: ${session.id} for team ${teamId}, tier ${tier}`)
+    console.log(`Checkout session created: ${session.id} for team ${teamId}, tier ${tier}, quantity ${quantity}`)
 
     return new Response(
       JSON.stringify({ url: session.url, sessionId: session.id }),

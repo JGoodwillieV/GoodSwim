@@ -83,6 +83,9 @@ Deno.serve(async (req) => {
           // Fetch the subscription details from Stripe
           const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
           
+          // Store subscription_item_id for quantity updates
+          const subscriptionItemId = subscription.items.data[0]?.id || null
+          
           // Update subscription in database
           const { error: updateError } = await supabase
             .from('subscriptions')
@@ -90,6 +93,7 @@ Deno.serve(async (req) => {
               team_id: teamId,
               stripe_customer_id: session.customer as string,
               stripe_subscription_id: subscription.id,
+              stripe_subscription_item_id: subscriptionItemId,
               stripe_price_id: subscription.items.data[0]?.price.id,
               status: subscription.status,
               tier: tier,
@@ -123,14 +127,15 @@ Deno.serve(async (req) => {
           .single()
 
         if (existingSub) {
-          // Determine tier from price ID or metadata
           const priceId = subscription.items.data[0]?.price.id
+          const subscriptionItemId = subscription.items.data[0]?.id || null
           const tier = TIER_MAP[priceId] || subscription.metadata?.tier || 'starter'
           
           const { error: updateError } = await supabase
             .from('subscriptions')
             .update({
               stripe_subscription_id: subscription.id,
+              stripe_subscription_item_id: subscriptionItemId,
               stripe_price_id: priceId,
               status: subscription.status,
               tier: tier,
