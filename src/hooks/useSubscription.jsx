@@ -70,11 +70,10 @@ export function SubscriptionProvider({ children }) {
           
           setLimits(trialLimits);
           
-          // Get swimmer count (swimmers belong to team via coach_id which is the user_id)
           const { count } = await supabase
             .from('swimmers')
             .select('id', { count: 'exact', head: true })
-            .eq('coach_id', user.id);
+            .eq('team_id', currentTeamId);
           
           setSwimmerCount(count || 0);
           setLoading(false);
@@ -131,7 +130,7 @@ export function SubscriptionProvider({ children }) {
         const { count } = await supabase
           .from('swimmers')
           .select('id', { count: 'exact', head: true })
-          .eq('coach_id', user.id);
+          .eq('team_id', currentTeamId);
 
         setSwimmerCount(count || 0);
         setLoading(false);

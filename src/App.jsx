@@ -7,6 +7,7 @@ import LandingPage from './pages/LandingPage'; // You will create this
 import Login from './Login';
 import SignUp from './SignUp'; // You will create this
 import InviteLanding from './InviteLanding';
+import CoachInviteLanding from './CoachInviteLanding';
 import AuthenticatedApp from './AuthenticatedApp'; // The moved code
 
 export default function App() {
@@ -46,8 +47,9 @@ export default function App() {
         <Route path="/login" element={!session ? <Login /> : <Navigate to="/app" />} />
         <Route path="/signup" element={!session ? <SignUp /> : <Navigate to="/app" />} />
         
-        {/* Invite Route (Handle deep links) */}
+        {/* Invite Routes (Handle deep links) */}
         <Route path="/invite/:token" element={<InviteLanding />} />
+        <Route path="/coach-invite/:token" element={<CoachInviteLanding />} />
 
         {/* Protected Application Routes */}
         <Route 

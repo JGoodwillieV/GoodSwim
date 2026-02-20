@@ -60,6 +60,7 @@ import GroupDetail from './components/GroupDetail';
 import BillingSettings from './components/BillingSettings';
 import HelpHub from './components/HelpHub';
 import { SubscriptionProvider } from './hooks/useSubscription';
+import { TeamRoleProvider } from './hooks/useTeamRole';
 
 // Icons
 import { ChevronLeft } from 'lucide-react';
@@ -182,10 +183,20 @@ export default function App() {
 
   // --- Data Fetching ---
   const fetchRoster = async () => {
+    const { data: teamMember } = await supabase
+      .from('team_members')
+      .select('team_id')
+      .eq('user_id', session.user.id)
+      .not('role', 'eq', 'parent')
+      .maybeSingle();
+
+    const tid = teamMember?.team_id;
+    if (!tid) return;
+
     const { data, error } = await supabase
       .from('swimmers')
       .select('*')
-      .eq('coach_id', session.user.id);
+      .eq('team_id', tid);
     
     if (error) console.error('Error fetching roster:', error);
     else setSwimmers(data || []);
@@ -410,6 +421,7 @@ export default function App() {
 
   // --- Coach View ---
   return (
+    <TeamRoleProvider>
     <SubscriptionProvider>
     <div className="flex min-h-screen bg-[#f8fafc]">
       {view !== 'view-analysis' && (
@@ -860,5 +872,6 @@ export default function App() {
       <InstallPrompt />
     </div>
     </SubscriptionProvider>
+    </TeamRoleProvider>
   );
 }

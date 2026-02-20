@@ -9,6 +9,7 @@ import { RecentTestSets } from '../TestSetDisplay';
 import { supabase } from '../supabase';
 import { formatDateSafe, formatTimeOfDay, parseDateSafe } from '../utils/dateUtils';
 import { useFeatureGate } from './gates';
+import { useTeamRole } from '../hooks/useTeamRole';
 
 // Type colors for schedule items
 const TYPE_COLORS = {
@@ -91,9 +92,11 @@ export default function Dashboard({ navigateTo, swimmers, stats, onLogout, onInv
   // Feature gating (match Tools gating)
   const aiVideoAccess = useFeatureGate('ai_video_analysis');
   const aiChatAccess = useFeatureGate('ai_chat');
+  const { teamId } = useTeamRole();
 
   // Fetch today's schedule items
   useEffect(() => {
+    if (!teamId) return;
     const fetchTodaySchedule = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -125,7 +128,7 @@ export default function Dashboard({ navigateTo, swimmers, stats, onLogout, onInv
         const { data: practices } = await supabase
           .from('practices')
           .select('*')
-          .eq('coach_id', user.id)
+          .eq('team_id', teamId)
           .eq('scheduled_date', today);
 
         (practices || []).forEach(practice => {
@@ -182,7 +185,7 @@ export default function Dashboard({ navigateTo, swimmers, stats, onLogout, onInv
     };
 
     fetchTodaySchedule();
-  }, []);
+  }, [teamId]);
 
   const handleScheduleItemClick = (item) => {
     navigateTo('schedule');

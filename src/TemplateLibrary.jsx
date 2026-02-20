@@ -38,12 +38,9 @@ export default function TemplateLibrary({ onBack, onLoadTemplate, onCreateFromTe
         .order('created_at', { ascending: false });
 
       if (viewMode === 'my') {
-        // Show only user's templates
         query = query.eq('coach_id', user.id);
-      } else if (viewMode === 'team') {
-        // Show shared templates OR user's own templates
-        query = query.or(`is_shared.eq.true,coach_id.eq.${user.id}`);
       }
+      // 'team' mode: no filter needed — RLS returns all team templates
 
       const { data, error } = await query;
 

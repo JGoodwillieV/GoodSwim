@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from './supabase';
+import { useTeamRole } from './hooks/useTeamRole';
 import {
   ChevronLeft, ChevronRight, Check, Plus, Minus, Calendar,
   Loader2, Waves, Dumbbell, Sun, Moon, Clock, AlertCircle,
@@ -407,6 +408,7 @@ function GroupRow({
 
 // Main Component
 export default function WorkoutPlanner({ onCreatePractice, onViewPractice }) {
+  const { teamId } = useTeamRole();
   const [loading, setLoading] = useState(true);
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [schedules, setSchedules] = useState([]);
@@ -456,7 +458,7 @@ export default function WorkoutPlanner({ onCreatePractice, onViewPractice }) {
       const { data: practicesData, error: practicesError } = await supabase
         .from('practices')
         .select('*')
-        .eq('coach_id', user.id)
+        .eq('team_id', teamId)
         .gte('scheduled_date', startDate)
         .lte('scheduled_date', endDate);
       

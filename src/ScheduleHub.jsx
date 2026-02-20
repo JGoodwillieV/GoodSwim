@@ -11,6 +11,7 @@ import {
   UserCircle, ClipboardList
 } from 'lucide-react';
 import { formatDateSafe, formatTimeOfDay, parseDateSafe } from './utils/dateUtils';
+import { useTeamRole } from './hooks/useTeamRole';
 import WorkoutPlanner from './WorkoutPlanner';
 import ScheduleSubNav from './components/navigation/ScheduleSubNav';
 
@@ -447,6 +448,7 @@ export default function ScheduleHub({
   onViewEvent,
   onManagePracticeSchedule
 }) {
+  const { teamId } = useTeamRole();
   const [mainView, setMainView] = useState('workouts'); // 'calendar' or 'workouts'
   const [viewMode, setViewMode] = useState('week'); // 'week', 'month', or 'agenda'
   const [activeFilter, setActiveFilter] = useState('all');
@@ -546,7 +548,7 @@ export default function ScheduleHub({
       const { data: practicesData, error: practicesError } = await supabase
         .from('practices')
         .select('*')
-        .eq('coach_id', user.id)
+        .eq('team_id', teamId)
         .gte('scheduled_date', dateRange.start)
         .lte('scheduled_date', dateRange.end)
         .order('scheduled_date');

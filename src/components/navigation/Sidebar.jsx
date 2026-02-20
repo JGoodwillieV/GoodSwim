@@ -6,6 +6,7 @@ import React from 'react';
 import Icon from '../Icon';
 import { ChevronRight, Lock, Crown } from 'lucide-react';
 import { useSubscription } from '../../hooks/useSubscription';
+import { useTeamRole } from '../../hooks/useTeamRole';
 import { FEATURES, tierHasFeature, getTierDisplayName } from '../../config/features';
 
 // New consolidated navigation: 6 logical groupings
@@ -68,9 +69,9 @@ const navItems = [
 ];
 
 export default function Sidebar({ activeTab, setActiveTab, onLogout, session }) {
-  // Get team name from user metadata or default to "GoodSwim"
   const teamName = session?.user?.user_metadata?.team_name || "GoodSwim";
   const { tier, hasFeature, isTrial, isPaid } = useSubscription();
+  const { canManageBilling } = useTeamRole();
 
   const handleNavClick = (id) => {
     setActiveTab(id);
@@ -130,7 +131,7 @@ export default function Sidebar({ activeTab, setActiveTab, onLogout, session }) 
 
       {/* Main Navigation */}
       <nav className="space-y-1.5 flex-1">
-        {navItems.map(item => {
+        {navItems.filter(item => item.id !== 'billing' || canManageBilling).map(item => {
           const isActive = isTabActive(item.id);
           const hasLockedFeatures = hasLockedProFeatures(item);
           const requiredTier = getHighestRequiredTier(item);

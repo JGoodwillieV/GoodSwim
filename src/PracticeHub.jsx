@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabase';
+import { useTeamRole } from './hooks/useTeamRole';
 import { Calendar, Plus, Copy, Sparkles, BookTemplate, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
 export default function PracticeHub({ onBack, onCreateNew, onEditPractice, swimmers, navigateTo }) {
+  const { teamId } = useTeamRole();
   const [currentWeek, setCurrentWeek] = useState(getWeekDates(new Date()));
   const [practices, setPractices] = useState([]);
   const [recentPractices, setRecentPractices] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchPractices();
-  }, [currentWeek]);
+    if (teamId) fetchPractices();
+  }, [currentWeek, teamId]);
 
   const fetchPractices = async () => {
     try {
@@ -27,7 +29,7 @@ export default function PracticeHub({ onBack, onCreateNew, onEditPractice, swimm
       const { data: weekData, error: weekError } = await supabase
         .from('practices')
         .select('*')
-        .eq('coach_id', user.id)
+        .eq('team_id', teamId)
         .gte('scheduled_date', weekStart)
         .lte('scheduled_date', weekEnd)
         .order('scheduled_date', { ascending: true });
@@ -38,7 +40,7 @@ export default function PracticeHub({ onBack, onCreateNew, onEditPractice, swimm
       const { data: recentData, error: recentError } = await supabase
         .from('practices')
         .select('*')
-        .eq('coach_id', user.id)
+        .eq('team_id', teamId)
         .order('scheduled_date', { ascending: false })
         .limit(10);
 

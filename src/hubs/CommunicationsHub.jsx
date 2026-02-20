@@ -7,14 +7,17 @@ import { supabase } from '../supabase';
 import {
   Megaphone, Mail, UserPlus, Send, Bell, ChevronRight, Clock,
   MessageSquare, Users, CheckCircle, AlertCircle, Loader2, Plus,
-  Calendar, Eye, Edit2, Archive, Link2, Paperclip, ExternalLink
+  Calendar, Eye, Edit2, Archive, Link2, Paperclip, ExternalLink, Shield
 } from 'lucide-react';
 import { formatDateSafe } from '../utils/dateUtils';
+import { useTeamRole } from '../hooks/useTeamRole';
+import ManageCoaches from '../ManageCoaches';
 
 // Tab configuration
 const TABS = [
   { id: 'announcements', label: 'Announcements', icon: Megaphone, description: 'Team-wide messages' },
   { id: 'invites', label: 'Parent Invites', icon: UserPlus, description: 'Manage parent access' },
+  { id: 'coaches', label: 'Team Coaches', icon: Shield, description: 'Manage coaching staff' },
 ];
 
 // Announcement Card
@@ -403,6 +406,9 @@ export default function CommunicationsHub({
             swimmers={swimmers}
             onInviteParent={onInviteParent}
           />
+        )}
+        {activeTab === 'coaches' && (
+          <ManageCoaches />
         )}
       </div>
     </div>
