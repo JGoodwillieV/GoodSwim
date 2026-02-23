@@ -50,10 +50,20 @@ CRITICAL INSTRUCTIONS:
 - Extract ALL entries from ALL sections of the document, including SCY, LCM, and SCM sections
 - Many documents have separate pages/sections for each course — you MUST parse every section
 - Do NOT stop after the first course section — keep going through the entire document
+- VERY IMPORTANT: Many time standard tables have SIDE-BY-SIDE columns for different courses in the SAME row. For example, a common layout is:
+    GIRLS LCM | GIRLS SCY | Event Name | BOYS SCY | BOYS LCM
+    35.49     | 31.29     | 50 Free    | 30.99    | 35.19
+  In this case, a SINGLE row produces FOUR separate entries:
+    1) Girls LCM 50 Free = 35.49 (course: "LCM")
+    2) Girls SCY 50 Free = 31.29 (course: "SCY")
+    3) Boys SCY 50 Free = 30.99 (course: "SCY")
+    4) Boys LCM 50 Free = 35.19 (course: "LCM")
+  You MUST read the column headers carefully to determine which times are SCY and which are LCM/SCM. Do NOT tag all entries as the same course.
 - Age groups are typically: 10 & Under, 11-12, 13-14, 15 & Over (or 8 & Under, 9-10, 11-12, 13-14, 15-16, 17-18)
 - If the document has separate columns for different age groups, extract each age group separately
 - Convert times to seconds accurately: "1:05.49" = 65.49 seconds, "2:15.39" = 135.39 seconds
 - For relay events (e.g., "200 Medley Relay", "400 Free Relay"), include them with the event name containing "Relay"
+- Some events may only have times for one course (e.g., 100 IM may only have SCY times). Only create entries for times that actually exist — do not fabricate missing times.
 
 Return valid JSON in exactly this format:
 {
