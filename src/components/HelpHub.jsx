@@ -65,6 +65,13 @@ const howToItems = [
     category: 'Communications',
   },
   {
+    id: 'invite-coaches',
+    title: 'Invite Coaches',
+    description: 'Send email invitations to coaches and set their permission levels.',
+    icon: UserPlus,
+    category: 'Communications',
+  },
+  {
     id: 'run-test-set',
     title: 'Run a Test Set',
     description: 'Record and track test set times to monitor swimmer progress over time.',
@@ -320,6 +327,64 @@ function AddPracticesGuide() {
   );
 }
 
+function InviteParentsGuide() {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+        <h3 className="text-lg font-bold text-slate-900 mb-1">Invite Parents</h3>
+        <p className="text-sm text-slate-500 mb-6">Generate invite links so parents can access the parent portal.</p>
+
+        <div className="space-y-5">
+          <StepItem number={1}>
+            Click <span className="font-semibold text-slate-900">"Communications"</span> in the navigation bar.
+          </StepItem>
+          <StepItem number={2}>
+            Select <span className="font-semibold text-slate-900">"Invite Parent"</span>.
+          </StepItem>
+          <StepItem number={3}>
+            Search the <span className="font-semibold text-slate-900">last name</span> of the parent and select the swimmer(s) for that family.
+          </StepItem>
+          <StepItem number={4}>
+            Click <span className="font-semibold text-slate-900">"Generate Invite Link"</span>.
+          </StepItem>
+          <StepItem number={5}>
+            <span className="font-semibold text-slate-900">Copy Link</span> and send to the parent.
+          </StepItem>
+          <StepItem number={6}>
+            Keep track of the invited parents by viewing the <span className="font-semibold text-slate-900">"Parent Invites"</span> tab.
+          </StepItem>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InviteCoachesGuide() {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+        <h3 className="text-lg font-bold text-slate-900 mb-1">Invite Coaches</h3>
+        <p className="text-sm text-slate-500 mb-6">Send email invitations to coaches and configure their permissions.</p>
+
+        <div className="space-y-5">
+          <StepItem number={1}>
+            Click <span className="font-semibold text-slate-900">"Communications"</span> in the navigation bar.
+          </StepItem>
+          <StepItem number={2}>
+            Click <span className="font-semibold text-slate-900">"Team Coaches"</span> then <span className="font-semibold text-slate-900">"Invite Coach"</span>.
+          </StepItem>
+          <StepItem number={3}>
+            Enter the information and select the <span className="font-semibold text-slate-900">Permission Level</span> you want the coach to have.
+          </StepItem>
+          <StepItem number={4}>
+            Select <span className="font-semibold text-slate-900">"Send Invite"</span> to send an email invitation to the coach.
+          </StepItem>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AddResultsGuide() {
   return (
     <div className="space-y-6">
@@ -466,6 +531,10 @@ export default function HelpHub({ navigateTo, isParentView = false }) {
             <CoachesSchedulingGuide />
           ) : selectedArticle === 'add-practices' ? (
             <AddPracticesGuide />
+          ) : selectedArticle === 'invite-parents' ? (
+            <InviteParentsGuide />
+          ) : selectedArticle === 'invite-coaches' ? (
+            <InviteCoachesGuide />
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 p-8 md:p-12 text-center">
               <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-6">
