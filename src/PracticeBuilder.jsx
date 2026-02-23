@@ -346,6 +346,7 @@ export default function PracticeBuilder({ practiceId, preFillData, onBack, onSav
       const { data: { user } } = await supabase.auth.getUser();
 
       const template = {
+        team_id: practice.team_id,
         coach_id: user.id,
         created_by: user.id,
         name: name,
