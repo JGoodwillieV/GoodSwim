@@ -637,7 +637,7 @@ export default function HelpHub({ navigateTo, isParentView = false }) {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Contact Support</h3>
-                <p className="text-sm text-slate-500">We'll get back to you as soon as possible</p>
+                <p className="text-sm text-slate-500">We'll get back to you within 2 business days</p>
               </div>
             </div>
 
