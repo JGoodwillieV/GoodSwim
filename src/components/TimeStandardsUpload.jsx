@@ -47,8 +47,7 @@ export default function TimeStandardsUpload({ onClose, onComplete }) {
       const result = await parseTimeStandardsFile(selectedFile);
       setParsedResult(result);
 
-      const aiWasUsed = selectedFile.name.toLowerCase().endsWith('.pdf') && result.entries.length > 0;
-      setUsedAI(aiWasUsed);
+      setUsedAI(result.usedAI === true);
 
       setMetadata(prev => ({
         ...prev,
@@ -199,7 +198,7 @@ export default function TimeStandardsUpload({ onClose, onComplete }) {
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 size={32} className="text-blue-500 animate-spin" />
                     <p className="text-slate-600 font-medium">Parsing file...</p>
-                    <p className="text-xs text-slate-400">AI is analyzing your document</p>
+                    <p className="text-xs text-slate-400">AI is analyzing your document — this may take 15-30 seconds for large PDFs</p>
                   </div>
                 ) : (
                   <>

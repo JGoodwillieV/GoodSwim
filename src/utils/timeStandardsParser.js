@@ -135,13 +135,13 @@ export async function parseExcel(file) {
 }
 
 // ---------------------------------------------------------------------------
-// PDF Parser — AI-powered with regex fallback
+// PDF Parser — AI-first, processes in course sections for large documents
 // ---------------------------------------------------------------------------
 export async function parsePDF(file) {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-  let fullText = '';
+  const pageTexts = [];
   const allRows = [];
 
   for (let i = 1; i <= pdf.numPages; i++) {
@@ -155,9 +155,6 @@ export async function parsePDF(file) {
         y: item.transform?.[5] ?? 0,
         str: item.str.trim(),
       }));
-
-    const pageText = items.map(item => item.str).join(' ');
-    fullText += pageText + '\n';
 
     items.sort((a, b) => {
       const yDiff = b.y - a.y;
@@ -186,37 +183,105 @@ export async function parsePDF(file) {
       rows.push(currentRow.map(p => p.str));
     }
 
+    const pageText = rows.map(r => r.join(' ')).join('\n');
+    pageTexts.push(pageText);
     allRows.push(...rows);
   }
 
-  // Try regex-based parsing first
-  const regexResult = parseTabularRows(allRows);
+  const fullText = pageTexts.join('\n\n--- PAGE BREAK ---\n\n');
 
-  // If regex got a reasonable number of entries, use that
-  if (regexResult.entries.length >= 10) {
-    console.log(`Regex parser found ${regexResult.entries.length} entries, using regex result`);
-    return regexResult;
-  }
-
-  // Fall back to AI parsing
-  console.log(`Regex parser found only ${regexResult.entries.length} entries, trying AI...`);
+  // Always try AI first for PDFs — it handles complex layouts much better
+  console.log(`PDF has ${pdf.numPages} pages, ${fullText.length} chars. Sending to AI...`);
   try {
     const aiResult = await parseWithAI(fullText);
-    if (aiResult.entries.length > regexResult.entries.length) {
-      console.log(`AI parser found ${aiResult.entries.length} entries, using AI result`);
+    if (aiResult.entries.length > 0) {
+      console.log(`AI parser found ${aiResult.entries.length} entries across courses: ${[...new Set(aiResult.entries.map(e => e.course))].join(', ')}`);
+      aiResult.usedAI = true;
       return aiResult;
     }
+    console.log('AI returned 0 entries, falling back to regex...');
   } catch (err) {
-    console.error('AI parsing failed, using regex result:', err);
+    console.error('AI parsing failed, falling back to regex:', err);
   }
 
+  // Regex fallback
+  const regexResult = parseTabularRows(allRows);
+  regexResult.usedAI = false;
+  console.log(`Regex fallback found ${regexResult.entries.length} entries`);
   return regexResult;
 }
 
 // ---------------------------------------------------------------------------
 // AI Parser — sends extracted text to Supabase edge function
+// Splits large documents into chunks to avoid truncation
 // ---------------------------------------------------------------------------
-async function parseWithAI(text) {
+async function parseWithAI(fullText) {
+  const CHUNK_LIMIT = 80000;
+
+  let allEntries = [];
+  let metadata = { name: '', organization: '', season: '', course: null, courses_found: [] };
+
+  if (fullText.length <= CHUNK_LIMIT) {
+    // Small enough to send in one call
+    const result = await callAIParser(fullText);
+    metadata = result.metadata;
+    allEntries = result.entries;
+  } else {
+    // Split into sections by course markers or page breaks
+    const sections = splitIntoCoursesSections(fullText, CHUNK_LIMIT);
+    console.log(`Document too large (${fullText.length} chars), split into ${sections.length} chunks`);
+
+    for (let i = 0; i < sections.length; i++) {
+      console.log(`Parsing chunk ${i + 1}/${sections.length} (${sections[i].length} chars)...`);
+      try {
+        const result = await callAIParser(sections[i]);
+        if (i === 0) {
+          metadata = result.metadata;
+        } else {
+          // Merge courses_found
+          for (const c of result.metadata.courses_found || []) {
+            if (!metadata.courses_found.includes(c)) metadata.courses_found.push(c);
+          }
+        }
+        allEntries.push(...result.entries);
+      } catch (err) {
+        console.error(`Chunk ${i + 1} failed:`, err);
+      }
+    }
+  }
+
+  metadata.courses_found = [...new Set(allEntries.map(e => e.course))];
+  return { metadata, entries: allEntries };
+}
+
+function splitIntoCoursesSections(text, maxChunkSize) {
+  // Try to split on course section headers
+  const coursePatterns = [
+    /(?=.*(?:SHORT\s*COURSE\s*YARDS|SCY\s*(?:TIME|QUALIFYING|STANDARD)))/im,
+    /(?=.*(?:LONG\s*COURSE\s*METERS|LCM\s*(?:TIME|QUALIFYING|STANDARD)))/im,
+    /(?=.*(?:SHORT\s*COURSE\s*METERS|SCM\s*(?:TIME|QUALIFYING|STANDARD)))/im,
+  ];
+
+  // Split by page breaks first
+  const pages = text.split(/\n*--- PAGE BREAK ---\n*/);
+
+  // Group pages into course sections by scanning for course markers
+  const sections = [];
+  let currentSection = '';
+
+  for (const page of pages) {
+    if (currentSection.length + page.length > maxChunkSize && currentSection.length > 0) {
+      sections.push(currentSection);
+      currentSection = '';
+    }
+    currentSection += (currentSection ? '\n\n' : '') + page;
+  }
+  if (currentSection) sections.push(currentSection);
+
+  return sections;
+}
+
+async function callAIParser(text) {
   const { data, error } = await supabase.functions.invoke('parse-time-standards', {
     body: { text }
   });

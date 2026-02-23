@@ -24,40 +24,43 @@ Deno.serve(async (req) => {
       throw new Error('Missing or invalid "text" field')
     }
 
-    const truncated = text.slice(0, 30000)
+    // Gemini Flash supports ~1M tokens input, so we can handle large documents
+    const truncated = text.slice(0, 200000)
 
     const prompt = `You are a swim time standards parser. Extract ALL time standard entries from this document.
 
-The document contains qualifying times / time standards for competitive swimming. Extract every time entry you can find.
+The document contains qualifying times / time standards for competitive swimming. Extract every single time entry you can find.
 
 For each entry, provide:
 - event: The swim event (e.g., "50 Free", "100 Back", "200 IM"). Use short stroke names: Free, Back, Breast, Fly, IM.
 - gender: "M" for male/boys, "F" for female/girls
 - age_min: Minimum age for the age group (use 0 for "X & Under")
 - age_max: Maximum age for the age group (use 99 for "X & Over" or Open)
-- course: "SCY" for Short Course Yards, "LCM" for Long Course Meters, "SCM" for Short Course Meters. Determine from context - look for mentions of "yards", "meters", "SCY", "LCM", "SCM", "short course", "long course", pool size (25 yards, 25 meters, 50 meters), etc. If a document contains multiple courses, tag each entry with the correct course.
+- course: "SCY" for Short Course Yards, "LCM" for Long Course Meters, "SCM" for Short Course Meters. You MUST determine the correct course for each entry. Look for section headers like "SHORT COURSE YARDS", "LONG COURSE METERS", "SHORT COURSE METERS", "SCY", "LCM", "SCM", or mentions of "yards" vs "meters". A single document often has MULTIPLE course sections — make sure you parse ALL of them and tag each entry with the correct course.
 - time_string: The qualifying time as shown (e.g., "24.59", "1:05.49", "2:15.39")
 - time_seconds: The time converted to total seconds (e.g., 24.59, 65.49, 135.39)
-- standard_name: The name of the cut/standard if specified (e.g., "QT", "A", "AA", "AAA", "Finals", "Bonus"). If not specified, use "QT".
+- standard_name: The name of the cut/standard if specified (e.g., "QT", "A", "AA", "AAA", "AAAA", "Finals", "Bonus"). If not specified, use "QT".
 
 Also extract metadata:
-- name: The title/name of these time standards
-- season: The season/year (e.g., "2024-2025", "2025")
-- courses_found: Array of courses found in the document (e.g., ["SCY"], ["SCY", "LCM"])
+- name: The official title/name of these time standards as it appears in the document (e.g., "2025-2028 Virginia Swimming Age Group Championship"). Look for the championship/meet name, NOT headers like "Hosted by" or page titles. The name should describe what these qualifying times are for.
+- season: The season/year range (e.g., "2025-2028", "2024-2025")
+- courses_found: Array of ALL courses found in the document (e.g., ["SCY"], ["SCY", "LCM", "SCM"])
 
-IMPORTANT:
-- Extract ALL entries, not just a sample
-- Pay attention to which course each entry belongs to - a single document may have SCY and LCM sections
-- Age groups are typically: 8 & Under, 9-10, 11-12, 13-14, 15-16, 17-18, 15 & Over, Open, Senior
+CRITICAL INSTRUCTIONS:
+- Extract ALL entries from ALL sections of the document, including SCY, LCM, and SCM sections
+- Many documents have separate pages/sections for each course — you MUST parse every section
+- Do NOT stop after the first course section — keep going through the entire document
+- Age groups are typically: 10 & Under, 11-12, 13-14, 15 & Over (or 8 & Under, 9-10, 11-12, 13-14, 15-16, 17-18)
 - If the document has separate columns for different age groups, extract each age group separately
 - Convert times to seconds accurately: "1:05.49" = 65.49 seconds, "2:15.39" = 135.39 seconds
+- For relay events (e.g., "200 Medley Relay", "400 Free Relay"), include them with the event name containing "Relay"
 
 Return valid JSON in exactly this format:
 {
   "metadata": {
     "name": "string",
     "season": "string or null",
-    "courses_found": ["SCY"]
+    "courses_found": ["SCY", "LCM", "SCM"]
   },
   "entries": [
     {
@@ -85,7 +88,7 @@ ${truncated}`
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.1,
-            maxOutputTokens: 30000,
+            maxOutputTokens: 65536,
             responseMimeType: 'application/json',
           },
         }),
