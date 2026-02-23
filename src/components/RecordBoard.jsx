@@ -3,9 +3,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
-import { Trophy, Loader2, Medal } from 'lucide-react';
+import { Trophy, Loader2, Medal, Pencil, Check, X, Trash2 } from 'lucide-react';
+import { useTeamRole } from '../hooks/useTeamRole';
+import { timeToSeconds, secondsToTimeDisplay } from '../utils/teamRecordsManager';
 
-// Age groups in order
 const AGE_GROUPS = [
   '8 & Under',
   '9/10',
@@ -14,57 +15,58 @@ const AGE_GROUPS = [
   '15 & Over'
 ];
 
-// Events organized by distance and stroke - SCY
 const SCY_EVENTS_ORDER = [
-  // Sprint
   '25 Free', '25 Back', '25 Breast', '25 Fly',
   '50 Free', '50 Back', '50 Breast', '50 Fly',
-  // Mid-distance
   '100 Free', '100 Back', '100 Breast', '100 Fly', '100 IM',
   '200 Free', '200 Back', '200 Breast', '200 Fly', '200 IM',
-  // Distance
   '400 IM',
   '500 Free',
   '1000 Free',
   '1650 Free'
 ];
 
-// Events organized by distance and stroke - LCM
 const LCM_EVENTS_ORDER = [
-  // Sprint
   '50 Free', '50 Back', '50 Breast', '50 Fly',
-  // Mid-distance
   '100 Free', '100 Back', '100 Breast', '100 Fly',
   '200 Free', '200 Back', '200 Breast', '200 Fly', '200 IM',
-  // Distance
   '400 Free', '400 IM',
   '800 Free',
   '1500 Free'
 ];
 
-// Map course to its event list
 const EVENTS_BY_COURSE = {
   SCY: SCY_EVENTS_ORDER,
   LCM: LCM_EVENTS_ORDER,
-  SCM: LCM_EVENTS_ORDER // SCM uses same distances as LCM
+  SCM: LCM_EVENTS_ORDER
 };
 
 export default function RecordBoard() {
+  const { teamId } = useTeamRole();
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('8 & Under');
   const [selectedCourse, setSelectedCourse] = useState('SCY');
+  const [editingCell, setEditingCell] = useState(null);
+  const [editForm, setEditForm] = useState({ swimmer_name: '', time_display: '', date: '' });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchRecords();
-  }, [selectedCourse]);
+    if (teamId) fetchRecords();
+  }, [selectedCourse, teamId]);
+
+  useEffect(() => {
+    setEditingCell(null);
+  }, [selectedAgeGroup, selectedCourse]);
 
   const fetchRecords = async () => {
+    if (!teamId) return;
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('team_records')
         .select('*')
+        .eq('team_id', teamId)
         .eq('course', selectedCourse)
         .order('event');
 
@@ -77,24 +79,199 @@ export default function RecordBoard() {
     }
   };
 
-  // Get records for a specific event, age group, and gender
   const getRecord = (event, ageGroup, gender) => {
     return records.find(
       r => r.event === event && r.age_group === ageGroup && r.gender === gender
     );
   };
 
-  // Get all events that exist in the selected age group
-  const getEventsForAgeGroup = (ageGroup) => {
-    const eventsInGroup = new Set(
-      records
-        .filter(r => r.age_group === ageGroup)
-        .map(r => r.event)
+  const startEdit = (event, gender) => {
+    const record = getRecord(event, selectedAgeGroup, gender);
+    setEditingCell({ event, gender });
+    setEditForm({
+      swimmer_name: record?.swimmer_name || '',
+      time_display: record?.time_display || '',
+      date: record?.date ? record.date.split('T')[0] : ''
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingCell(null);
+    setEditForm({ swimmer_name: '', time_display: '', date: '' });
+  };
+
+  const handleSave = async () => {
+    if (!editingCell || !teamId) return;
+    const { swimmer_name, time_display, date } = editForm;
+    if (!swimmer_name.trim() || !time_display.trim() || !date) {
+      alert('Please fill in all fields.');
+      return;
+    }
+
+    const timeSeconds = timeToSeconds(time_display);
+    if (timeSeconds >= 999999) {
+      alert('Invalid time format. Use SS.ss or M:SS.ss');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const recordData = {
+        team_id: teamId,
+        event: editingCell.event,
+        age_group: selectedAgeGroup,
+        gender: editingCell.gender,
+        swimmer_name: swimmer_name.trim(),
+        time_seconds: timeSeconds,
+        time_display: secondsToTimeDisplay(timeSeconds),
+        date,
+        course: selectedCourse,
+        updated_at: new Date().toISOString()
+      };
+
+      const existing = getRecord(editingCell.event, selectedAgeGroup, editingCell.gender);
+      if (existing) {
+        const { error } = await supabase.from('team_records').update(recordData).eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('team_records').insert([recordData]);
+        if (error) throw error;
+      }
+
+      cancelEdit();
+      await fetchRecords();
+    } catch (err) {
+      console.error('Error saving record:', err);
+      alert('Error saving record: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (event, gender) => {
+    const existing = getRecord(event, selectedAgeGroup, gender);
+    if (!existing) return;
+    if (!confirm('Remove this record?')) return;
+
+    try {
+      const { error } = await supabase.from('team_records').delete().eq('id', existing.id);
+      if (error) throw error;
+      cancelEdit();
+      await fetchRecords();
+    } catch (err) {
+      console.error('Error removing record:', err);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSave();
+    if (e.key === 'Escape') cancelEdit();
+  };
+
+  const renderRecordCell = (event, gender, colorClass) => {
+    const record = getRecord(event, selectedAgeGroup, gender);
+    const isEditing = editingCell?.event === event && editingCell?.gender === gender;
+    const medalColor = colorClass === 'pink' ? 'text-pink-500' : 'text-blue-500';
+    const timeColor = colorClass === 'pink' ? 'text-pink-600' : 'text-blue-600';
+
+    if (isEditing) {
+      return (
+        <div className="space-y-1.5 max-w-[180px] mx-auto" onClick={e => e.stopPropagation()}>
+          <input
+            type="text"
+            placeholder="Swimmer name"
+            value={editForm.swimmer_name}
+            onChange={e => setEditForm(f => ({ ...f, swimmer_name: e.target.value }))}
+            onKeyDown={handleKeyDown}
+            className="w-full px-2 py-1 text-xs border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+            autoFocus
+          />
+          <input
+            type="text"
+            placeholder="Time (e.g. 1:05.23)"
+            value={editForm.time_display}
+            onChange={e => setEditForm(f => ({ ...f, time_display: e.target.value }))}
+            onKeyDown={handleKeyDown}
+            className="w-full px-2 py-1 text-xs border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-mono"
+          />
+          <input
+            type="date"
+            value={editForm.date}
+            onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))}
+            onKeyDown={handleKeyDown}
+            className="w-full px-2 py-1 text-xs border border-slate-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+          />
+          <div className="flex items-center justify-center gap-1 pt-0.5">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
+              title="Save"
+            >
+              <Check size={14} />
+            </button>
+            <button
+              onClick={cancelEdit}
+              className="p-1 text-slate-400 hover:bg-slate-100 rounded transition-colors"
+              title="Cancel"
+            >
+              <X size={14} />
+            </button>
+            {record && (
+              <button
+                onClick={() => handleDelete(event, gender)}
+                className="p-1 text-red-400 hover:bg-red-50 rounded transition-colors"
+                title="Remove record"
+              >
+                <Trash2 size={12} />
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (record) {
+      return (
+        <div
+          className="space-y-1 relative group cursor-pointer"
+          onClick={() => startEdit(event, gender)}
+          title="Click to edit"
+        >
+          <div className="font-semibold text-slate-800 text-sm">
+            {record.swimmer_name}
+          </div>
+          <div className="flex items-center justify-center gap-2">
+            <Medal size={14} className={medalColor} />
+            <span className={`font-bold ${timeColor}`}>
+              {record.time_display}
+            </span>
+          </div>
+          <div className="text-xs text-slate-500">
+            {new Date(record.date).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            })}
+          </div>
+          <Pencil
+            size={10}
+            className="absolute top-0 right-0 text-slate-300 group-hover:text-slate-500 transition-colors"
+          />
+        </div>
+      );
+    }
+
+    return (
+      <button
+        onClick={() => startEdit(event, gender)}
+        className="w-full text-slate-300 text-sm hover:text-blue-500 transition-colors flex items-center justify-center gap-1"
+        title="Add record"
+      >
+        <span>—</span>
+        <Pencil size={10} />
+      </button>
     );
-    
-    // Return events in the defined order for the selected course that exist in this age group
-    const eventsOrder = EVENTS_BY_COURSE[selectedCourse] || SCY_EVENTS_ORDER;
-    return eventsOrder.filter(event => eventsInGroup.has(event));
   };
 
   if (loading) {
@@ -105,7 +282,7 @@ export default function RecordBoard() {
     );
   }
 
-  const eventsToShow = getEventsForAgeGroup(selectedAgeGroup);
+  const eventsToShow = EVENTS_BY_COURSE[selectedCourse] || SCY_EVENTS_ORDER;
 
   return (
     <div className="p-4 md:p-8 overflow-y-auto h-full pb-24 md:pb-8">
@@ -175,81 +352,26 @@ export default function RecordBoard() {
 
         {/* Records */}
         <div className="divide-y divide-slate-100">
-          {eventsToShow.length > 0 ? (
-            eventsToShow.map(event => {
-              const femaleRecord = getRecord(event, selectedAgeGroup, 'Female');
-              const maleRecord = getRecord(event, selectedAgeGroup, 'Male');
+          {eventsToShow.map(event => (
+            <div key={event} className="grid grid-cols-3 gap-4 p-4 hover:bg-slate-50 transition-colors">
+              {/* Female Record */}
+              <div className="text-center">
+                {renderRecordCell(event, 'Female', 'pink')}
+              </div>
 
-              return (
-                <div key={event} className="grid grid-cols-3 gap-4 p-4 hover:bg-slate-50 transition-colors">
-                  {/* Female Record */}
-                  <div className="text-center">
-                    {femaleRecord ? (
-                      <div className="space-y-1">
-                        <div className="font-semibold text-slate-800 text-sm">
-                          {femaleRecord.swimmer_name}
-                        </div>
-                        <div className="flex items-center justify-center gap-2">
-                          <Medal size={14} className="text-pink-500" />
-                          <span className="font-bold text-pink-600">
-                            {femaleRecord.time_display}
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          {new Date(femaleRecord.date).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric', 
-                            year: 'numeric' 
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-slate-300 text-sm">No record</div>
-                    )}
-                  </div>
-
-                  {/* Event Name */}
-                  <div className="flex items-center justify-center">
-                    <div className="px-4 py-2 bg-slate-100 rounded-lg">
-                      <div className="font-bold text-slate-800">{event}</div>
-                    </div>
-                  </div>
-
-                  {/* Male Record */}
-                  <div className="text-center">
-                    {maleRecord ? (
-                      <div className="space-y-1">
-                        <div className="font-semibold text-slate-800 text-sm">
-                          {maleRecord.swimmer_name}
-                        </div>
-                        <div className="flex items-center justify-center gap-2">
-                          <Medal size={14} className="text-blue-500" />
-                          <span className="font-bold text-blue-600">
-                            {maleRecord.time_display}
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          {new Date(maleRecord.date).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric', 
-                            year: 'numeric' 
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-slate-300 text-sm">No record</div>
-                    )}
-                  </div>
+              {/* Event Name */}
+              <div className="flex items-center justify-center">
+                <div className="px-4 py-2 bg-slate-100 rounded-lg">
+                  <div className="font-bold text-slate-800">{event}</div>
                 </div>
-              );
-            })
-          ) : (
-            <div className="p-12 text-center">
-              <Trophy size={48} className="mx-auto text-slate-300 mb-4" />
-              <p className="text-slate-600 font-medium">No records for this age group</p>
-              <p className="text-slate-500 text-sm mt-1">Records will appear as they are set</p>
+              </div>
+
+              {/* Male Record */}
+              <div className="text-center">
+                {renderRecordCell(event, 'Male', 'blue')}
+              </div>
             </div>
-          )}
+          ))}
         </div>
       </div>
 

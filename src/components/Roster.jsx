@@ -4,7 +4,7 @@ import React, { useState, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import Icon from './Icon';
 import { supabase } from '../supabase';
-import { checkMultipleResults } from '../utils/teamRecordsManager';
+import { checkMultipleResults, updateMultipleRecords } from '../utils/teamRecordsManager';
 import { isValidTime } from '../utils/timeUtils';
 import { parseMemberDirectoryPDF } from '../utils/rosterPdfParser';
 import { useSubscription } from '../hooks/useSubscription';
@@ -788,6 +788,19 @@ export default function Roster({
       const allRecordBreaks = [];
       const errors = [];
 
+      // Detect first-ever import: if no existing team records, skip the modal
+      let isFirstImport = false;
+      try {
+        const { teamId: importTeamId } = await getUserAndTeamContext();
+        const { count } = await supabase
+          .from('team_records')
+          .select('*', { count: 'exact', head: true })
+          .eq('team_id', importTeamId);
+        isFirstImport = !count;
+      } catch (e) {
+        console.error('Error checking for first import:', e);
+      }
+
       for (let i = 0; i < resultFiles.length; i++) {
         const file = resultFiles[i];
         const fileLabel = resultFiles.length > 1 ? `[${i + 1}/${resultFiles.length}] ${file.name}: ` : '';
@@ -821,8 +834,18 @@ export default function Roster({
 
       // Show record modal only after ALL files are done
       if (allRecordBreaks.length > 0) {
-        setRecordBreaks(allRecordBreaks);
-        setShowRecordModal(true);
+        if (isFirstImport) {
+          // First import ever — silently save initial records without the celebration modal
+          try {
+            await updateMultipleRecords(allRecordBreaks);
+            console.log(`First import: silently saved ${allRecordBreaks.length} initial team records`);
+          } catch (e) {
+            console.error('Error auto-saving initial records:', e);
+          }
+        } else {
+          setRecordBreaks(allRecordBreaks);
+          setShowRecordModal(true);
+        }
       }
 
       // Show final summary
@@ -830,7 +853,8 @@ export default function Roster({
       
       let summary = `Imported ${totalImported} results`;
       if (totalDuplicates > 0) summary += ` (${totalDuplicates} duplicates skipped)`;
-      if (allRecordBreaks.length > 0) summary += `\n\n${allRecordBreaks.length} TEAM RECORD(S) BROKEN! Check the modal.`;
+      if (allRecordBreaks.length > 0 && !isFirstImport) summary += `\n\n${allRecordBreaks.length} TEAM RECORD(S) BROKEN! Check the modal.`;
+      if (allRecordBreaks.length > 0 && isFirstImport) summary += `\n\n${allRecordBreaks.length} initial team record(s) saved.`;
       if (totalGenderUpdates > 0) summary += `\n\nUpdated gender for ${totalGenderUpdates} swimmer(s).`;
       if (resultFiles.length > 1) summary = `Processed ${resultFiles.length} files.\n\n${summary}`;
       if (errors.length > 0) summary += `\n\nErrors:\n${errors.join('\n')}`;

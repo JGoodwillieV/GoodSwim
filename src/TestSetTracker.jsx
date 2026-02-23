@@ -43,9 +43,13 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
   const [laneStagger, setLaneStagger] = useState(5); // seconds between swimmers in same lane
   const [swimmerStartTimes, setSwimmerStartTimes] = useState({}); // { swimmerId: { rep: startTimeMs } }
   
-  // Drag and drop state
+  // Drag and drop state (selected swimmers list)
   const [draggedSwimmer, setDraggedSwimmer] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+
+  // Lane drag and drop state
+  const [laneDragItem, setLaneDragItem] = useState(null);
+  const [laneDragOver, setLaneDragOver] = useState(null);
   
   // Timing state
   const [isRunning, setIsRunning] = useState(false);
@@ -614,6 +618,69 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
   };
 
   // ==========================================
+  // LANE DRAG AND DROP HANDLERS
+  // ==========================================
+
+  const handleLaneDragStart = (e, swimmer, laneNum, index) => {
+    setLaneDragItem({ swimmer, fromLane: laneNum, fromIndex: index });
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', swimmer.id.toString());
+  };
+
+  const handleLaneDragOverSwimmer = (e, laneNum, index) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    const rect = e.currentTarget.getBoundingClientRect();
+    const midpoint = rect.top + rect.height / 2;
+    const position = e.clientY < midpoint ? index : index + 1;
+    const ln = parseInt(laneNum);
+    if (laneDragOver?.lane !== ln || laneDragOver?.position !== position) {
+      setLaneDragOver({ lane: ln, position });
+    }
+  };
+
+  const handleLaneDragOverContainer = (e, laneNum) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const ln = parseInt(laneNum);
+    const position = (laneConfig[laneNum] || []).length;
+    if (laneDragOver?.lane !== ln || laneDragOver?.position !== position) {
+      setLaneDragOver({ lane: ln, position });
+    }
+  };
+
+  const handleLaneDrop = (e, laneNum) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!laneDragItem) return;
+
+    const { swimmer, fromLane, fromIndex } = laneDragItem;
+    const targetLane = parseInt(laneNum);
+    const sourceLane = fromLane !== null && fromLane !== undefined ? parseInt(fromLane) : null;
+    const dropPos = laneDragOver?.lane === targetLane
+      ? laneDragOver.position
+      : (laneConfig[laneNum] || []).length;
+
+    if (sourceLane === targetLane) {
+      const adjustedPos = dropPos > fromIndex ? dropPos - 1 : dropPos;
+      if (adjustedPos !== fromIndex) {
+        moveSwimmerInLane(targetLane, fromIndex, adjustedPos);
+      }
+    } else {
+      moveSwimmerToLane(swimmer, sourceLane, targetLane, dropPos);
+    }
+
+    setLaneDragItem(null);
+    setLaneDragOver(null);
+  };
+
+  const handleLaneDragEnd = () => {
+    setLaneDragItem(null);
+    setLaneDragOver(null);
+  };
+
+  // ==========================================
   // SETUP SCREEN
   // ==========================================
   if (step === 'setup') {
@@ -1002,55 +1069,85 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
                     {/* Lane Display */}
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {Object.keys(laneConfig).sort((a, b) => parseInt(a) - parseInt(b)).map(laneNum => (
-                        <div key={laneNum} className="bg-slate-50 rounded-xl p-3">
+                        <div
+                          key={laneNum}
+                          className={`bg-slate-50 rounded-xl p-3 transition-all ${
+                            laneDragItem && laneDragOver?.lane === parseInt(laneNum)
+                              ? 'ring-2 ring-blue-400 bg-blue-50/30'
+                              : ''
+                          }`}
+                          onDragOver={(e) => handleLaneDragOverContainer(e, laneNum)}
+                          onDrop={(e) => handleLaneDrop(e, laneNum)}
+                        >
                           <div className="flex items-center justify-between mb-2">
                             <span className="font-bold text-slate-700">Lane {laneNum}</span>
                             <span className="text-xs text-slate-500">
                               {laneConfig[laneNum].length} swimmer{laneConfig[laneNum].length !== 1 ? 's' : ''}
                             </span>
                           </div>
-                          <div className="space-y-2">
+                          <div className="space-y-1">
                             {laneConfig[laneNum].map((swimmer, index) => (
-                              <div
-                                key={swimmer.id}
-                                className="flex items-center gap-2 bg-white rounded-lg p-2"
-                              >
-                                <div className="w-6 h-6 bg-cyan-100 text-cyan-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
-                                  {index + 1}
+                              <React.Fragment key={swimmer.id}>
+                                {/* Drop indicator before this swimmer */}
+                                {laneDragItem && laneDragOver?.lane === parseInt(laneNum) && laneDragOver?.position === index && (
+                                  <div className="h-1 bg-blue-500 rounded-full mx-1 animate-pulse" />
+                                )}
+                                <div
+                                  draggable
+                                  onDragStart={(e) => handleLaneDragStart(e, swimmer, laneNum, index)}
+                                  onDragOver={(e) => handleLaneDragOverSwimmer(e, laneNum, index)}
+                                  onDragEnd={handleLaneDragEnd}
+                                  className={`flex items-center gap-2 bg-white rounded-lg p-2 cursor-grab active:cursor-grabbing select-none transition-opacity ${
+                                    laneDragItem?.swimmer.id === swimmer.id ? 'opacity-30' : ''
+                                  }`}
+                                >
+                                  <GripVertical size={14} className="text-slate-300 shrink-0" />
+                                  <div className="w-6 h-6 bg-cyan-100 text-cyan-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+                                    {index + 1}
+                                  </div>
+                                  <span className="flex-1 font-medium text-slate-700 text-sm truncate">
+                                    {swimmer.name}
+                                  </span>
+                                  <span className="text-xs text-slate-400">
+                                    +{index * laneStagger}s
+                                  </span>
+                                  <div className="flex gap-1 shrink-0">
+                                    <button
+                                      onClick={() => moveSwimmerInLane(laneNum, index, Math.max(0, index - 1))}
+                                      disabled={index === 0}
+                                      className="p-1 text-slate-400 hover:text-slate-600 disabled:opacity-30"
+                                    >
+                                      <ChevronDown size={14} className="rotate-180" />
+                                    </button>
+                                    <button
+                                      onClick={() => moveSwimmerInLane(laneNum, index, Math.min(laneConfig[laneNum].length - 1, index + 1))}
+                                      disabled={index === laneConfig[laneNum].length - 1}
+                                      className="p-1 text-slate-400 hover:text-slate-600 disabled:opacity-30"
+                                    >
+                                      <ChevronDown size={14} />
+                                    </button>
+                                    <button
+                                      onClick={() => removeSwimmerFromLane(swimmer, laneNum)}
+                                      className="p-1 text-rose-400 hover:text-rose-600"
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  </div>
                                 </div>
-                                <span className="flex-1 font-medium text-slate-700 text-sm truncate">
-                                  {swimmer.name}
-                                </span>
-                                <span className="text-xs text-slate-400">
-                                  +{index * laneStagger}s
-                                </span>
-                                <div className="flex gap-1 shrink-0">
-                                  <button
-                                    onClick={() => moveSwimmerInLane(laneNum, index, Math.max(0, index - 1))}
-                                    disabled={index === 0}
-                                    className="p-1 text-slate-400 hover:text-slate-600 disabled:opacity-30"
-                                  >
-                                    <ChevronDown size={14} className="rotate-180" />
-                                  </button>
-                                  <button
-                                    onClick={() => moveSwimmerInLane(laneNum, index, Math.min(laneConfig[laneNum].length - 1, index + 1))}
-                                    disabled={index === laneConfig[laneNum].length - 1}
-                                    className="p-1 text-slate-400 hover:text-slate-600 disabled:opacity-30"
-                                  >
-                                    <ChevronDown size={14} />
-                                  </button>
-                                  <button
-                                    onClick={() => removeSwimmerFromLane(swimmer, laneNum)}
-                                    className="p-1 text-rose-400 hover:text-rose-600"
-                                  >
-                                    <X size={14} />
-                                  </button>
-                                </div>
-                              </div>
+                              </React.Fragment>
                             ))}
-                            {laneConfig[laneNum].length === 0 && (
+                            {/* Drop indicator at end of lane */}
+                            {laneDragItem && laneDragOver?.lane === parseInt(laneNum) && laneDragOver?.position === laneConfig[laneNum].length && (
+                              <div className="h-1 bg-blue-500 rounded-full mx-1 animate-pulse" />
+                            )}
+                            {laneConfig[laneNum].length === 0 && !laneDragItem && (
                               <div className="text-center text-slate-400 text-sm py-2">
                                 Empty lane
+                              </div>
+                            )}
+                            {laneConfig[laneNum].length === 0 && laneDragItem && (
+                              <div className="text-center text-blue-400 text-sm py-3 border-2 border-dashed border-blue-300 rounded-lg">
+                                Drop here
                               </div>
                             )}
                           </div>
@@ -1067,8 +1164,19 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           {getUnassignedSwimmers().map(swimmer => (
-                            <div key={swimmer.id} className="bg-white rounded-lg p-2 flex items-center justify-between">
-                              <span className="text-sm font-medium text-slate-700 truncate">{swimmer.name}</span>
+                            <div
+                              key={swimmer.id}
+                              draggable
+                              onDragStart={(e) => handleLaneDragStart(e, swimmer, null, null)}
+                              onDragEnd={handleLaneDragEnd}
+                              className={`bg-white rounded-lg p-2 flex items-center justify-between cursor-grab active:cursor-grabbing select-none transition-opacity ${
+                                laneDragItem?.swimmer.id === swimmer.id ? 'opacity-30' : ''
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <GripVertical size={12} className="text-slate-300 shrink-0" />
+                                <span className="text-sm font-medium text-slate-700 truncate">{swimmer.name}</span>
+                              </div>
                               <button
                                 onClick={() => {
                                   const lanes = Object.keys(laneConfig);
@@ -1076,7 +1184,7 @@ export default function TestSetTracker({ onBack, swimmers: allSwimmers, groups }
                                     moveSwimmerToLane(swimmer, null, lanes[0]);
                                   }
                                 }}
-                                className="text-xs text-cyan-600 hover:text-cyan-700 font-medium"
+                                className="text-xs text-cyan-600 hover:text-cyan-700 font-medium shrink-0 ml-1"
                               >
                                 Add
                               </button>
