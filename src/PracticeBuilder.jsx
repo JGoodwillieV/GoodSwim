@@ -14,7 +14,9 @@ import {
   BookOpen,
   Play,
   Repeat,
-  Zap
+  Zap,
+  Download,
+  Loader2
 } from 'lucide-react';
 
 const STROKE_OPTIONS = ['free', 'back', 'breast', 'fly', 'IM', 'choice', 'drill', 'kick'];
@@ -35,6 +37,9 @@ export default function PracticeBuilder({ practiceId, preFillData, onBack, onSav
   const [showPrint, setShowPrint] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [showRecurringSchedule, setShowRecurringSchedule] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templates, setTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [viewMode, setViewMode] = useState('builder'); // 'builder' or 'quick-entry'
 
   useEffect(() => {
@@ -191,6 +196,7 @@ export default function PracticeBuilder({ practiceId, preFillData, onBack, onSav
   const handleAddSet = async (setType) => {
     try {
       const newSet = {
+        team_id: practice.team_id,
         practice_id: practice.id,
         name: setType.charAt(0).toUpperCase() + setType.slice(1).replace('_', ' '),
         set_type: setType,
@@ -240,6 +246,7 @@ export default function PracticeBuilder({ practiceId, preFillData, onBack, onSav
     try {
       const set = sets.find(s => s.id === setId);
       const newItem = {
+        team_id: practice.team_id,
         set_id: setId,
         order_index: set.practice_set_items?.length || 0,
         ...itemData
@@ -372,6 +379,106 @@ export default function PracticeBuilder({ practiceId, preFillData, onBack, onSav
     }
   };
 
+  const handleLoadTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from('practice_templates')
+        .select('*')
+        .or(`coach_id.eq.${user.id},is_shared.eq.true`)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTemplates(data || []);
+      setShowTemplates(true);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      alert('Failed to load templates');
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const handleApplyTemplate = async (template) => {
+    if (sets.length > 0 && !confirm('This will replace all current sets. Continue?')) return;
+
+    try {
+      const templateData = template.template_data;
+
+      // Delete existing sets for this practice
+      if (sets.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('practice_sets')
+          .delete()
+          .eq('practice_id', practice.id);
+        if (deleteError) throw deleteError;
+      }
+
+      // Apply template practice metadata (title, description, focus_tags, etc.)
+      const practiceUpdates = {};
+      if (templateData.practice?.description) practiceUpdates.description = templateData.practice.description;
+      if (templateData.practice?.focus_tags) practiceUpdates.focus_tags = templateData.practice.focus_tags;
+      if (Object.keys(practiceUpdates).length > 0) {
+        await handleUpdatePractice(practiceUpdates);
+      }
+
+      // Insert sets from template
+      if (templateData.sets && templateData.sets.length > 0) {
+        for (const templateSet of templateData.sets) {
+          const newSet = {
+            team_id: practice.team_id,
+            practice_id: practice.id,
+            name: templateSet.name,
+            set_type: templateSet.set_type,
+            order_index: templateSet.order_index,
+            is_test_set: templateSet.is_test_set || false,
+            total_yards: 0
+          };
+
+          const { data: setData, error: setError } = await supabase
+            .from('practice_sets')
+            .insert([newSet])
+            .select()
+            .single();
+
+          if (setError) throw setError;
+
+          // Insert items for this set
+          const items = templateSet.practice_set_items || [];
+          if (items.length > 0) {
+            const newItems = items.map((item, idx) => ({
+              team_id: practice.team_id,
+              set_id: setData.id,
+              order_index: idx,
+              reps: item.reps || 1,
+              distance: item.distance,
+              stroke: item.stroke,
+              description: item.description || null,
+              interval: item.interval || null,
+              equipment: item.equipment || [],
+              intensity: item.intensity || null,
+              notes: item.notes || null
+            }));
+
+            const { error: itemsError } = await supabase
+              .from('practice_set_items')
+              .insert(newItems);
+
+            if (itemsError) throw itemsError;
+          }
+        }
+      }
+
+      setShowTemplates(false);
+      await loadPractice();
+      alert('Template applied successfully!');
+    } catch (error) {
+      console.error('Error applying template:', error);
+      alert('Failed to apply template');
+    }
+  };
+
   // Calculate total time estimate (rough estimate: 1 yard = 1.5 seconds)
   const estimatedMinutes = useMemo(() => {
     if (!practice) return 0;
@@ -449,6 +556,14 @@ export default function PracticeBuilder({ practiceId, preFillData, onBack, onSav
                 <span className="hidden md:inline">Run Practice</span>
               </button>
             )}
+            <button
+              onClick={handleLoadTemplates}
+              disabled={loadingTemplates}
+              className="flex items-center gap-2 px-4 py-2 text-indigo-600 border border-indigo-200 rounded-lg text-sm font-medium hover:bg-indigo-50 transition-colors"
+            >
+              {loadingTemplates ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+              <span className="hidden md:inline">Load Template</span>
+            </button>
             <button
               onClick={handleSaveAsTemplate}
               className="flex items-center gap-2 px-4 py-2 text-purple-600 border border-purple-200 rounded-lg text-sm font-medium hover:bg-purple-50 transition-colors"
@@ -664,6 +779,14 @@ export default function PracticeBuilder({ practiceId, preFillData, onBack, onSav
           }}
         />
       )}
+
+      {showTemplates && (
+        <TemplatePicker
+          templates={templates}
+          onSelect={handleApplyTemplate}
+          onClose={() => setShowTemplates(false)}
+        />
+      )}
     </div>
   );
 }
@@ -790,6 +913,62 @@ function SetItemRow({ item, onEdit, onDelete }) {
 }
 
 // Add Set Modal
+function TemplatePicker({ templates, onSelect, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-lg p-6 max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-slate-900">Load Template</h3>
+          <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400">
+            <X size={20} />
+          </button>
+        </div>
+
+        {templates.length === 0 ? (
+          <div className="text-center py-12">
+            <BookOpen size={40} className="mx-auto text-slate-300 mb-3" />
+            <p className="text-slate-500 font-medium">No templates saved yet</p>
+            <p className="text-slate-400 text-sm mt-1">Save a practice as a template to reuse it later.</p>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto space-y-2">
+            {templates.map(template => {
+              const setCount = template.template_data?.sets?.length || 0;
+              const totalYards = template.template_data?.practice?.total_yards || 0;
+              return (
+                <button
+                  key={template.id}
+                  onClick={() => onSelect(template)}
+                  className="w-full text-left p-4 border border-slate-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                >
+                  <div className="font-bold text-slate-900">{template.name}</div>
+                  {template.description && (
+                    <p className="text-sm text-slate-500 mt-1 line-clamp-1">{template.description}</p>
+                  )}
+                  <div className="flex items-center gap-3 mt-2 text-xs text-slate-400">
+                    <span>{setCount} {setCount === 1 ? 'set' : 'sets'}</span>
+                    {totalYards > 0 && <span>{totalYards} yards</span>}
+                    {template.category?.length > 0 && (
+                      <span>{template.category.join(', ')}</span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <button
+          onClick={onClose}
+          className="w-full mt-4 px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AddSetModal({ onAdd, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
