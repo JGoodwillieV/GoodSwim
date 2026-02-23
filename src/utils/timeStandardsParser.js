@@ -135,14 +135,14 @@ export async function parseExcel(file) {
 }
 
 // ---------------------------------------------------------------------------
-// PDF Parser — AI-first, with client-side preprocessing for side-by-side tables
+// PDF Parser — tries client-side structured parse first, then AI, then regex
 // ---------------------------------------------------------------------------
 export async function parsePDF(file) {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-  const allRowsWithPos = []; // rows with x-coordinate data preserved
-  const allRowsPlain = [];   // rows as string arrays (for regex fallback)
+  const allRowsWithPos = [];
+  const allRowsPlain = [];
 
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
@@ -185,29 +185,29 @@ export async function parsePDF(file) {
     }
   }
 
-  // Preprocess: detect side-by-side course tables and reformat with explicit labels
-  const preprocessed = preprocessSideBySideTable(allRowsWithPos);
-  const fullText = preprocessed || allRowsPlain.map(r => r.join('\t')).join('\n');
-
-  if (preprocessed) {
-    console.log('Detected side-by-side course table, preprocessed text with explicit course labels');
+  // 1) Try deterministic client-side parse for side-by-side course tables
+  const sideBySlideResult = parseSideBySideTable(allRowsWithPos);
+  if (sideBySlideResult && sideBySlideResult.entries.length > 0) {
+    console.log(`Side-by-side parser found ${sideBySlideResult.entries.length} entries across courses: ${sideBySlideResult.metadata.courses_found.join(', ')}`);
+    sideBySlideResult.usedAI = false;
+    return sideBySlideResult;
   }
 
-  // Always try AI first for PDFs
+  // 2) Try AI for complex/unstructured PDFs
+  const fullText = allRowsPlain.map(r => r.join('\t')).join('\n');
   console.log(`PDF has ${pdf.numPages} pages, ${fullText.length} chars. Sending to AI...`);
   try {
     const aiResult = await parseWithAI(fullText);
     if (aiResult.entries.length > 0) {
-      console.log(`AI parser found ${aiResult.entries.length} entries across courses: ${[...new Set(aiResult.entries.map(e => e.course))].join(', ')}`);
+      console.log(`AI parser found ${aiResult.entries.length} entries`);
       aiResult.usedAI = true;
       return aiResult;
     }
-    console.log('AI returned 0 entries, falling back to regex...');
   } catch (err) {
     console.error('AI parsing failed, falling back to regex:', err);
   }
 
-  // Regex fallback
+  // 3) Regex fallback
   const regexResult = parseTabularRows(allRowsPlain);
   regexResult.usedAI = false;
   console.log(`Regex fallback found ${regexResult.entries.length} entries`);
@@ -215,44 +215,51 @@ export async function parsePDF(file) {
 }
 
 // ---------------------------------------------------------------------------
-// Detects side-by-side course columns (e.g. LCM | SCY | Event | SCY | LCM)
-// and rewrites rows into explicit format: "Girls LCM 50 Free: 35.49"
-// Uses x-coordinates from PDF.js for accurate column mapping.
+// Client-side parser for side-by-side course tables
+// e.g.  LCM | SCY | Event | SCY | LCM  (with Girls left, Boys right)
+// Uses x-coordinates from PDF.js to map each time to its course column.
+// Returns { metadata, entries } or null if the format isn't detected.
 // ---------------------------------------------------------------------------
-function preprocessSideBySideTable(rowsWithPos) {
+function parseSideBySideTable(rowsWithPos) {
   const COURSE_RE = /^(SCY|LCM|SCM)$/i;
   const TIME_RE = /^\d{1,2}:\d{2}\.\d{2}$|^\d+\.\d{2}$/;
 
-  // First, find any header row that has at least 2 course labels
-  let foundHeader = false;
+  // Check if any row has >= 2 course labels
+  let hasHeader = false;
   for (const row of rowsWithPos) {
-    const courseCount = row.filter(item => COURSE_RE.test(item.str)).length;
-    if (courseCount >= 2) { foundHeader = true; break; }
+    if (row.filter(item => COURSE_RE.test(item.str)).length >= 2) {
+      hasHeader = true;
+      break;
+    }
   }
-  if (!foundHeader) return null;
+  if (!hasHeader) return null;
 
-  // Determine Girls/Boys side: scan for GIRLS/BOYS labels
-  let leftGender = 'Girls', rightGender = 'Boys';
+  // Determine left/right gender from GIRLS/BOYS labels (default: left=F, right=M)
+  let leftGender = 'F', rightGender = 'M';
   for (const row of rowsWithPos) {
-    const strs = row.map(item => item.str.toUpperCase());
-    if (strs.includes('GIRLS') && strs.includes('BOYS')) {
-      const girlsX = row.find(item => item.str.toUpperCase() === 'GIRLS')?.x ?? 0;
-      const boysX = row.find(item => item.str.toUpperCase() === 'BOYS')?.x ?? 0;
-      if (girlsX > boysX) { leftGender = 'Boys'; rightGender = 'Girls'; }
+    const girlsItem = row.find(item => /^GIRLS?$/i.test(item.str));
+    const boysItem = row.find(item => /^BOYS?$/i.test(item.str));
+    if (girlsItem && boysItem) {
+      if (girlsItem.x > boysItem.x) { leftGender = 'M'; rightGender = 'F'; }
       break;
     }
   }
 
-  const lines = [];
-  let columnDefs = null; // [{x, course, gender}]
+  const entries = [];
+  let columnDefs = null;
+  let currentAgeGroup = null;
+  let docTitle = '';
+  let docSeason = '';
 
   for (const row of rowsWithPos) {
     const courseItems = row.filter(item => COURSE_RE.test(item.str));
 
-    // Header row: build column definitions using x-coordinates
+    // --- Header row with course labels ---
     if (courseItems.length >= 2) {
       const nonCourseItems = row.filter(item => !COURSE_RE.test(item.str) && item.str.length > 0);
-      const ageGroup = nonCourseItems.map(item => item.str).join(' ');
+      const ageText = nonCourseItems.map(item => item.str).join(' ');
+      currentAgeGroup = parseAgeGroup(ageText);
+
       const centerX = nonCourseItems.length > 0
         ? nonCourseItems.reduce((sum, item) => sum + item.x, 0) / nonCourseItems.length
         : row[Math.floor(row.length / 2)]?.x ?? 0;
@@ -262,46 +269,72 @@ function preprocessSideBySideTable(rowsWithPos) {
         course: item.str.toUpperCase(),
         gender: item.x < centerX ? leftGender : rightGender,
       })).sort((a, b) => a.x - b.x);
-
-      lines.push(`\n=== ${ageGroup} ===`);
       continue;
     }
 
-    // Skip GIRLS/BOYS label row
-    const strs = row.map(item => item.str.toUpperCase());
-    if (strs.includes('GIRLS') || strs.includes('BOYS')) {
-      if (strs.every(s => /^(GIRLS|BOYS)$/.test(s) || !s.trim())) continue;
+    // --- Skip standalone gender label rows ---
+    if (row.every(item => /^(GIRLS?|BOYS?)$/i.test(item.str) || !item.str.trim())) continue;
+
+    // --- Capture document title from rows before first header ---
+    if (!columnDefs) {
+      const text = row.map(item => item.str).join(' ').trim();
+      if (!docTitle && text.length > 5 && text.length < 200) docTitle = text;
+      const sm = text.match(/\b(20\d{2})\s*[-/]\s*(20\d{2})\b/) || text.match(/\b(20\d{2})\b/);
+      if (sm && !docSeason) docSeason = sm[0];
+      continue;
     }
 
-    // Data row: match times to column positions
-    if (columnDefs) {
-      const timeItems = row.filter(item => TIME_RE.test(item.str));
-      const textItems = row.filter(item => !TIME_RE.test(item.str) && !COURSE_RE.test(item.str) && item.str.length > 0);
+    if (!currentAgeGroup) continue;
 
-      if (timeItems.length > 0 && textItems.length > 0) {
-        const eventName = textItems.map(item => item.str).join(' ')
-          .replace(/^\d+-\d+\s+/, '').trim();
+    // --- Data row: extract times and event name ---
+    const timeItems = row.filter(item => TIME_RE.test(item.str));
+    const textItems = row.filter(
+      item => !TIME_RE.test(item.str) && !COURSE_RE.test(item.str) && item.str.length > 0
+    );
 
-        for (const timeItem of timeItems) {
-          let bestCol = columnDefs[0];
-          let bestDist = Math.abs(timeItem.x - bestCol.x);
-          for (const col of columnDefs) {
-            const dist = Math.abs(timeItem.x - col.x);
-            if (dist < bestDist) { bestCol = col; bestDist = dist; }
-          }
-          lines.push(`${bestCol.gender} ${bestCol.course} ${eventName}: ${timeItem.str}`);
-        }
-        continue;
+    if (timeItems.length === 0 || textItems.length === 0) continue;
+
+    const rawEventName = textItems.map(item => item.str).join(' ').replace(/^\d+-\d+\s+/, '').trim();
+    const eventName = normalizeEvent(rawEventName);
+    if (!eventName) continue;
+
+    for (const timeItem of timeItems) {
+      // Find the column definition closest to this time's x-position
+      let bestCol = columnDefs[0];
+      let bestDist = Math.abs(timeItem.x - bestCol.x);
+      for (const col of columnDefs) {
+        const dist = Math.abs(timeItem.x - col.x);
+        if (dist < bestDist) { bestCol = col; bestDist = dist; }
       }
-    }
 
-    // Pass through non-data rows
-    const lineText = row.map(item => item.str).join(' ').trim();
-    if (lineText) lines.push(lineText);
+      const seconds = timeToSeconds(timeItem.str);
+      if (!seconds || seconds <= 0) continue;
+
+      entries.push({
+        standard_name: 'QT',
+        event: eventName,
+        gender: bestCol.gender,
+        age_min: currentAgeGroup.min,
+        age_max: currentAgeGroup.max,
+        course: bestCol.course,
+        time_seconds: seconds,
+        time_string: timeItem.str,
+      });
+    }
   }
 
-  const hasCourseLabels = lines.some(l => /^(Girls|Boys)\s+(SCY|LCM|SCM)\s+/.test(l));
-  return hasCourseLabels ? lines.join('\n') : null;
+  if (entries.length === 0) return null;
+
+  const seasonMatch = docTitle.match(/\b(20\d{2})\s*[-/]\s*(20\d{2})\b/) || docTitle.match(/\b(20\d{2})\b/);
+  const metadata = {
+    name: docTitle,
+    organization: '',
+    season: seasonMatch ? seasonMatch[0] : docSeason,
+    course: null,
+    courses_found: [...new Set(entries.map(e => e.course))],
+  };
+
+  return { metadata, entries };
 }
 
 // ---------------------------------------------------------------------------
