@@ -135,14 +135,14 @@ export async function parseExcel(file) {
 }
 
 // ---------------------------------------------------------------------------
-// PDF Parser — AI-first, processes in course sections for large documents
+// PDF Parser — AI-first, with client-side preprocessing for side-by-side tables
 // ---------------------------------------------------------------------------
 export async function parsePDF(file) {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-  const pageTexts = [];
-  const allRows = [];
+  const allRowsWithPos = []; // rows with x-coordinate data preserved
+  const allRowsPlain = [];   // rows as string arrays (for regex fallback)
 
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
@@ -162,7 +162,6 @@ export async function parsePDF(file) {
       return a.x - b.x;
     });
 
-    const rows = [];
     let currentRow = [];
     let lastY = null;
 
@@ -172,7 +171,8 @@ export async function parsePDF(file) {
       } else {
         if (currentRow.length > 0) {
           currentRow.sort((a, b) => a.x - b.x);
-          rows.push(currentRow.map(p => p.str));
+          allRowsWithPos.push(currentRow);
+          allRowsPlain.push(currentRow.map(p => p.str));
         }
         currentRow = [item];
       }
@@ -180,17 +180,20 @@ export async function parsePDF(file) {
     }
     if (currentRow.length > 0) {
       currentRow.sort((a, b) => a.x - b.x);
-      rows.push(currentRow.map(p => p.str));
+      allRowsWithPos.push(currentRow);
+      allRowsPlain.push(currentRow.map(p => p.str));
     }
-
-    const pageText = rows.map(r => r.join(' ')).join('\n');
-    pageTexts.push(pageText);
-    allRows.push(...rows);
   }
 
-  const fullText = pageTexts.join('\n\n--- PAGE BREAK ---\n\n');
+  // Preprocess: detect side-by-side course tables and reformat with explicit labels
+  const preprocessed = preprocessSideBySideTable(allRowsWithPos);
+  const fullText = preprocessed || allRowsPlain.map(r => r.join('\t')).join('\n');
 
-  // Always try AI first for PDFs — it handles complex layouts much better
+  if (preprocessed) {
+    console.log('Detected side-by-side course table, preprocessed text with explicit course labels');
+  }
+
+  // Always try AI first for PDFs
   console.log(`PDF has ${pdf.numPages} pages, ${fullText.length} chars. Sending to AI...`);
   try {
     const aiResult = await parseWithAI(fullText);
@@ -205,10 +208,100 @@ export async function parsePDF(file) {
   }
 
   // Regex fallback
-  const regexResult = parseTabularRows(allRows);
+  const regexResult = parseTabularRows(allRowsPlain);
   regexResult.usedAI = false;
   console.log(`Regex fallback found ${regexResult.entries.length} entries`);
   return regexResult;
+}
+
+// ---------------------------------------------------------------------------
+// Detects side-by-side course columns (e.g. LCM | SCY | Event | SCY | LCM)
+// and rewrites rows into explicit format: "Girls LCM 50 Free: 35.49"
+// Uses x-coordinates from PDF.js for accurate column mapping.
+// ---------------------------------------------------------------------------
+function preprocessSideBySideTable(rowsWithPos) {
+  const COURSE_RE = /^(SCY|LCM|SCM)$/i;
+  const TIME_RE = /^\d{1,2}:\d{2}\.\d{2}$|^\d+\.\d{2}$/;
+
+  // First, find any header row that has at least 2 course labels
+  let foundHeader = false;
+  for (const row of rowsWithPos) {
+    const courseCount = row.filter(item => COURSE_RE.test(item.str)).length;
+    if (courseCount >= 2) { foundHeader = true; break; }
+  }
+  if (!foundHeader) return null;
+
+  // Determine Girls/Boys side: scan for GIRLS/BOYS labels
+  let leftGender = 'Girls', rightGender = 'Boys';
+  for (const row of rowsWithPos) {
+    const strs = row.map(item => item.str.toUpperCase());
+    if (strs.includes('GIRLS') && strs.includes('BOYS')) {
+      const girlsX = row.find(item => item.str.toUpperCase() === 'GIRLS')?.x ?? 0;
+      const boysX = row.find(item => item.str.toUpperCase() === 'BOYS')?.x ?? 0;
+      if (girlsX > boysX) { leftGender = 'Boys'; rightGender = 'Girls'; }
+      break;
+    }
+  }
+
+  const lines = [];
+  let columnDefs = null; // [{x, course, gender}]
+
+  for (const row of rowsWithPos) {
+    const courseItems = row.filter(item => COURSE_RE.test(item.str));
+
+    // Header row: build column definitions using x-coordinates
+    if (courseItems.length >= 2) {
+      const nonCourseItems = row.filter(item => !COURSE_RE.test(item.str) && item.str.length > 0);
+      const ageGroup = nonCourseItems.map(item => item.str).join(' ');
+      const centerX = nonCourseItems.length > 0
+        ? nonCourseItems.reduce((sum, item) => sum + item.x, 0) / nonCourseItems.length
+        : row[Math.floor(row.length / 2)]?.x ?? 0;
+
+      columnDefs = courseItems.map(item => ({
+        x: item.x,
+        course: item.str.toUpperCase(),
+        gender: item.x < centerX ? leftGender : rightGender,
+      })).sort((a, b) => a.x - b.x);
+
+      lines.push(`\n=== ${ageGroup} ===`);
+      continue;
+    }
+
+    // Skip GIRLS/BOYS label row
+    const strs = row.map(item => item.str.toUpperCase());
+    if (strs.includes('GIRLS') || strs.includes('BOYS')) {
+      if (strs.every(s => /^(GIRLS|BOYS)$/.test(s) || !s.trim())) continue;
+    }
+
+    // Data row: match times to column positions
+    if (columnDefs) {
+      const timeItems = row.filter(item => TIME_RE.test(item.str));
+      const textItems = row.filter(item => !TIME_RE.test(item.str) && !COURSE_RE.test(item.str) && item.str.length > 0);
+
+      if (timeItems.length > 0 && textItems.length > 0) {
+        const eventName = textItems.map(item => item.str).join(' ')
+          .replace(/^\d+-\d+\s+/, '').trim();
+
+        for (const timeItem of timeItems) {
+          let bestCol = columnDefs[0];
+          let bestDist = Math.abs(timeItem.x - bestCol.x);
+          for (const col of columnDefs) {
+            const dist = Math.abs(timeItem.x - col.x);
+            if (dist < bestDist) { bestCol = col; bestDist = dist; }
+          }
+          lines.push(`${bestCol.gender} ${bestCol.course} ${eventName}: ${timeItem.str}`);
+        }
+        continue;
+      }
+    }
+
+    // Pass through non-data rows
+    const lineText = row.map(item => item.str).join(' ').trim();
+    if (lineText) lines.push(lineText);
+  }
+
+  const hasCourseLabels = lines.some(l => /^(Girls|Boys)\s+(SCY|LCM|SCM)\s+/.test(l));
+  return hasCourseLabels ? lines.join('\n') : null;
 }
 
 // ---------------------------------------------------------------------------
