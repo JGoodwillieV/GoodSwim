@@ -276,6 +276,50 @@ function CoachesSchedulingGuide() {
   );
 }
 
+function AddPracticesGuide() {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+        <h3 className="text-lg font-bold text-slate-900 mb-1">Add Practices</h3>
+        <p className="text-sm text-slate-500 mb-6">Create and build out your practice plans.</p>
+
+        <div className="space-y-5">
+          <StepItem number={1}>
+            Click <span className="font-semibold text-slate-900">"Schedule"</span> in the navigation.
+          </StepItem>
+          <StepItem number={2}>
+            Select the <span className="font-semibold text-slate-900">day and group section</span> that you want.
+          </StepItem>
+          <StepItem number={3}>
+            Use the modern editor or select <span className="font-semibold text-slate-900">"Quick Entry"</span> for a text editor.
+          </StepItem>
+          <StepItem number={4}>
+            <span className="font-semibold text-slate-900">Save</span> or <span className="font-semibold text-slate-900">"Parse & Save"</span> when done.
+          </StepItem>
+          <StepItem number={5}>
+            Double check everything is correct then either <span className="font-semibold text-slate-900">"Print"</span> the workout, <span className="font-semibold text-slate-900">"Run Practice"</span>, or just <span className="font-semibold text-slate-900">"Save & Close"</span>.
+          </StepItem>
+        </div>
+      </div>
+
+      {/* Video Tutorial */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+        <h3 className="text-lg font-bold text-slate-900 mb-4">Video Walkthrough</h3>
+        <div className="rounded-xl overflow-hidden bg-slate-900">
+          <video
+            controls
+            className="w-full"
+            preload="metadata"
+          >
+            <source src="/videos/adding-practice.webm" type="video/webm" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AddResultsGuide() {
   return (
     <div className="space-y-6">
@@ -420,6 +464,8 @@ export default function HelpHub({ navigateTo, isParentView = false }) {
             <PracticeScheduleGuide />
           ) : selectedArticle === 'coaches-scheduling' ? (
             <CoachesSchedulingGuide />
+          ) : selectedArticle === 'add-practices' ? (
+            <AddPracticesGuide />
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 p-8 md:p-12 text-center">
               <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-6">
