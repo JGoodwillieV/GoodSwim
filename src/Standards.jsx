@@ -3,9 +3,12 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from './supabase';
 import { Trophy, List } from 'lucide-react';
 import StandardsModal from './StandardsModal';
+import { useTeamRole } from './hooks/useTeamRole';
 
 export default function Standards({ eventName, bestTime, gender, age, course = 'SCY' }) {
+  const { teamId } = useTeamRole();
   const [standards, setStandards] = useState([]);
+  const [customStandards, setCustomStandards] = useState([]);
   const [nextCut, setNextCut] = useState(null);
   const [currentLevel, setCurrentLevel] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,46 +21,76 @@ export default function Standards({ eventName, bestTime, gender, age, course = '
       const distance = parts[0];
       const stroke = parts[1] || ''; 
 
-      // FIX 1: Explicitly ignore 25 yard events
       if (distance === '25') {
         setStandards([]);
+        setCustomStandards([]);
         setNextCut(null);
         setCurrentLevel(null);
         return;
       }
 
-      // 1. Fetch standards for this stroke/age/gender/course
-      // We use a broader search here and filter strictly in JS below
       const { data } = await supabase
         .from('time_standards')
         .select('*')
         .eq('gender', gender)
         .eq('course', course)
-        .ilike('event', `%${stroke}%`) // Match "Free", "Fly", "Breast"
+        .ilike('event', `%${stroke}%`)
         .lte('age_min', age)
         .gte('age_max', age)
-        .order('time_seconds', { ascending: true }); // Fastest first
+        .order('time_seconds', { ascending: true });
 
       if (data && data.length > 0) {
-        // FIX 2: Strict Distance Filtering
-        // Ensure "100" doesn't match "1000" and "50" doesn't match "500"
-        // We check if the DB event starts with "DISTANCE " (e.g. "100 ")
         const strictMatches = data.filter(std => {
              const stdEvent = std.event.toLowerCase();
-             // Check distance (Must start with "50 " or "100 ")
              const distMatch = stdEvent.startsWith(`${distance} `);
-             // Check stroke (Double check fuzzy match)
              const strokeMatch = stdEvent.includes(stroke.toLowerCase()) || (stroke.toLowerCase() === 'fly' && stdEvent.includes('butter'));
-             
              return distMatch && strokeMatch;
         });
 
         setStandards(strictMatches);
         calculateStanding(strictMatches, bestTime);
       }
+
+      // Fetch custom standards from team's selected sets
+      if (teamId) {
+        try {
+          const { data: selections } = await supabase
+            .from('team_standard_selections')
+            .select('set_id')
+            .eq('team_id', teamId);
+
+          if (selections && selections.length > 0) {
+            const setIds = selections.map(s => s.set_id);
+            const { data: customData } = await supabase
+              .from('time_standard_entries')
+              .select('*, time_standard_sets!inner(name)')
+              .in('set_id', setIds)
+              .eq('gender', gender)
+              .eq('course', course)
+              .lte('age_min', age)
+              .gte('age_max', age)
+              .order('time_seconds', { ascending: true });
+
+            if (customData) {
+              const customMatches = customData.filter(std => {
+                const stdEvent = std.event.toLowerCase();
+                const distMatch = stdEvent.startsWith(`${distance} `);
+                const strokeMatch = stdEvent.includes(stroke.toLowerCase()) || (stroke.toLowerCase() === 'fly' && stdEvent.includes('butter'));
+                return distMatch && strokeMatch;
+              });
+              setCustomStandards(customMatches);
+            }
+          } else {
+            setCustomStandards([]);
+          }
+        } catch (err) {
+          console.error('Error fetching custom standards:', err);
+          setCustomStandards([]);
+        }
+      }
     };
     fetchStandards();
-  }, [eventName, bestTime, gender, age, course]);
+  }, [eventName, bestTime, gender, age, course, teamId]);
 
   const calculateStanding = (stds, time) => {
     if (!time || time <= 0 || !stds.length) {
@@ -153,6 +186,7 @@ export default function Standards({ eventName, bestTime, gender, age, course = '
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         standards={standards}
+        customStandards={customStandards}
         bestTime={bestTime}
         eventName={eventName}
         age={age}

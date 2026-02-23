@@ -95,6 +95,14 @@ export const FEATURES = {
   },
 
   // =========== TEAM FEATURES ===========
+  time_standards: {
+    key: 'time_standards',
+    label: 'Time Standards',
+    description: 'Upload and manage custom time standards for your team',
+    requiredTier: TIERS.STARTER,
+    icon: 'clock',
+    category: 'team'
+  },
   team_records: {
     key: 'team_records',
     label: 'Team Records Board',

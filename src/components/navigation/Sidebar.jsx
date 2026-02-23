@@ -33,7 +33,7 @@ const navItems = [
     label: 'Team',
     description: 'Roster, groups & records',
     requiredFeature: null,
-    hasProFeatures: ['team_records', 'trophy_case']
+    hasProFeatures: ['team_records', 'trophy_case', 'time_standards']
   },
   { 
     id: 'communications', 

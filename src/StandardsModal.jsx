@@ -1,16 +1,15 @@
 // src/StandardsModal.jsx
 import React, { useEffect, useState } from 'react';
-import { X, Trophy, Clock, Star } from 'lucide-react';
+import { X, Trophy, Clock, Star, Tag } from 'lucide-react';
 import { supabase } from './supabase';
 
-export default function StandardsModal({ isOpen, onClose, standards, bestTime, eventName, age, gender, course = 'SCY' }) {
+export default function StandardsModal({ isOpen, onClose, standards, customStandards = [], bestTime, eventName, age, gender, course = 'SCY' }) {
   const [teamRecord, setTeamRecord] = useState(null);
 
   useEffect(() => {
     const fetchTeamRecord = async () => {
       if (!isOpen || !eventName || !age || !gender) return;
 
-      // Determine age group
       let ageGroup;
       if (age <= 8) ageGroup = '8 & Under';
       else if (age <= 10) ageGroup = '9/10';
@@ -18,10 +17,8 @@ export default function StandardsModal({ isOpen, onClose, standards, bestTime, e
       else if (age <= 14) ageGroup = '13/14';
       else ageGroup = '15 & Over';
 
-      // Convert gender format: M/F -> Male/Female
       const genderFull = gender === 'M' || gender === 'Male' ? 'Male' : 'Female';
 
-      // Fetch team record from database (filtered by course)
       const { data, error } = await supabase
         .from('team_records')
         .select('*')
@@ -43,7 +40,6 @@ export default function StandardsModal({ isOpen, onClose, standards, bestTime, e
 
   if (!isOpen) return null;
 
-  // Helper to format time
   const secondsToTime = (val) => {
     if (!val) return "-";
     const mins = Math.floor(val / 60);
@@ -51,7 +47,6 @@ export default function StandardsModal({ isOpen, onClose, standards, bestTime, e
     return mins > 0 ? `${mins}:${secs.padStart(5, '0')}` : secs;
   };
 
-  // 1. Create a "Ghost Standard" for the swimmer's time
   const myTimeEntry = {
     id: 'my-time',
     name: 'Your Best Time',
@@ -60,7 +55,6 @@ export default function StandardsModal({ isOpen, onClose, standards, bestTime, e
     isMe: true
   };
 
-  // 2. Add team record if available
   const teamRecordEntry = teamRecord ? {
     id: 'team-record',
     name: `Team Record (${teamRecord.swimmer_name})`,
@@ -69,11 +63,21 @@ export default function StandardsModal({ isOpen, onClose, standards, bestTime, e
     isTeamRecord: true
   } : null;
 
-  // 3. Merge with official standards and Sort (Fastest/Lowest Seconds First)
-  const itemsToMerge = [myTimeEntry, ...standards];
+  const customEntries = customStandards.map(cs => ({
+    id: `custom-${cs.id}`,
+    name: cs.standard_name || 'QT',
+    setName: cs.time_standard_sets?.name || '',
+    time_seconds: cs.time_seconds,
+    time_string: cs.time_string,
+    isCustom: true
+  }));
+
+  const itemsToMerge = [myTimeEntry, ...standards, ...customEntries];
   if (teamRecordEntry) itemsToMerge.push(teamRecordEntry);
   
   const combinedList = itemsToMerge.sort((a, b) => a.time_seconds - b.time_seconds);
+
+  const hasCustom = customEntries.length > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
@@ -96,44 +100,57 @@ export default function StandardsModal({ isOpen, onClose, standards, bestTime, e
         <div className="overflow-y-auto p-2 space-y-1 flex-1">
           {combinedList.map((std, idx) => (
             <div 
-              key={idx}
+              key={std.id || idx}
               className={`flex justify-between items-center p-3 rounded-lg text-sm ${
                 std.isMe 
                   ? 'bg-blue-600 text-white font-bold shadow-lg ring-2 ring-blue-400 my-2 scale-105 origin-center z-10 relative' 
                   : std.isTeamRecord
                   ? 'bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-bold shadow-lg ring-2 ring-yellow-400 my-2 scale-105 origin-center z-10 relative'
+                  : std.isCustom
+                  ? 'bg-violet-900/40 text-violet-200 border border-violet-700/50'
                   : 'bg-slate-800/50 text-slate-300 border border-transparent'
               }`}
             >
-              <div className="flex items-center gap-3">
-                {/* Rank/Icon */}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                    std.isMe 
                      ? 'bg-white text-blue-600' 
                      : std.isTeamRecord 
                      ? 'bg-white text-orange-600' 
+                     : std.isCustom
+                     ? 'bg-violet-700 text-violet-200'
                      : 'bg-slate-700 text-slate-500'
                 }`}>
-                   {std.isMe ? <Clock size={16} /> : std.isTeamRecord ? <Star size={16} /> : idx + 1}
+                   {std.isMe ? <Clock size={16} /> : std.isTeamRecord ? <Star size={16} /> : std.isCustom ? <Tag size={14} /> : idx + 1}
                 </div>
-                <span className={std.isTeamRecord ? 'flex items-center gap-2' : ''}>
-                  {std.name}
-                </span>
+                <div className="min-w-0">
+                  <span className={`block truncate ${std.isTeamRecord ? 'flex items-center gap-2' : ''}`}>
+                    {std.name}
+                  </span>
+                  {std.isCustom && std.setName && (
+                    <span className="text-[10px] text-violet-400 truncate block">{std.setName}</span>
+                  )}
+                </div>
               </div>
-              <span className="font-mono">{std.time_string}</span>
+              <span className="font-mono shrink-0 ml-2">{std.time_string}</span>
             </div>
           ))}
         </div>
 
         {/* Footer Legend */}
         <div className="p-3 bg-slate-800 border-t border-slate-700 text-center text-xs text-slate-500">
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center justify-center gap-4 flex-wrap">
             <span className="flex items-center gap-1">
               <Star size={12} className="text-orange-500" /> = Team Record
             </span>
             <span className="flex items-center gap-1">
               <Clock size={12} className="text-blue-500" /> = Your Best
             </span>
+            {hasCustom && (
+              <span className="flex items-center gap-1">
+                <Tag size={12} className="text-violet-400" /> = Custom
+              </span>
+            )}
           </div>
         </div>
       </div>
