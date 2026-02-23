@@ -179,6 +179,103 @@ function ImportRosterGuide() {
   );
 }
 
+function PracticeScheduleGuide() {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+        <h3 className="text-lg font-bold text-slate-900 mb-1">Practice Times</h3>
+        <p className="text-sm text-slate-500 mb-6">Set up your practice groups, days, and time slots for the season.</p>
+
+        <div className="space-y-5">
+          <StepItem number={1}>
+            Click <span className="font-semibold text-slate-900">"Schedule"</span>.
+          </StepItem>
+          <StepItem number={2}>
+            Click <span className="font-semibold text-slate-900">"Practice Times"</span>.
+          </StepItem>
+          <StepItem number={3}>
+            Adjust the <span className="font-semibold text-slate-900">"season" dates</span> by clicking the <span className="font-semibold text-slate-900">gear icon</span>.
+          </StepItem>
+          <StepItem number={4}>
+            Click the <span className="font-semibold text-slate-900">"+ Add Group"</span> button.
+          </StepItem>
+          <StepItem number={5}>
+            Type in the group name then click <span className="font-semibold text-slate-900">"Add Group"</span> to save.
+          </StepItem>
+          <StepItem number={6}>
+            Hover over a day on the calendar and click the <span className="font-semibold text-slate-900">"+"</span> section to add a time slot.
+          </StepItem>
+          <StepItem number={7}>
+            Fill out the information then click <span className="font-semibold text-slate-900">"Add"</span>.
+          </StepItem>
+          <StepItem number={8}>
+            Hover over that new entry and click <span className="font-semibold text-slate-900">"Copy Day"</span> to copy that time slot for the rest of the season.
+          </StepItem>
+        </div>
+      </div>
+
+      {/* Video Tutorial */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+        <h3 className="text-lg font-bold text-slate-900 mb-4">Video Walkthrough</h3>
+        <div className="rounded-xl overflow-hidden bg-slate-900">
+          <video
+            controls
+            className="w-full"
+            preload="metadata"
+          >
+            <source src="/videos/add-groups-coaches.webm" type="video/webm" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CoachesSchedulingGuide() {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+        <h3 className="text-lg font-bold text-slate-900 mb-1">Coach Assignments</h3>
+        <p className="text-sm text-slate-500 mb-6">Add staff members and assign them to practice groups.</p>
+
+        <div className="space-y-5">
+          <StepItem number={1}>
+            Click <span className="font-semibold text-slate-900">"Schedule"</span> then <span className="font-semibold text-slate-900">"Coach Assignments"</span>.
+          </StepItem>
+          <StepItem number={2}>
+            Click <span className="font-semibold text-slate-900">"Add Staff"</span> and fill out information.
+          </StepItem>
+          <StepItem number={3}>
+            Click the <span className="font-semibold text-slate-900">green arrows icon</span> next to the new staff member to add them to a group.
+          </StepItem>
+          <StepItem number={4}>
+            You will see them show up in the <span className="font-semibold text-slate-900">"Practice Groups"</span> section on the right.
+          </StepItem>
+          <StepItem number={5}>
+            If a coach can't make it or is sick, you can either click the yellow <span className="font-semibold text-slate-900">"Override"</span> button or select the particular date on the <span className="font-semibold text-slate-900">"Weekly View"</span> tab.
+          </StepItem>
+        </div>
+      </div>
+
+      {/* Video Tutorial */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+        <h3 className="text-lg font-bold text-slate-900 mb-4">Video Walkthrough</h3>
+        <div className="rounded-xl overflow-hidden bg-slate-900">
+          <video
+            controls
+            className="w-full"
+            preload="metadata"
+          >
+            <source src="/videos/add-groups-coaches.webm" type="video/webm" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AddResultsGuide() {
   return (
     <div className="space-y-6">
@@ -319,6 +416,10 @@ export default function HelpHub({ navigateTo, isParentView = false }) {
             <ImportRosterGuide />
           ) : selectedArticle === 'add-results' ? (
             <AddResultsGuide />
+          ) : selectedArticle === 'practice-schedule' ? (
+            <PracticeScheduleGuide />
+          ) : selectedArticle === 'coaches-scheduling' ? (
+            <CoachesSchedulingGuide />
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 p-8 md:p-12 text-center">
               <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-6">
