@@ -207,10 +207,10 @@ export async function parsePDF(file) {
   try {
     let aiResult;
     if (fullText.trim().length === 0) {
-      // Image-based PDF — send raw file to Gemini for visual parsing
-      console.log('No text extracted (image-based PDF). Sending raw file to AI...');
-      const base64 = await fileToBase64(file);
-      aiResult = await parseWithAI('', base64);
+      console.log('No text extracted (image-based PDF). Rendering pages to images...');
+      const pageImages = await renderPDFPagesToImages(file);
+      console.log(`Rendered ${pageImages.length} page images. Sending to AI...`);
+      aiResult = await parseWithAI('', pageImages);
     } else {
       aiResult = await parseWithAI(fullText);
     }
@@ -239,16 +239,25 @@ export async function parsePDF(file) {
   return regexResult;
 }
 
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result;
-      resolve(dataUrl.split(',')[1]);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+async function renderPDFPagesToImages(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const images = [];
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const scale = 1.5;
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    images.push(dataUrl.split(',')[1]);
+  }
+
+  return images;
 }
 
 // ---------------------------------------------------------------------------
@@ -258,14 +267,14 @@ export async function reparseFileWithAI(file) {
   const name = file.name.toLowerCase();
   let fullText = '';
 
-  let base64 = null;
+  let pageImages = null;
 
   if (name.endsWith('.pdf')) {
     const extracted = await extractPDFText(file);
     fullText = extracted.fullText;
     if (fullText.trim().length === 0) {
-      console.log('Re-parse: image-based PDF, sending raw file...');
-      base64 = await fileToBase64(file);
+      console.log('Re-parse: image-based PDF, rendering pages...');
+      pageImages = await renderPDFPagesToImages(file);
     }
   } else if (name.endsWith('.csv')) {
     fullText = await file.text();
@@ -280,8 +289,8 @@ export async function reparseFileWithAI(file) {
     throw new Error('Unsupported file type');
   }
 
-  console.log(`Re-parsing with AI: ${fullText.length} chars${base64 ? ' (image PDF)' : ''}`);
-  const result = await parseWithAI(fullText, base64);
+  console.log(`Re-parsing with AI: ${fullText.length} chars${pageImages ? ' (image PDF)' : ''}`);
+  const result = await parseWithAI(fullText, pageImages);
   result.usedAI = true;
   return result;
 }
@@ -477,15 +486,14 @@ function parseSideBySideTable(rowsWithPos) {
 // AI Parser — sends extracted text to Supabase edge function
 // Splits large documents into chunks to avoid truncation
 // ---------------------------------------------------------------------------
-async function parseWithAI(fullText, fileBase64 = null) {
+async function parseWithAI(fullText, pageImages = null) {
   const CHUNK_LIMIT = 80000;
 
   let allEntries = [];
   let metadata = { name: '', organization: '', season: '', course: null, courses_found: [] };
 
-  if (fileBase64) {
-    // Image-based PDF — send raw file directly, no chunking
-    const result = await callAIParser('', fileBase64);
+  if (pageImages) {
+    const result = await callAIParser('', pageImages);
     metadata = result.metadata;
     allEntries = result.entries;
   } else if (fullText.length <= CHUNK_LIMIT) {
@@ -545,8 +553,8 @@ function splitIntoCoursesSections(text, maxChunkSize) {
   return sections;
 }
 
-async function callAIParser(text, fileBase64 = null) {
-  const body = fileBase64 ? { file_base64: fileBase64 } : { text };
+async function callAIParser(text, pageImages = null) {
+  const body = pageImages ? { page_images: pageImages } : { text };
   const { data, error } = await supabase.functions.invoke('parse-time-standards', {
     body
   });

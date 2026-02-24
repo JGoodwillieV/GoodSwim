@@ -19,9 +19,9 @@ Deno.serve(async (req) => {
       throw new Error('GEMINI_API_KEY is not configured')
     }
 
-    const { text, file_base64 } = await req.json()
-    if ((!text || typeof text !== 'string') && !file_base64) {
-      throw new Error('Missing "text" or "file_base64" field')
+    const { text, page_images } = await req.json()
+    if ((!text || typeof text !== 'string') && !page_images) {
+      throw new Error('Missing "text" or "page_images" field')
     }
 
     const prompt = `You are a swim time standards parser. Extract ALL time standard entries from this document.
@@ -83,11 +83,13 @@ Return valid JSON in exactly this format:
   ]
 }`
 
-    // Build request parts: either send raw PDF for image-based docs, or extracted text
+    // Build request parts: page images for scanned PDFs, or extracted text
     const parts: any[] = []
-    if (file_base64) {
-      parts.push({ text: prompt + '\n\nSee the attached PDF document.' })
-      parts.push({ inlineData: { mimeType: 'application/pdf', data: file_base64 } })
+    if (page_images && Array.isArray(page_images) && page_images.length > 0) {
+      parts.push({ text: prompt + '\n\nSee the attached page images from the PDF document.' })
+      for (const img of page_images) {
+        parts.push({ inlineData: { mimeType: 'image/jpeg', data: img } })
+      }
     } else {
       const truncated = text.slice(0, 200000)
       parts.push({ text: prompt + '\n\nDocument text:\n' + truncated })
