@@ -44,17 +44,24 @@ function parseAgeGroup(str) {
 
   const rangeMatch = key.match(/(\d+)\s*[-/&]\s*(\d+)/);
   if (rangeMatch) {
-    return { min: parseInt(rangeMatch[1], 10), max: parseInt(rangeMatch[2], 10) };
+    const min = parseInt(rangeMatch[1], 10);
+    const max = parseInt(rangeMatch[2], 10);
+    if (min > 19 || (max > 19 && max < 99)) return null;
+    return { min, max };
   }
 
   const overMatch = key.match(/(\d+)\s*(?:&\s*over|\+|and\s*over)/i);
   if (overMatch) {
-    return { min: parseInt(overMatch[1], 10), max: 99 };
+    const min = parseInt(overMatch[1], 10);
+    if (min > 19) return null;
+    return { min, max: 99 };
   }
 
   const underMatch = key.match(/(\d+)\s*(?:&\s*under|and\s*under|-u|u)/i);
   if (underMatch) {
-    return { min: 0, max: parseInt(underMatch[1], 10) };
+    const max = parseInt(underMatch[1], 10);
+    if (max > 19) return null;
+    return { min: 0, max };
   }
 
   return null;
@@ -63,8 +70,8 @@ function parseAgeGroup(str) {
 function normalizeGender(str) {
   if (!str) return null;
   const s = String(str).trim().toLowerCase();
-  if (s === 'm' || s === 'male' || s === 'boys' || s === 'boy' || s === 'men') return 'M';
-  if (s === 'f' || s === 'female' || s === 'girls' || s === 'girl' || s === 'women') return 'F';
+  if (s === 'm' || s === 'male' || s === 'boys' || s === 'boy' || s === 'men' || s === 'man') return 'M';
+  if (s === 'f' || s === 'female' || s === 'girls' || s === 'girl' || s === 'women' || s === 'woman') return 'F';
   return null;
 }
 
@@ -234,13 +241,13 @@ function parseSideBySideTable(rowsWithPos) {
   }
   if (!hasHeader) return null;
 
-  // Determine left/right gender from GIRLS/BOYS labels (default: left=F, right=M)
+  // Determine left/right gender from GIRLS/BOYS/WOMEN/MEN labels (default: left=F, right=M)
   let leftGender = 'F', rightGender = 'M';
   for (const row of rowsWithPos) {
-    const girlsItem = row.find(item => /^GIRLS?$/i.test(item.str));
-    const boysItem = row.find(item => /^BOYS?$/i.test(item.str));
-    if (girlsItem && boysItem) {
-      if (girlsItem.x > boysItem.x) { leftGender = 'M'; rightGender = 'F'; }
+    const femaleItem = row.find(item => /^(GIRLS?|WOMEN|FEMALE)$/i.test(item.str));
+    const maleItem = row.find(item => /^(BOYS?|MEN|MALE)$/i.test(item.str));
+    if (femaleItem && maleItem) {
+      if (femaleItem.x > maleItem.x) { leftGender = 'M'; rightGender = 'F'; }
       break;
     }
   }
@@ -258,11 +265,22 @@ function parseSideBySideTable(rowsWithPos) {
     if (courseItems.length >= 2) {
       const nonCourseItems = row.filter(item => !COURSE_RE.test(item.str) && item.str.length > 0);
       const ageText = nonCourseItems.map(item => item.str).join(' ');
-      currentAgeGroup = parseAgeGroup(ageText);
+      const parsedAge = parseAgeGroup(ageText);
+      if (parsedAge) {
+        currentAgeGroup = parsedAge;
+      } else if (!currentAgeGroup) {
+        currentAgeGroup = { min: 0, max: 99 };
+      }
 
-      const centerX = nonCourseItems.length > 0
-        ? nonCourseItems.reduce((sum, item) => sum + item.x, 0) / nonCourseItems.length
-        : row[Math.floor(row.length / 2)]?.x ?? 0;
+      // Determine center position for left/right gender split
+      let centerX;
+      if (nonCourseItems.length > 0) {
+        centerX = nonCourseItems.reduce((sum, item) => sum + item.x, 0) / nonCourseItems.length;
+      } else {
+        // All items are course labels — use midpoint of the row's x-range
+        const xs = courseItems.map(item => item.x);
+        centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
+      }
 
       columnDefs = courseItems.map(item => ({
         x: item.x,
@@ -272,8 +290,8 @@ function parseSideBySideTable(rowsWithPos) {
       continue;
     }
 
-    // --- Skip standalone gender label rows ---
-    if (row.every(item => /^(GIRLS?|BOYS?)$/i.test(item.str) || !item.str.trim())) continue;
+    // --- Skip standalone gender/label rows (GIRLS, BOYS, WOMEN, MEN, Events, etc.) ---
+    if (row.every(item => /^(GIRLS?|BOYS?|WOMEN|MEN|MALE|FEMALE|EVENTS?)$/i.test(item.str) || !item.str.trim())) continue;
 
     // --- Capture document title from rows before first header ---
     if (!columnDefs) {
@@ -295,17 +313,30 @@ function parseSideBySideTable(rowsWithPos) {
     if (timeItems.length === 0 || textItems.length === 0) continue;
 
     const rawEventName = textItems.map(item => item.str).join(' ').replace(/^\d+-\d+\s+/, '').trim();
-    const eventName = normalizeEvent(rawEventName);
-    if (!eventName) continue;
+
+    // Detect dual-distance events like "400/500 Free" or "1500/1650 Free"
+    const dualDistMatch = rawEventName.match(/^(\d+)\s*\/\s*(\d+)\s+(.+)$/);
 
     for (const timeItem of timeItems) {
-      // Find the column definition closest to this time's x-position
       let bestCol = columnDefs[0];
       let bestDist = Math.abs(timeItem.x - bestCol.x);
       for (const col of columnDefs) {
         const dist = Math.abs(timeItem.x - col.x);
         if (dist < bestDist) { bestCol = col; bestDist = dist; }
       }
+
+      // For dual-distance events, pick the correct distance for the course
+      let eventName;
+      if (dualDistMatch) {
+        const metersDist = dualDistMatch[1];
+        const yardsDist = dualDistMatch[2];
+        const stroke = dualDistMatch[3];
+        const dist = bestCol.course === 'SCY' ? yardsDist : metersDist;
+        eventName = normalizeEvent(`${dist} ${stroke}`);
+      } else {
+        eventName = normalizeEvent(rawEventName);
+      }
+      if (!eventName) continue;
 
       const seconds = timeToSeconds(timeItem.str);
       if (!seconds || seconds <= 0) continue;
@@ -647,8 +678,8 @@ function detectGenderFromLine(line) {
 
 function detectAgeGroupFromLine(line) {
   const patterns = [
-    /(\d+)\s*(?:&|and)\s*(under|over)/i,
-    /(\d+)\s*[-/]\s*(\d+)/,
+    /\b(\d{1,2})\s*(?:&|and)\s*(under|over)\b/i,
+    /\b(\d{1,2})\s*[-/]\s*(\d{1,2})\b/,
     /\b(open|senior)\b/i,
   ];
   for (const p of patterns) {

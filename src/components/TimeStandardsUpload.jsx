@@ -378,7 +378,7 @@ export default function TimeStandardsUpload({ onClose, onComplete }) {
                             <tr key={i} className="border-b border-slate-50 last:border-0">
                               <td className="px-3 py-1.5 text-slate-600">{e.gender === 'M' ? 'Boys' : 'Girls'}</td>
                               <td className="px-3 py-1.5 text-slate-600">
-                                {e.age_min === 0 ? `${e.age_max} & Under` : e.age_max >= 99 ? `${e.age_min} & Over` : `${e.age_min}-${e.age_max}`}
+                                {e.age_min === 0 && e.age_max >= 99 ? 'Open' : e.age_min === 0 ? `${e.age_max} & Under` : e.age_max >= 99 ? `${e.age_min} & Over` : `${e.age_min}-${e.age_max}`}
                               </td>
                               <td className="px-3 py-1.5 text-slate-500">{e.standard_name}</td>
                               <td className="px-3 py-1.5">
