@@ -59,7 +59,7 @@ CRITICAL INSTRUCTIONS:
 - Age groups are typically: 10 & Under, 11-12, 13-14, 15 & Over (or 8 & Under, 9-10, 11-12, 13-14, 15-16, 17-18)
 - If the document has separate columns for different age groups, extract each age group separately
 - Convert times to seconds accurately: "1:05.49" = 65.49 seconds, "2:15.39" = 135.39 seconds
-- For relay events (e.g., "200 Medley Relay", "400 Free Relay"), include them with the event name containing "Relay"
+- COMPLETELY SKIP all relay events (e.g., "200 Medley Relay", "400 Free Relay", "800 Free Relay", any event with "Relay" in the name). Do NOT include relay entries in the output. Only extract INDIVIDUAL event times.
 - Some events may only have times for one course (e.g., 100 IM may only have SCY times). Only create entries for times that actually exist — do not fabricate missing times.
 
 Return valid JSON in exactly this format:

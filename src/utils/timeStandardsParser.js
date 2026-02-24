@@ -593,7 +593,8 @@ async function callAIParser(text, pageImages = null) {
       time_seconds: typeof e.time_seconds === 'number' ? e.time_seconds : timeToSeconds(e.time_string),
       time_string: e.time_string,
     }))
-    .filter(e => e.time_seconds && e.time_seconds > 0 && e.event && e.gender);
+    .filter(e => e.time_seconds && e.time_seconds > 0 && e.event && e.gender)
+    .filter(e => !/relay/i.test(e.event));
 
   return { metadata, entries };
 }
