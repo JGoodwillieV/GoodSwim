@@ -559,6 +559,8 @@ async function callAIParser(text, fileBase64 = null) {
     throw new Error(data.error);
   }
 
+  console.log('AI response structure:', JSON.stringify(data).slice(0, 500));
+
   const metadata = {
     name: data.metadata?.name || '',
     organization: '',
@@ -567,7 +569,12 @@ async function callAIParser(text, fileBase64 = null) {
     courses_found: data.metadata?.courses_found || [],
   };
 
-  const entries = (data.entries || [])
+  let rawEntries = data.entries || [];
+  if (!Array.isArray(rawEntries)) {
+    rawEntries = Object.values(rawEntries);
+  }
+
+  const entries = rawEntries
     .map(e => ({
       standard_name: e.standard_name || 'QT',
       event: normalizeEvent(e.event) || e.event,
