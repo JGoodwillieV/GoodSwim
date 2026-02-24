@@ -100,6 +100,7 @@ ${truncated}`
             temperature: 0.1,
             maxOutputTokens: 65536,
             responseMimeType: 'application/json',
+            thinkingConfig: { thinkingBudget: 0 },
           },
         }),
       }
