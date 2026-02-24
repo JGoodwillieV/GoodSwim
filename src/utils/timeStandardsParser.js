@@ -197,21 +197,13 @@ async function extractPDFText(file) {
 }
 
 // ---------------------------------------------------------------------------
-// PDF Parser — client-side first for recognized formats, then AI, then regex
+// PDF Parser — always AI first, client-side as fallback
 // ---------------------------------------------------------------------------
 export async function parsePDF(file) {
   const { allRowsWithPos, allRowsPlain, fullText, numPages } = await extractPDFText(file);
 
-  // 1) Try deterministic client-side parse for side-by-side course tables
-  const sideBySlideResult = parseSideBySideTable(allRowsWithPos);
-  if (sideBySlideResult && sideBySlideResult.entries.length > 0) {
-    console.log(`Side-by-side parser found ${sideBySlideResult.entries.length} entries across courses: ${sideBySlideResult.metadata.courses_found.join(', ')}`);
-    sideBySlideResult.usedAI = false;
-    return sideBySlideResult;
-  }
-
-  // 2) Try AI for unrecognized/complex formats
-  console.log(`No recognized format detected. PDF has ${numPages} pages, ${fullText.length} chars. Sending to AI...`);
+  // 1) Always try AI first — handles arbitrary formats reliably
+  console.log(`PDF has ${numPages} pages, ${fullText.length} chars. Sending to AI...`);
   try {
     const aiResult = await parseWithAI(fullText);
     if (aiResult.entries.length > 0) {
@@ -219,8 +211,17 @@ export async function parsePDF(file) {
       aiResult.usedAI = true;
       return aiResult;
     }
+    console.log('AI returned 0 entries, trying client-side parser...');
   } catch (err) {
-    console.error('AI parsing failed, falling back to regex:', err);
+    console.error('AI parsing failed, trying client-side parser:', err);
+  }
+
+  // 2) Client-side fallback for side-by-side course tables
+  const sideBySlideResult = parseSideBySideTable(allRowsWithPos);
+  if (sideBySlideResult && sideBySlideResult.entries.length > 0) {
+    console.log(`Client-side parser found ${sideBySlideResult.entries.length} entries`);
+    sideBySlideResult.usedAI = false;
+    return sideBySlideResult;
   }
 
   // 3) Regex fallback

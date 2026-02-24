@@ -225,8 +225,8 @@ export default function TimeStandardsUpload({ onClose, onComplete }) {
                 {parsing ? (
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 size={32} className="text-blue-500 animate-spin" />
-                    <p className="text-slate-600 font-medium">Parsing file...</p>
-                    <p className="text-xs text-slate-400">Analyzing your document</p>
+                    <p className="text-slate-600 font-medium">AI is analyzing your document...</p>
+                    <p className="text-xs text-slate-400">This may take a few seconds</p>
                   </div>
                 ) : (
                   <>
