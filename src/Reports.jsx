@@ -20,6 +20,21 @@ import {
   parseEventName,
   STROKE_ORDER 
 } from './utils/eventUtils';
+import { useTeamRole } from './hooks/useTeamRole';
+import {
+  fetchCombinedStandardNames,
+  fetchStandardsBySelection,
+  fetchAllCombinedStandards,
+} from './utils/timeStandardsHelper';
+
+const getStandardDisplayName = (value, customOptions = []) => {
+  if (!value) return '';
+  if (value.startsWith('custom::')) {
+    const opt = customOptions.find(o => o.value === value);
+    return opt ? opt.label : value.split('::').pop();
+  }
+  return value;
+};
 
 // Wrapper for backward compatibility with local parseEvent signature
 const parseEvent = (evt) => {
@@ -152,6 +167,8 @@ export default function Reports({ onBack }) {
 
 // 4. CLOSE CALLS REPORT
 const CloseCallsReport = ({ onBack }) => {
+  const { teamId } = useTeamRole();
+
   // Filter State
   const [ageGroup, setAgeGroup] = useState('all');
   const [gender, setGender] = useState('all');
@@ -164,58 +181,23 @@ const CloseCallsReport = ({ onBack }) => {
   // Data State
   const [loading, setLoading] = useState(false);
   const [progressMsg, setProgressMsg] = useState('');
-  const [standardNames, setStandardNames] = useState([]);
+  const [defaultNames, setDefaultNames] = useState([]);
+  const [customOptions, setCustomOptions] = useState([]);
   const [results, setResults] = useState([]);
   const [hasGenerated, setHasGenerated] = useState(false);
 
-  // Fetch available standards on mount
   useEffect(() => {
-    const fetchStandards = async () => {
-      // Fetch ALL time standards with pagination to handle 1300+ rows
-      let allNames = [];
-      let page = 0;
-      let keepFetching = true;
-      
-      while (keepFetching) {
-        const { data: batch, error } = await supabase
-          .from('time_standards')
-          .select('name')
-          .range(page * 1000, (page + 1) * 1000 - 1);
-        
-        if (error || !batch || batch.length === 0) {
-          keepFetching = false;
-        } else {
-          allNames = [...allNames, ...batch.map(d => d.name)];
-          page++;
-          if (batch.length < 1000) keepFetching = false; // Last page
-        }
-      }
-      
-      if (allNames.length > 0) {
-        const unique = [...new Set(allNames)];
-        
-        // Sort standards in a logical order: Championship standards first, then motivational
-        const standardOrder = ['Nationals', 'US JR', 'Winter JR', 'Futures', 'NCSA JR', 'Sectionals', 
-                               'VSI SC', 'VSI AG', 'AAAA', 'AAA', 'AA', 'A', 'BB', 'B'];
-        const sorted = unique.sort((a, b) => {
-          const aIndex = standardOrder.indexOf(a);
-          const bIndex = standardOrder.indexOf(b);
-          if (aIndex === -1 && bIndex === -1) return a.localeCompare(b); // alphabetical for unknowns
-          if (aIndex === -1) return 1; // unknowns go to end
-          if (bIndex === -1) return -1;
-          return aIndex - bIndex;
-        });
-        
-        setStandardNames(sorted);
-        // Default to Sectionals if available, otherwise first motivational standard
-        const defaultStd = sorted.find(s => s === 'Sectionals') || 
-                          sorted.find(s => ['B', 'BB', 'A', 'AA', 'AAA', 'AAAA'].includes(s)) || 
-                          sorted[0];
-        if (defaultStd) setSelectedStandard(defaultStd);
-      }
+    const loadStandardNames = async () => {
+      const { defaultNames: dNames, customOptions: cOpts } = await fetchCombinedStandardNames(teamId);
+      setDefaultNames(dNames);
+      setCustomOptions(cOpts);
+      const defaultStd = dNames.find(s => s === 'Sectionals') ||
+                          dNames.find(s => ['B', 'BB', 'A', 'AA', 'AAA', 'AAAA'].includes(s)) ||
+                          dNames[0];
+      if (defaultStd) setSelectedStandard(defaultStd);
     };
-    fetchStandards();
-  }, []);
+    loadStandardNames();
+  }, [teamId]);
 
   const generateReport = async () => {
     if (!selectedStandard) return alert('Please select a time standard.');
@@ -229,13 +211,9 @@ const CloseCallsReport = ({ onBack }) => {
       setProgressMsg('Loading swimmers...');
       const { data: swimmers } = await supabase.from('swimmers').select('*');
 
-      // 2. Fetch Standards for selected cut, filtered by course
+      // 2. Fetch Standards for selected cut, filtered by course (supports custom sets)
       setProgressMsg('Loading time standards...');
-      const { data: standards } = await supabase
-        .from('time_standards')
-        .select('*')
-        .eq('name', selectedStandard)
-        .eq('course', course);
+      const standards = await fetchStandardsBySelection(selectedStandard, course);
 
       // 3. Fetch ALL results (paginated), filtered by course
       let allResults = [];
@@ -419,6 +397,8 @@ const CloseCallsReport = ({ onBack }) => {
     return { uniqueSwimmers, within1, within2, closestCall, totalEvents: results.length };
   }, [results]);
 
+  const standardLabel = getStandardDisplayName(selectedStandard, customOptions);
+
   return (
     <div className="space-y-6 animate-in fade-in">
       {/* Header */}
@@ -495,9 +475,18 @@ const CloseCallsReport = ({ onBack }) => {
               className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Select Standard...</option>
-              {standardNames.map(name => (
-                <option key={name} value={name}>{name}</option>
-              ))}
+              <optgroup label="USA Swimming">
+                {defaultNames.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </optgroup>
+              {customOptions.length > 0 && (
+                <optgroup label="Team Standards">
+                  {customOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </div>
 
@@ -627,7 +616,7 @@ const CloseCallsReport = ({ onBack }) => {
               <Target size={48} className="mx-auto text-slate-300 mb-4" />
               <h3 className="font-bold text-slate-700 text-lg mb-2">No Close Calls Found</h3>
               <p className="text-slate-500 text-sm">
-                No swimmers are within {filterBy === 'seconds' ? `${withinSeconds} second${withinSeconds !== 1 ? 's' : ''}` : `${withinPercent}%`} of a {selectedStandard} cut ({course}) with the selected filters.
+                No swimmers are within {filterBy === 'seconds' ? `${withinSeconds} second${withinSeconds !== 1 ? 's' : ''}` : `${withinPercent}%`} of a {standardLabel} cut ({course}) with the selected filters.
               </p>
             </div>
           ) : (
@@ -682,7 +671,7 @@ const CloseCallsReport = ({ onBack }) => {
 
                             {/* Cut Time */}
                             <div className="text-right">
-                              <div className="text-xs text-slate-400 uppercase">{selectedStandard}</div>
+                              <div className="text-xs text-slate-400 uppercase">{standardLabel}</div>
                               <div className="font-mono font-bold text-blue-600">{evt.cutTime}</div>
                             </div>
 
@@ -735,58 +724,27 @@ const CloseCallsReport = ({ onBack }) => {
 
 // 1. QUALIFIERS REPORT
 const QualifiersReport = ({ onBack }) => {
+  const { teamId } = useTeamRole();
+
   const [loading, setLoading] = useState(false);
   const [progressMsg, setProgressMsg] = useState("");
-  const [standardNames, setStandardNames] = useState([]);
+  const [defaultNames, setDefaultNames] = useState([]);
+  const [customOptions, setCustomOptions] = useState([]);
   const [selectedStandard, setSelectedStandard] = useState("");
   const [course, setCourse] = useState('SCY');
   const [rows, setRows] = useState([]);
   const [showQualifiersOnly, setShowQualifiersOnly] = useState(true);
 
   useEffect(() => {
-    const fetchStandardsList = async () => {
-      // Fetch ALL time standards with pagination to handle 1300+ rows
-      let allNames = [];
-      let page = 0;
-      let keepFetching = true;
-      
-      while (keepFetching) {
-        const { data: batch, error } = await supabase
-          .from('time_standards')
-          .select('name')
-          .range(page * 1000, (page + 1) * 1000 - 1);
-        
-        if (error || !batch || batch.length === 0) {
-          keepFetching = false;
-        } else {
-          allNames = [...allNames, ...batch.map(d => d.name)];
-          page++;
-          if (batch.length < 1000) keepFetching = false; // Last page
-        }
-      }
-      
-      if (allNames.length > 0) {
-        const unique = [...new Set(allNames)];
-        
-        // Sort standards in a logical order: Championship standards first, then motivational
-        const standardOrder = ['Nationals', 'US JR', 'Winter JR', 'Futures', 'NCSA JR', 'Sectionals', 
-                               'VSI SC', 'VSI AG', 'AAAA', 'AAA', 'AA', 'A', 'BB', 'B'];
-        const sorted = unique.sort((a, b) => {
-          const aIndex = standardOrder.indexOf(a);
-          const bIndex = standardOrder.indexOf(b);
-          if (aIndex === -1 && bIndex === -1) return a.localeCompare(b); // alphabetical for unknowns
-          if (aIndex === -1) return 1; // unknowns go to end
-          if (bIndex === -1) return -1;
-          return aIndex - bIndex;
-        });
-        
-        setStandardNames(sorted);
-        if (sorted.includes('Sectionals')) setSelectedStandard('Sectionals');
-        else if (sorted.length > 0) setSelectedStandard(sorted[0]);
-      }
+    const loadStandardNames = async () => {
+      const { defaultNames: dNames, customOptions: cOpts } = await fetchCombinedStandardNames(teamId);
+      setDefaultNames(dNames);
+      setCustomOptions(cOpts);
+      if (dNames.includes('Sectionals')) setSelectedStandard('Sectionals');
+      else if (dNames.length > 0) setSelectedStandard(dNames[0]);
     };
-    fetchStandardsList();
-  }, []);
+    loadStandardNames();
+  }, [teamId]);
 
   useEffect(() => {
     const runReport = async () => {
@@ -795,7 +753,7 @@ const QualifiersReport = ({ onBack }) => {
       setRows([]);
 
       const { data: swimmers } = await supabase.from('swimmers').select('*');
-      const { data: cuts } = await supabase.from('time_standards').select('*').eq('name', selectedStandard).eq('course', course);
+      const cuts = await fetchStandardsBySelection(selectedStandard, course);
 
       // Fetch ALL results filtered by course
       let allResults = [];
@@ -819,7 +777,7 @@ const QualifiersReport = ({ onBack }) => {
           }
       }
 
-      if (!swimmers || !cuts) { setLoading(false); return; }
+      if (!swimmers || !cuts || cuts.length === 0) { setLoading(false); return; }
 
       setProgressMsg("Analyzing data...");
       const processedList = [];
@@ -941,7 +899,14 @@ const QualifiersReport = ({ onBack }) => {
                   </div>
                 </div>
                 <select value={selectedStandard} onChange={(e) => setSelectedStandard(e.target.value)} className="bg-slate-50 border border-slate-300 p-2 rounded-lg text-sm font-bold text-slate-800 w-full sm:w-auto min-w-[200px]">
-                    {standardNames.map(name => <option key={name} value={name}>{name} Standard</option>)}
+                    <optgroup label="USA Swimming">
+                      {defaultNames.map(name => <option key={name} value={name}>{name} Standard</option>)}
+                    </optgroup>
+                    {customOptions.length > 0 && (
+                      <optgroup label="Team Standards">
+                        {customOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                      </optgroup>
+                    )}
                 </select>
               </div>
           </div>
@@ -1780,6 +1745,8 @@ const TeamRecordsReport = ({ onBack }) => {
 // --- PLACEHOLDERS FOR OTHER REPORTS (Will Implement Next) ---
 // 3. BIG MOVERS REPORT
 const BigMoversReport = ({ onBack }) => {
+  const { teamId } = useTeamRole();
+
   // View State
   const [activeView, setActiveView] = useState('total'); // 'total', 'percentage', 'besttimes', 'standards'
   
@@ -1874,9 +1841,9 @@ const BigMoversReport = ({ onBack }) => {
         }
       }
       
-      // 4. Load time standards for progression tracking
+      // 4. Load time standards for progression tracking (includes custom team standards)
       setProgressMsg('Loading time standards...');
-      const { data: standards } = await supabase.from('time_standards').select('*');
+      const standards = await fetchAllCombinedStandards(teamId);
       
       // 5. Process swimmers
       setProgressMsg('Analyzing improvements...');
@@ -2845,6 +2812,7 @@ const GroupProgressionReport = ({ onBack }) => <div className="p-8"><button onCl
 
 // 5. TEAM FUNNEL REPORT
 const TeamFunnelReport = ({ onBack }) => {
+  const { teamId } = useTeamRole();
   const [loading, setLoading] = useState(true);
   const [progressMsg, setProgressMsg] = useState('');
   const [funnelData, setFunnelData] = useState([]);
@@ -2876,13 +2844,12 @@ const TeamFunnelReport = ({ onBack }) => {
       // 1. Fetch swimmers
       const { data: swimmers } = await supabase.from('swimmers').select('*');
 
-      // 2. Fetch all motivational standards filtered by course
+      // 2. Fetch all standards (default + custom) then filter to motivational levels
       setProgressMsg('Loading time standards...');
-      const { data: standards } = await supabase
-        .from('time_standards')
-        .select('*')
-        .in('name', ['B', 'BB', 'A', 'AA', 'AAA', 'AAAA'])
-        .eq('course', course);
+      const allStandards = await fetchAllCombinedStandards(teamId);
+      const standards = allStandards.filter(
+        s => ['B', 'BB', 'A', 'AA', 'AAA', 'AAAA'].includes(s.name) && s.course === course
+      );
 
       // 3. Fetch all results (paginated), filtered by course
       let allResults = [];

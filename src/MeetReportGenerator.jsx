@@ -26,6 +26,8 @@ import {
   secondsToTime 
 } from './utils/timeUtils';
 import { parseEventName } from './utils/eventUtils';
+import { useTeamRole } from './hooks/useTeamRole';
+import { fetchAllCombinedStandards } from './utils/timeStandardsHelper';
 
 // Wrapper for backward compatibility with local parseEvent signature
 const parseEvent = (evt) => {
@@ -724,6 +726,7 @@ const generateClassicPDFContent = (data) => {
 // ============================================
 
 export default function MeetReportGenerator({ onBack }) {
+  const { teamId } = useTeamRole();
   const [step, setStep] = useState('select');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [selectedGroups, setSelectedGroups] = useState([]);
@@ -1207,7 +1210,7 @@ export default function MeetReportGenerator({ onBack }) {
       setLoadingMessage('Loading time standards...');
       setLoadingProgress(60);
       
-      const { data: standards } = await supabase.from('time_standards').select('*');
+      const standards = await fetchAllCombinedStandards(teamId);
 
       setLoadingMessage('Analyzing meet performance...');
       setLoadingProgress(70);
