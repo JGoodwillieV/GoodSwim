@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { X, Upload, FileText, ChevronRight, ChevronLeft, Check, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useTeamRole } from '../hooks/useTeamRole';
-import { parseTimeStandardsFile } from '../utils/timeStandardsParser';
+import { parseTimeStandardsFile, reparseFileWithAI } from '../utils/timeStandardsParser';
 import { LSC_LIST } from '../utils/lscList';
 
 const STEPS = ['Upload File', 'Details', 'Preview & Confirm'];
@@ -23,6 +23,8 @@ export default function TimeStandardsUpload({ onClose, onComplete }) {
   const [parsedResult, setParsedResult] = useState(null);
   const [saving, setSaving] = useState(false);
   const [usedAI, setUsedAI] = useState(false);
+  const [reparsing, setReparsing] = useState(false);
+  const [reparseError, setReparseError] = useState(null);
 
   const [metadata, setMetadata] = useState({
     name: '',
@@ -60,6 +62,32 @@ export default function TimeStandardsUpload({ onClose, onComplete }) {
       setParseError(err.message || 'Failed to parse file.');
     } finally {
       setParsing(false);
+    }
+  };
+
+  const handleReparseWithAI = async () => {
+    if (!file) return;
+    setReparsing(true);
+    setReparseError(null);
+
+    try {
+      const result = await reparseFileWithAI(file);
+      if (result.entries.length === 0) {
+        setReparseError('AI could not extract any entries from this file.');
+        return;
+      }
+      setParsedResult(result);
+      setUsedAI(true);
+      setMetadata(prev => ({
+        ...prev,
+        name: result.metadata.name || prev.name,
+        season: result.metadata.season || prev.season,
+      }));
+    } catch (err) {
+      console.error('AI re-parse error:', err);
+      setReparseError(err.message || 'AI parsing failed. Please try again.');
+    } finally {
+      setReparsing(false);
     }
   };
 
@@ -198,7 +226,7 @@ export default function TimeStandardsUpload({ onClose, onComplete }) {
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 size={32} className="text-blue-500 animate-spin" />
                     <p className="text-slate-600 font-medium">Parsing file...</p>
-                    <p className="text-xs text-slate-400">AI is analyzing your document — this may take 15-30 seconds for large PDFs</p>
+                    <p className="text-xs text-slate-400">Analyzing your document</p>
                   </div>
                 ) : (
                   <>
@@ -313,17 +341,41 @@ export default function TimeStandardsUpload({ onClose, onComplete }) {
               </div>
 
               {entryCount > 0 && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-2">
-                  <Check size={16} className="text-green-600" />
-                  <p className="text-sm text-green-700">
-                    <span className="font-semibold">{entryCount}</span> time entries parsed across{' '}
-                    <span className="font-semibold">{uniqueEvents.length}</span> events
-                    {usedAI && (
-                      <span className="ml-2 inline-flex items-center gap-1 text-xs text-violet-600">
-                        <Sparkles size={10} /> via AI
-                      </span>
-                    )}
-                  </p>
+                <div className="p-3 bg-green-50 border border-green-200 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Check size={16} className="text-green-600 shrink-0" />
+                    <p className="text-sm text-green-700">
+                      <span className="font-semibold">{entryCount}</span> time entries parsed across{' '}
+                      <span className="font-semibold">{uniqueEvents.length}</span> events
+                      {usedAI && (
+                        <span className="ml-2 inline-flex items-center gap-1 text-xs text-violet-600">
+                          <Sparkles size={10} /> via AI
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  {!usedAI && !reparsing && (
+                    <button
+                      onClick={handleReparseWithAI}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg transition-colors shrink-0 ml-3"
+                    >
+                      <Sparkles size={12} />
+                      Re-parse with AI
+                    </button>
+                  )}
+                  {reparsing && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-600 shrink-0 ml-3">
+                      <Loader2 size={12} className="animate-spin" />
+                      AI parsing...
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {reparseError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
+                  <AlertCircle size={16} className="text-red-500 mt-0.5 shrink-0" />
+                  <p className="text-sm text-red-700">{reparseError}</p>
                 </div>
               )}
             </div>

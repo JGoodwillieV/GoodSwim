@@ -142,9 +142,9 @@ export async function parseExcel(file) {
 }
 
 // ---------------------------------------------------------------------------
-// PDF Parser — tries client-side structured parse first, then AI, then regex
+// PDF text extraction — shared between parsePDF and reparseWithAI
 // ---------------------------------------------------------------------------
-export async function parsePDF(file) {
+async function extractPDFText(file) {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
@@ -192,6 +192,16 @@ export async function parsePDF(file) {
     }
   }
 
+  const fullText = allRowsPlain.map(r => r.join('\t')).join('\n');
+  return { allRowsWithPos, allRowsPlain, fullText, numPages: pdf.numPages };
+}
+
+// ---------------------------------------------------------------------------
+// PDF Parser — client-side first for recognized formats, then AI, then regex
+// ---------------------------------------------------------------------------
+export async function parsePDF(file) {
+  const { allRowsWithPos, allRowsPlain, fullText, numPages } = await extractPDFText(file);
+
   // 1) Try deterministic client-side parse for side-by-side course tables
   const sideBySlideResult = parseSideBySideTable(allRowsWithPos);
   if (sideBySlideResult && sideBySlideResult.entries.length > 0) {
@@ -200,9 +210,8 @@ export async function parsePDF(file) {
     return sideBySlideResult;
   }
 
-  // 2) Try AI for complex/unstructured PDFs
-  const fullText = allRowsPlain.map(r => r.join('\t')).join('\n');
-  console.log(`PDF has ${pdf.numPages} pages, ${fullText.length} chars. Sending to AI...`);
+  // 2) Try AI for unrecognized/complex formats
+  console.log(`No recognized format detected. PDF has ${numPages} pages, ${fullText.length} chars. Sending to AI...`);
   try {
     const aiResult = await parseWithAI(fullText);
     if (aiResult.entries.length > 0) {
@@ -222,6 +231,35 @@ export async function parsePDF(file) {
 }
 
 // ---------------------------------------------------------------------------
+// Re-parse with AI — called explicitly by the user to override client-side results
+// ---------------------------------------------------------------------------
+export async function reparseFileWithAI(file) {
+  const name = file.name.toLowerCase();
+  let fullText = '';
+
+  if (name.endsWith('.pdf')) {
+    const extracted = await extractPDFText(file);
+    fullText = extracted.fullText;
+  } else if (name.endsWith('.csv')) {
+    fullText = await file.text();
+  } else if (name.endsWith('.xls') || name.endsWith('.xlsx')) {
+    const data = new Uint8Array(await file.arrayBuffer());
+    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+    fullText = rows.map(r => r.map(c => String(c ?? '').trim()).join('\t')).join('\n');
+  } else {
+    throw new Error('Unsupported file type');
+  }
+
+  console.log(`Re-parsing with AI: ${fullText.length} chars`);
+  const result = await parseWithAI(fullText);
+  result.usedAI = true;
+  return result;
+}
+
+// ---------------------------------------------------------------------------
 // Client-side parser for side-by-side course tables
 // e.g.  LCM | SCY | Event | SCY | LCM  (with Girls left, Boys right)
 // Uses x-coordinates from PDF.js to map each time to its course column.
@@ -230,18 +268,79 @@ export async function parsePDF(file) {
 function parseSideBySideTable(rowsWithPos) {
   const COURSE_RE = /^(SCY|LCM|SCM)$/i;
   const TIME_RE = /^\d{1,2}:\d{2}\.\d{2}$|^\d+\.\d{2}$/;
+  const GENDER_LABEL_RE = /^(GIRLS?|BOYS?|WOMEN|MEN|MALE|FEMALE|EVENTS?)$/i;
 
-  // Check if any row has >= 2 course labels
-  let hasHeader = false;
-  for (const row of rowsWithPos) {
-    if (row.filter(item => COURSE_RE.test(item.str)).length >= 2) {
-      hasHeader = true;
-      break;
+  // ---- Pre-check: does this document have side-by-side course headers? ----
+  const headerRowIndices = [];
+  for (let i = 0; i < rowsWithPos.length; i++) {
+    if (rowsWithPos[i].filter(item => COURSE_RE.test(item.str)).length >= 2) {
+      headerRowIndices.push(i);
     }
   }
-  if (!hasHeader) return null;
+  if (headerRowIndices.length === 0) return null;
 
-  // Determine left/right gender from GIRLS/BOYS/WOMEN/MEN labels (default: left=F, right=M)
+  // ---- Pass 1: Pre-scan for age groups, titles, and gender labels ----
+  const rowTexts = rowsWithPos.map(row => row.map(item => item.str).join(' ').trim());
+
+  // Collect age group markers from ALL rows
+  const ageGroupMarkers = [];
+  for (let i = 0; i < rowTexts.length; i++) {
+    const ag = detectAgeGroupFromLine(rowTexts[i]);
+    if (ag) ageGroupMarkers.push({ idx: i, ag });
+  }
+
+  // Build section-to-age-group map: for each header, find the nearest age group
+  const sectionAgeGroups = new Map();
+  for (let h = 0; h < headerRowIndices.length; h++) {
+    const hIdx = headerRowIndices[h];
+    const nextHIdx = h + 1 < headerRowIndices.length ? headerRowIndices[h + 1] : rowsWithPos.length;
+
+    // Check the header row itself first
+    const headerNonCourse = rowsWithPos[hIdx]
+      .filter(item => !COURSE_RE.test(item.str))
+      .map(item => item.str).join(' ');
+    const headerAg = parseAgeGroup(headerNonCourse);
+    if (headerAg) {
+      sectionAgeGroups.set(hIdx, headerAg);
+      continue;
+    }
+
+    // Look for age group marker between this header and the next (or end)
+    for (const { idx, ag } of ageGroupMarkers) {
+      if (idx > hIdx && idx < nextHIdx) {
+        sectionAgeGroups.set(hIdx, ag);
+        break;
+      }
+    }
+  }
+
+  // Collect title candidates (non-time, non-label, non-footnote text)
+  const titleCandidates = [];
+  for (const text of rowTexts) {
+    if (!text || text.length <= 5 || text.length >= 200) continue;
+    if (/^\*|^qualifying|^valid|^approved/i.test(text)) continue;
+    const isLabel = text.split(/\s+/).every(w => GENDER_LABEL_RE.test(w) || COURSE_RE.test(w) || !w.trim());
+    if (isLabel) continue;
+    if (TIME_RE.test(text.split(/\s+/)[0])) continue;
+    if (detectAgeGroupFromLine(text)) continue;
+    titleCandidates.push(text);
+  }
+
+  // Pick best title: prefer specific names over generic "TIME STANDARDS"
+  let docTitle = '';
+  const specificTitle = titleCandidates.find(t => !/^\d{4}\s+TIME\s+STANDARDS?$/i.test(t) && !/^TIME\s+STANDARDS?$/i.test(t));
+  const genericTitle = titleCandidates.find(t => /TIME\s+STANDARDS?|QUALIFYING\s+TIMES?/i.test(t));
+  if (specificTitle && genericTitle) {
+    docTitle = `${genericTitle.match(/\d{4}/)?.[0] || ''} ${specificTitle}`.trim();
+  } else {
+    docTitle = specificTitle || genericTitle || titleCandidates[0] || '';
+  }
+
+  let docSeason = '';
+  const sm = docTitle.match(/\b(20\d{2})\s*[-/]\s*(20\d{2})\b/) || docTitle.match(/\b(20\d{2})\b/);
+  if (sm) docSeason = sm[0];
+
+  // Determine left/right gender
   let leftGender = 'F', rightGender = 'M';
   for (const row of rowsWithPos) {
     const femaleItem = row.find(item => /^(GIRLS?|WOMEN|FEMALE)$/i.test(item.str));
@@ -252,32 +351,24 @@ function parseSideBySideTable(rowsWithPos) {
     }
   }
 
+  // ---- Pass 2: Process data rows with pre-scanned context ----
   const entries = [];
   let columnDefs = null;
   let currentAgeGroup = null;
-  let docTitle = '';
-  let docSeason = '';
 
-  for (const row of rowsWithPos) {
+  for (let rowIdx = 0; rowIdx < rowsWithPos.length; rowIdx++) {
+    const row = rowsWithPos[rowIdx];
     const courseItems = row.filter(item => COURSE_RE.test(item.str));
 
     // --- Header row with course labels ---
     if (courseItems.length >= 2) {
-      const nonCourseItems = row.filter(item => !COURSE_RE.test(item.str) && item.str.length > 0);
-      const ageText = nonCourseItems.map(item => item.str).join(' ');
-      const parsedAge = parseAgeGroup(ageText);
-      if (parsedAge) {
-        currentAgeGroup = parsedAge;
-      } else if (!currentAgeGroup) {
-        currentAgeGroup = { min: 0, max: 99 };
-      }
+      currentAgeGroup = sectionAgeGroups.get(rowIdx) || currentAgeGroup || { min: 0, max: 99 };
 
-      // Determine center position for left/right gender split
       let centerX;
+      const nonCourseItems = row.filter(item => !COURSE_RE.test(item.str) && item.str.length > 0);
       if (nonCourseItems.length > 0) {
         centerX = nonCourseItems.reduce((sum, item) => sum + item.x, 0) / nonCourseItems.length;
       } else {
-        // All items are course labels — use midpoint of the row's x-range
         const xs = courseItems.map(item => item.x);
         centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
       }
@@ -290,19 +381,10 @@ function parseSideBySideTable(rowsWithPos) {
       continue;
     }
 
-    // --- Skip standalone gender/label rows (GIRLS, BOYS, WOMEN, MEN, Events, etc.) ---
-    if (row.every(item => /^(GIRLS?|BOYS?|WOMEN|MEN|MALE|FEMALE|EVENTS?)$/i.test(item.str) || !item.str.trim())) continue;
+    if (!columnDefs || !currentAgeGroup) continue;
 
-    // --- Capture document title from rows before first header ---
-    if (!columnDefs) {
-      const text = row.map(item => item.str).join(' ').trim();
-      if (!docTitle && text.length > 5 && text.length < 200) docTitle = text;
-      const sm = text.match(/\b(20\d{2})\s*[-/]\s*(20\d{2})\b/) || text.match(/\b(20\d{2})\b/);
-      if (sm && !docSeason) docSeason = sm[0];
-      continue;
-    }
-
-    if (!currentAgeGroup) continue;
+    // --- Skip label-only rows ---
+    if (row.every(item => GENDER_LABEL_RE.test(item.str) || !item.str.trim())) continue;
 
     // --- Data row: extract times and event name ---
     const timeItems = row.filter(item => TIME_RE.test(item.str));
@@ -313,8 +395,6 @@ function parseSideBySideTable(rowsWithPos) {
     if (timeItems.length === 0 || textItems.length === 0) continue;
 
     const rawEventName = textItems.map(item => item.str).join(' ').replace(/^\d+-\d+\s+/, '').trim();
-
-    // Detect dual-distance events like "400/500 Free" or "1500/1650 Free"
     const dualDistMatch = rawEventName.match(/^(\d+)\s*\/\s*(\d+)\s+(.+)$/);
 
     for (const timeItem of timeItems) {
@@ -325,7 +405,6 @@ function parseSideBySideTable(rowsWithPos) {
         if (dist < bestDist) { bestCol = col; bestDist = dist; }
       }
 
-      // For dual-distance events, pick the correct distance for the course
       let eventName;
       if (dualDistMatch) {
         const metersDist = dualDistMatch[1];
@@ -356,11 +435,10 @@ function parseSideBySideTable(rowsWithPos) {
 
   if (entries.length === 0) return null;
 
-  const seasonMatch = docTitle.match(/\b(20\d{2})\s*[-/]\s*(20\d{2})\b/) || docTitle.match(/\b(20\d{2})\b/);
   const metadata = {
     name: docTitle,
     organization: '',
-    season: seasonMatch ? seasonMatch[0] : docSeason,
+    season: docSeason,
     course: null,
     courses_found: [...new Set(entries.map(e => e.course))],
   };
