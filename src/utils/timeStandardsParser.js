@@ -205,7 +205,15 @@ export async function parsePDF(file) {
   // 1) Always try AI first — handles arbitrary formats reliably
   console.log(`PDF has ${numPages} pages, ${fullText.length} chars. Sending to AI...`);
   try {
-    const aiResult = await parseWithAI(fullText);
+    let aiResult;
+    if (fullText.trim().length === 0) {
+      // Image-based PDF — send raw file to Gemini for visual parsing
+      console.log('No text extracted (image-based PDF). Sending raw file to AI...');
+      const base64 = await fileToBase64(file);
+      aiResult = await parseWithAI('', base64);
+    } else {
+      aiResult = await parseWithAI(fullText);
+    }
     if (aiResult.entries.length > 0) {
       console.log(`AI parser found ${aiResult.entries.length} entries`);
       aiResult.usedAI = true;
@@ -231,6 +239,18 @@ export async function parsePDF(file) {
   return regexResult;
 }
 
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      resolve(dataUrl.split(',')[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Re-parse with AI — called explicitly by the user to override client-side results
 // ---------------------------------------------------------------------------
@@ -238,9 +258,15 @@ export async function reparseFileWithAI(file) {
   const name = file.name.toLowerCase();
   let fullText = '';
 
+  let base64 = null;
+
   if (name.endsWith('.pdf')) {
     const extracted = await extractPDFText(file);
     fullText = extracted.fullText;
+    if (fullText.trim().length === 0) {
+      console.log('Re-parse: image-based PDF, sending raw file...');
+      base64 = await fileToBase64(file);
+    }
   } else if (name.endsWith('.csv')) {
     fullText = await file.text();
   } else if (name.endsWith('.xls') || name.endsWith('.xlsx')) {
@@ -254,8 +280,8 @@ export async function reparseFileWithAI(file) {
     throw new Error('Unsupported file type');
   }
 
-  console.log(`Re-parsing with AI: ${fullText.length} chars`);
-  const result = await parseWithAI(fullText);
+  console.log(`Re-parsing with AI: ${fullText.length} chars${base64 ? ' (image PDF)' : ''}`);
+  const result = await parseWithAI(fullText, base64);
   result.usedAI = true;
   return result;
 }
@@ -451,19 +477,22 @@ function parseSideBySideTable(rowsWithPos) {
 // AI Parser — sends extracted text to Supabase edge function
 // Splits large documents into chunks to avoid truncation
 // ---------------------------------------------------------------------------
-async function parseWithAI(fullText) {
+async function parseWithAI(fullText, fileBase64 = null) {
   const CHUNK_LIMIT = 80000;
 
   let allEntries = [];
   let metadata = { name: '', organization: '', season: '', course: null, courses_found: [] };
 
-  if (fullText.length <= CHUNK_LIMIT) {
-    // Small enough to send in one call
+  if (fileBase64) {
+    // Image-based PDF — send raw file directly, no chunking
+    const result = await callAIParser('', fileBase64);
+    metadata = result.metadata;
+    allEntries = result.entries;
+  } else if (fullText.length <= CHUNK_LIMIT) {
     const result = await callAIParser(fullText);
     metadata = result.metadata;
     allEntries = result.entries;
   } else {
-    // Split into sections by course markers or page breaks
     const sections = splitIntoCoursesSections(fullText, CHUNK_LIMIT);
     console.log(`Document too large (${fullText.length} chars), split into ${sections.length} chunks`);
 
@@ -474,7 +503,6 @@ async function parseWithAI(fullText) {
         if (i === 0) {
           metadata = result.metadata;
         } else {
-          // Merge courses_found
           for (const c of result.metadata.courses_found || []) {
             if (!metadata.courses_found.includes(c)) metadata.courses_found.push(c);
           }
@@ -517,9 +545,10 @@ function splitIntoCoursesSections(text, maxChunkSize) {
   return sections;
 }
 
-async function callAIParser(text) {
+async function callAIParser(text, fileBase64 = null) {
+  const body = fileBase64 ? { file_base64: fileBase64 } : { text };
   const { data, error } = await supabase.functions.invoke('parse-time-standards', {
-    body: { text }
+    body
   });
 
   if (error) {

@@ -19,13 +19,10 @@ Deno.serve(async (req) => {
       throw new Error('GEMINI_API_KEY is not configured')
     }
 
-    const { text } = await req.json()
-    if (!text || typeof text !== 'string') {
-      throw new Error('Missing or invalid "text" field')
+    const { text, file_base64 } = await req.json()
+    if ((!text || typeof text !== 'string') && !file_base64) {
+      throw new Error('Missing "text" or "file_base64" field')
     }
-
-    // Gemini Flash supports ~1M tokens input, so we can handle large documents
-    const truncated = text.slice(0, 200000)
 
     const prompt = `You are a swim time standards parser. Extract ALL time standard entries from this document.
 
@@ -84,10 +81,17 @@ Return valid JSON in exactly this format:
       "standard_name": "QT"
     }
   ]
-}
+}`
 
-Document text:
-${truncated}`
+    // Build request parts: either send raw PDF for image-based docs, or extracted text
+    const parts: any[] = []
+    if (file_base64) {
+      parts.push({ text: prompt + '\n\nSee the attached PDF document.' })
+      parts.push({ inlineData: { mimeType: 'application/pdf', data: file_base64 } })
+    } else {
+      const truncated = text.slice(0, 200000)
+      parts.push({ text: prompt + '\n\nDocument text:\n' + truncated })
+    }
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${geminiKey}`,
@@ -95,7 +99,7 @@ ${truncated}`
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts }],
           generationConfig: {
             temperature: 0.1,
             maxOutputTokens: 65536,
