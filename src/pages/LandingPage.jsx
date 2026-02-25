@@ -454,9 +454,68 @@ function BadgeShowcase() {
   );
 }
 
+// Demo video modal component
+function DemoVideoModal({ isOpen, onClose }) {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen && videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div 
+        className="relative w-full max-w-5xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute -top-12 right-0 text-white/80 hover:text-white transition-colors flex items-center gap-2"
+        >
+          <span className="text-sm">Close</span>
+          <X size={24} />
+        </button>
+        <div className="relative rounded-2xl overflow-hidden bg-black shadow-2xl">
+          <video
+            ref={videoRef}
+            src="/demo-video.mp4"
+            className="w-full h-auto"
+            controls
+            autoPlay
+            playsInline
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [demoModalOpen, setDemoModalOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -468,6 +527,9 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white overflow-x-hidden">
+      {/* Demo Video Modal */}
+      <DemoVideoModal isOpen={demoModalOpen} onClose={() => setDemoModalOpen(false)} />
+
       {/* Background decorations */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-teal-400/10 rounded-full blur-3xl" />
@@ -576,7 +638,10 @@ export default function LandingPage() {
                 Start Your Free Trial
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
               </Link>
-              <button className="flex items-center gap-2 text-slate-700 text-lg px-8 py-4 rounded-2xl hover:bg-slate-100 font-medium transition-colors">
+              <button 
+                onClick={() => setDemoModalOpen(true)}
+                className="flex items-center gap-2 text-slate-700 text-lg px-8 py-4 rounded-2xl hover:bg-slate-100 font-medium transition-colors"
+              >
                 <Play size={20} className="text-teal-600" />
                 Watch Demo
               </button>
