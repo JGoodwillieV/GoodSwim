@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabase';
 import { useSubscription } from '../hooks/useSubscription';
+import { useIsDemo } from '../hooks/useIsDemo';
 import { 
   Check, 
   AlertTriangle, 
@@ -78,6 +79,7 @@ const PLANS = [
 
 export default function BillingSettings() {
   const { subscription, tier, swimmerCount, limits, loading, trialDaysLeft, isTrialExpiringSoon, isTrial, isPaid, isExpired, refresh, teamId } = useSubscription();
+  const { isDemo } = useIsDemo();
   const [processing, setProcessing] = useState(null);
   const [error, setError] = useState(null);
 
@@ -160,6 +162,20 @@ export default function BillingSettings() {
           <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Billing & Subscription</h1>
           <p className="text-slate-500 mt-1">Manage your GoodSwim subscription and billing</p>
         </div>
+
+        {/* Demo Mode Notice */}
+        {isDemo && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-amber-800 font-medium">Demo Mode</p>
+              <p className="text-amber-600 text-sm">
+                Billing is disabled in demo mode.{' '}
+                <a href="/signup" className="text-teal-600 font-medium hover:underline">Start a free trial</a> to set up billing.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Error Alert */}
         {error && (
@@ -359,9 +375,11 @@ export default function BillingSettings() {
 
                     {/* Action Button */}
                     <button
-                      onClick={() => !isCurrent && !isDowngrade && handleUpgrade(plan.id)}
-                      disabled={processing === plan.id || isCurrent || isDowngrade}
+                      onClick={() => !isCurrent && !isDowngrade && !isDemo && handleUpgrade(plan.id)}
+                      disabled={processing === plan.id || isCurrent || isDowngrade || isDemo}
                       className={`w-full py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all ${
+                        isDemo
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed' :
                         isCurrent 
                           ? 'bg-slate-100 text-slate-500 cursor-default' :
                         isDowngrade

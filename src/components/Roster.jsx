@@ -9,6 +9,7 @@ import { isValidTime } from '../utils/timeUtils';
 import { parseMemberDirectoryPDF } from '../utils/rosterPdfParser';
 import { useSubscription } from '../hooks/useSubscription';
 import { useFeatureGate, UsageLimitBanner } from './gates';
+import { useIsDemo } from '../hooks/useIsDemo';
 
 export default function Roster({ 
   swimmers, 
@@ -32,6 +33,7 @@ export default function Roster({
   const sd3Access = useFeatureGate('sd3_import');
   const csvAccess = useFeatureGate('csv_import');
   const maxSwimmers = getLimit('max_swimmers');
+  const { isDemo } = useIsDemo();
 
   const syncBillingAfterRosterChange = async (teamId) => {
     if (!isPaid || !teamId) return;
@@ -1000,20 +1002,26 @@ export default function Roster({
 
         <div className="flex gap-3 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
           <button 
-            onClick={() => { setImportType('results'); setShowImport(true); }} 
-            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 hover:text-blue-600 transition-colors whitespace-nowrap"
+            onClick={() => { if (!isDemo) { setImportType('results'); setShowImport(true); } }} 
+            disabled={isDemo}
+            title={isDemo ? 'Disabled in demo mode' : 'Import meet results'}
+            className={`flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${isDemo ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-50 hover:text-blue-600'}`}
           >
             <Icon name="trophy" size={16} /> Import Results
           </button>
           <button 
-            onClick={() => { setImportType('roster'); setShowImport(true); }} 
-            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors whitespace-nowrap"
+            onClick={() => { if (!isDemo) { setImportType('roster'); setShowImport(true); } }} 
+            disabled={isDemo}
+            title={isDemo ? 'Disabled in demo mode' : 'Import team roster'}
+            className={`flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${isDemo ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-50'}`}
           >
             <Icon name="file-up" size={16} /> Import Roster
           </button>
           <button 
-            onClick={handleAddManual} 
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            onClick={() => { if (!isDemo) handleAddManual(); }}
+            disabled={isDemo}
+            title={isDemo ? 'Disabled in demo mode' : 'Add swimmer manually'}
+            className={`flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isDemo ? 'opacity-40 cursor-not-allowed' : 'hover:bg-blue-700'}`}
           >
             <Icon name="plus" size={16} /> Add Swimmer
           </button>

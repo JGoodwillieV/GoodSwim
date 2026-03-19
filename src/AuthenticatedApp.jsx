@@ -61,6 +61,8 @@ import BillingSettings from './components/BillingSettings';
 import HelpHub from './components/HelpHub';
 import { SubscriptionProvider } from './hooks/useSubscription';
 import { TeamRoleProvider } from './hooks/useTeamRole';
+import { useIsDemo } from './hooks/useIsDemo';
+import DemoBanner from './components/DemoBanner';
 
 // Icons
 import { ChevronLeft } from 'lucide-react';
@@ -98,6 +100,9 @@ export default function App() {
   const [showAnnouncementComposer, setShowAnnouncementComposer] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [announcementsRefreshKey, setAnnouncementsRefreshKey] = useState(0);
+
+  // Demo account detection
+  const { isDemo } = useIsDemo();
 
   // --- Auth Effects ---
   useEffect(() => {
@@ -327,6 +332,8 @@ export default function App() {
   // --- Parent View ---
   if (userRole === 'parent') {
     return (
+      <>
+      {isDemo && <DemoBanner />}
       <div className="flex min-h-screen bg-[#f8fafc]">
         {view !== 'view-analysis' && (
           <ParentSidebar activeTab={view} setActiveTab={navigateTo} onLogout={handleLogout} session={session} />
@@ -416,6 +423,7 @@ export default function App() {
         
         <InstallPrompt />
       </div>
+      </>
     );
   }
 
@@ -423,6 +431,8 @@ export default function App() {
   return (
     <TeamRoleProvider>
     <SubscriptionProvider>
+    <>
+    {isDemo && <DemoBanner />}
     <div className="flex min-h-screen bg-[#f8fafc]">
       {view !== 'view-analysis' && (
         <Sidebar activeTab={view} setActiveTab={navigateTo} onLogout={handleLogout} session={session} />
@@ -440,7 +450,7 @@ export default function App() {
             swimmers={swimmers} 
             stats={stats}
             onLogout={handleLogout} 
-            onInviteParent={() => setShowInviteModal(true)}
+            onInviteParent={() => { if (!isDemo) setShowInviteModal(true); }}
           />
         )}
         
@@ -547,7 +557,7 @@ export default function App() {
               setEditingAnnouncement(announcement);
               setShowAnnouncementComposer(true);
             }}
-            onInviteParent={() => setShowInviteModal(true)}
+            onInviteParent={() => { if (!isDemo) setShowInviteModal(true); }}
             navigateTo={navigateTo}
             refreshKey={announcementsRefreshKey}
           />
@@ -871,6 +881,7 @@ export default function App() {
       
       <InstallPrompt />
     </div>
+    </>
     </SubscriptionProvider>
     </TeamRoleProvider>
   );

@@ -3,12 +3,13 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './supabase';
 
 // Pages
-import LandingPage from './pages/LandingPage'; // You will create this
+import LandingPage from './pages/LandingPage';
 import Login from './Login';
-import SignUp from './SignUp'; // You will create this
+import SignUp from './SignUp';
+import DemoLogin from './pages/DemoLogin';
 import InviteLanding from './InviteLanding';
 import CoachInviteLanding from './CoachInviteLanding';
-import AuthenticatedApp from './AuthenticatedApp'; // The moved code
+import AuthenticatedApp from './AuthenticatedApp';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/" element={!session ? <LandingPage /> : <Navigate to="/app" />} />
         <Route path="/login" element={!session ? <Login /> : <Navigate to="/app" />} />
         <Route path="/signup" element={!session ? <SignUp /> : <Navigate to="/app" />} />
+        <Route path="/demo" element={<DemoLogin />} />
         
         {/* Invite Routes (Handle deep links) */}
         <Route path="/invite/:token" element={<InviteLanding />} />

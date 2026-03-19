@@ -638,12 +638,18 @@ export default function LandingPage() {
                 Start Your Free Trial
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
               </Link>
+              <Link
+                to="/demo"
+                className="border-2 border-teal-500 text-teal-600 text-lg px-8 py-4 rounded-2xl hover:bg-teal-50 font-medium transition-all flex items-center gap-2"
+              >
+                Try Live Demo
+              </Link>
               <button 
                 onClick={() => setDemoModalOpen(true)}
                 className="flex items-center gap-2 text-slate-700 text-lg px-8 py-4 rounded-2xl hover:bg-slate-100 font-medium transition-colors"
               >
                 <Play size={20} className="text-teal-600" />
-                Watch Demo
+                Watch Video
               </button>
             </div>
 
@@ -969,10 +975,10 @@ export default function LandingPage() {
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link 
-              to="/login" 
+              to="/demo" 
               className="flex items-center justify-center gap-2 text-white text-lg px-8 py-4 rounded-2xl border-2 border-white/30 hover:bg-white/10 font-medium transition-colors"
             >
-              Sign In
+              Try Live Demo
             </Link>
           </div>
           <p className="text-teal-200 mt-6 text-sm">No credit card required • 14-day free trial • Cancel anytime</p>
